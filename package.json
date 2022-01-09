@@ -1,0 +1,16 @@
+{
+    "name": "PasteOfExile",
+    "version": "1.0.0",
+    "scripts": {
+        "build:css": "tailwindcss -i app/tailwind.css -o app/dist/.stage/styles.css --minify",
+        "tailwindcss": "tailwindcss",
+        "miniflare": "miniflare"
+    },
+    "dependencies": {
+        "autoprefixer": "^10.4.2",
+        "miniflare": "^2.0.0",
+        "postcss": "^8.4.5",
+        "tailwindcss": "^3.0.0"
+    },
+    "packageManager": "yarn@3.1.1"
+}

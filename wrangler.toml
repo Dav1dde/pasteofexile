@@ -1,0 +1,20 @@
+name = "ssr-workers"
+type = "javascript"
+workers_dev = true
+compatibility_date = "2022-01-05"
+
+[build]
+command = "trunk build --release && cd worker && worker-build --release"
+
+[build.upload]
+dir    = "worker/build/worker"
+format = "modules"
+main   = "./shim.mjs"
+
+[[build.upload.rules]]
+globs = ["worker/**/*.wasm"]
+type  = "CompiledWasm"
+
+[site]
+bucket = "./app/dist"
+exclude = ["./app/dist/.stage"]

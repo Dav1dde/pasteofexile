@@ -1,0 +1,7 @@
+/target
+**/*.rs.bk
+wasm-pack.log
+build/
+dist/
+node_modules
+yarn.lock

@@ -1,0 +1,11 @@
+[build]
+target = "app/index.html"
+dist = "app/dist"
+
+[clean]
+dist = "app/dist"
+
+[[hooks]]
+stage = "build"
+command = "sh"
+command_arguments = ["-c", "yarn tailwindcss -i app/tailwind.css -o $TRUNK_STAGING_DIR/styles.css --minify"]
