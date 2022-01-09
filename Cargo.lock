@@ -960,7 +960,9 @@ dependencies = [
  "app",
  "cfg-if 0.1.10",
  "console_error_panic_hook",
+ "serde",
  "serde_json",
+ "web-sys",
  "worker 0.0.7",
 ]
 

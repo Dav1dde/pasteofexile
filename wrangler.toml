@@ -5,6 +5,7 @@ compatibility_date = "2022-01-05"
 
 [build]
 command = "trunk build --release && cd worker && worker-build --release"
+# command = "trunk build && cd worker && worker-build --dev"
 
 [build.upload]
 dir    = "worker/build/worker"

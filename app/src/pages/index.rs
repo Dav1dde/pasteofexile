@@ -1,9 +1,8 @@
-use sycamore::prelude::*;
 #[cfg(not(feature = "ssr"))]
 use reqwasm::http::Request;
+use sycamore::prelude::*;
 #[cfg(not(feature = "ssr"))]
 use wasm_bindgen_futures::spawn_local;
-
 
 #[component(IndexPage<G>)]
 pub fn index_page() -> View<G> {
