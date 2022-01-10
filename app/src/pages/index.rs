@@ -1,26 +1,25 @@
-#[cfg(not(feature = "ssr"))]
-use reqwasm::http::Request;
 use sycamore::prelude::*;
-#[cfg(not(feature = "ssr"))]
-use wasm_bindgen_futures::spawn_local;
 
 #[component(IndexPage<G>)]
 pub fn index_page() -> View<G> {
     let value = Signal::new(String::new());
 
-    let submit_disabled = create_memo(cloned!((value) => move || (*value.get()).len() == 0));
+    let submit_disabled = create_memo(cloned!((value) => move || (*value.get()).is_empty()));
 
     #[cfg(not(feature = "ssr"))]
     let submit = cloned!((value) => move |_| {
+        use reqwasm::http::Request;
+        use wasm_bindgen_futures::spawn_local;
+
         let value = value.clone();
         spawn_local(async move {
-            let resp = Request::post("/api/v1/paste/")
+            let _resp = Request::post("/api/v1/paste/")
                 .body(&*value.get())
                 .send()
                 .await
                 .unwrap();
 
-            log::info!("{:?}", resp);
+            // TODO: redirect to paste
         })
     });
     #[cfg(feature = "ssr")]
@@ -30,9 +29,9 @@ pub fn index_page() -> View<G> {
         div {
             h1 { "Index" }
             textarea(bind:value=value)
-            button(on:click=submit, disabled=*submit_disabled.get()) {
-                "submit"
-            }
+                button(on:click=submit, disabled=*submit_disabled.get()) {
+                    "submit"
+                }
         }
     }
 }

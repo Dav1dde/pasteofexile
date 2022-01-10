@@ -21,7 +21,7 @@ pub fn btoa(s: &str) -> Result<String> {
 
 pub fn basic_auth(username: &str, password: &str) -> Result<String> {
     let mut s = username.to_owned();
-    s.push_str(":");
+    s.push(':');
     s.push_str(password);
 
     let mut result = "Basic ".to_owned();

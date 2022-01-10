@@ -1,7 +1,7 @@
+use crate::crypto::{hex, sha1};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use worker::{wasm_bindgen::JsValue, Env, Fetch, Headers, Method, Request, RequestInit, Result};
-use crate::crypto::{sha1, hex};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,7 +47,7 @@ pub struct UploadSettings<'a> {
     pub content_type: &'a str,
 }
 
-const AUTH_DETAILS_URL: &'static str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
+const AUTH_DETAILS_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
 pub struct B2 {
     key_id: String,
@@ -126,8 +126,8 @@ impl B2 {
 
         let mut headers = Headers::new();
         headers.set("Authorization", &upload.authorization_token)?;
-        headers.set("X-Bz-File-Name", &settings.file_name)?;
-        headers.set("Content-Type", &settings.content_type)?;
+        headers.set("X-Bz-File-Name", settings.file_name)?;
+        headers.set("Content-Type", settings.content_type)?;
         headers.set("X-Bz-Content-Sha1", &sha1)?;
 
         let request = Request::new_with_init(
@@ -144,8 +144,8 @@ impl B2 {
     }
 
     pub async fn download(&self, path: &str) -> Result<worker::Response> {
-        let mut url  = self.public_file_url.to_owned();
-        url.push_str("/");
+        let mut url = self.public_file_url.to_owned();
+        url.push('/');
         url.push_str(path);
 
         let request = Request::new(&url, Method::Get)?;

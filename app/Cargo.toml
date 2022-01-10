@@ -18,3 +18,4 @@ reqwasm = { version = "0.4", optional = true }
 console_error_panic_hook = "0.1"
 console_log = "0.2"
 log = "0.4"
+cfg-if = "1"

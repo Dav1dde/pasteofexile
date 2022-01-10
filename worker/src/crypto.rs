@@ -17,5 +17,5 @@ pub async fn sha1(data: &mut [u8]) -> Result<Vec<u8>> {
 }
 
 pub fn hex(data: &[u8]) -> String {
-    data.into_iter().map(|x| format!("{:02X}", x)).collect()
+    data.iter().map(|x| format!("{:02X}", x)).collect()
 }
