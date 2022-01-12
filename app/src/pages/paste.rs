@@ -1,4 +1,5 @@
 use cfg_if::cfg_if;
+use pob::PathOfBuilding;
 use sycamore::prelude::*;
 
 cfg_if! {
@@ -31,9 +32,12 @@ cfg_if! {
 pub fn paste_page(_content: String) -> View<G> {
     let content = get_content::<G>();
 
+    let pob = pob::SerdePathOfBuilding::from_export(&content).unwrap();
+    let title = format!("Level {} {}", pob.level(), pob.ascendancy_name());
+
     view! {
         div {
-            h1 { "Paste" }
+            h1 { (title) }
             textarea(readonly=true) {
                 (content)
             }

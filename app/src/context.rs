@@ -53,6 +53,7 @@ impl Context {
         self.inner.route.as_ref()
     }
 
+    // TODO: I dont like this get_* naming
     pub fn get_paste(&self) -> Option<&Paste> {
         match self.inner.inner {
             Inner::Paste(ref paste) => Some(paste),
@@ -61,7 +62,6 @@ impl Context {
     }
 }
 
-#[derive(Debug)]
 pub struct Paste {
     content: String,
 }

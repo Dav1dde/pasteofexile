@@ -1,0 +1,14 @@
+[package]
+name = "pob"
+version = "0.1.0"
+authors = ["David Herberth <github@dav1d.de>"]
+edition = "2021"
+
+[dependencies]
+flate2 = "1"
+log = "0.4"
+base64 = "0.13"
+serde = { version = "1", features = [ "derive" ] }
+quick-xml = { version = "0.22", features = [ "serialize" ] }
+anyhow = "1"
+

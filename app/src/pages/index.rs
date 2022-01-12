@@ -1,10 +1,13 @@
+use pob::PathOfBuilding;
 use sycamore::prelude::*;
 
 #[component(IndexPage<G>)]
 pub fn index_page() -> View<G> {
     let value = Signal::new(String::new());
 
-    let submit_disabled = create_memo(cloned!((value) => move || (*value.get()).is_empty()));
+    let submit_disabled = create_memo(cloned!((value) => move || {
+        pob::SerdePathOfBuilding::from_export(&*value.get()).is_err()
+    }));
 
     #[cfg(not(feature = "ssr"))]
     let submit = cloned!((value) => move |_| {

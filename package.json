@@ -2,7 +2,7 @@
     "name": "PasteOfExile",
     "version": "1.0.0",
     "scripts": {
-        "start": "miniflare -c wrangler.dev.toml",
+        "start": "miniflare -c wrangler.dev.toml --build-watch-path app/src --build-watch-path worker/src --build-watch-path pob/src",
         "build:css": "tailwindcss -i app/tailwind.css -o app/dist/.stage/styles.css --minify",
         "tailwindcss": "tailwindcss",
         "miniflare": "miniflare"
@@ -12,6 +12,5 @@
         "miniflare": "^2.0.0",
         "postcss": "^8.4.5",
         "tailwindcss": "^3.0.0"
-    },
-    "packageManager": "yarn@3.1.1"
+    }
 }
