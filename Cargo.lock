@@ -1035,6 +1035,7 @@ dependencies = [
  "cfg-if 0.1.10",
  "console_error_panic_hook",
  "js-sys",
+ "pob",
  "serde",
  "serde_json",
  "wasm-bindgen",

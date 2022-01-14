@@ -2,6 +2,7 @@ use crate::crypto::sha1;
 use crate::utils::hex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::borrow::Cow;
 use worker::{wasm_bindgen::JsValue, Env, Fetch, Headers, Method, Request, RequestInit, Result};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -42,10 +43,11 @@ pub struct UploadResponse {
     pub file_name: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct UploadSettings<'a> {
     pub filename: &'a str,
     pub content_type: &'a str,
+    pub sha1: Option<&'a str>,
 }
 
 const AUTH_DETAILS_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
@@ -123,7 +125,10 @@ impl B2 {
         settings: &UploadSettings<'_>,
         content: &mut [u8],
     ) -> Result<UploadResponse> {
-        let sha1 = hex(&sha1(content).await?);
+        let sha1 = match settings.sha1 {
+            Some(sha1) => Cow::Borrowed(sha1),
+            None => Cow::Owned(hex(&sha1(content).await?)),
+        };
 
         let mut headers = Headers::new();
         headers.set("Authorization", &upload.authorization_token)?;
