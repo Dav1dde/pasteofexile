@@ -30,6 +30,7 @@ cfg_if! {
 
 #[component(PastePage<G>)]
 pub fn paste_page(_content: String) -> View<G> {
+    // TODO: invalid ID -> this does not work because we should be on a 404 site not here
     let content = get_content::<G>();
 
     let pob = pob::SerdePathOfBuilding::from_export(&content).unwrap();

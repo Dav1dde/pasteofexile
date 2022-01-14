@@ -11,11 +11,14 @@ async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
     let upload = b2.get_upload_url(&auth).await?;
 
     let mut data = req.bytes().await?;
+
+    let filename = utils::to_path(&utils::random_id::<8>()?)?;
+
     let response = b2
         .upload(
             &upload,
             &b2::UploadSettings {
-                file_name: "foo",
+                filename: &filename,
                 content_type: "text/plain",
             },
             &mut data,
@@ -32,12 +35,17 @@ async fn build_context(env: &Env, route: app::Route) -> Result<app::Context> {
         Paste(name) => {
             let b2 = b2::B2::from_env(env)?;
 
-            let mut response = b2.download(&name).await?;
-            if response.status_code() == 200 {
-                let content = response.text().await?;
-                Context::paste(name, content)
-            } else {
-                Context::not_found()
+            match utils::to_path(&name) {
+                Err(_) => Context::not_found(),
+                Ok(path) => {
+                    let mut response = b2.download(&path).await?;
+                    if response.status_code() == 200 {
+                        let content = response.text().await?;
+                        Context::paste(name, content)
+                    } else {
+                        Context::not_found()
+                    }
+                }
             }
         }
     };

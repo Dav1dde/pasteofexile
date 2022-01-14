@@ -14,6 +14,10 @@ cfg_if! {
     }
 }
 
+pub fn hex(data: &[u8]) -> String {
+    data.iter().map(|x| format!("{:02X}", x)).collect()
+}
+
 pub fn btoa(s: &str) -> Result<String> {
     let worker: WorkerGlobalScope = js_sys::global().unchecked_into();
     Ok(worker.btoa(s)?)
@@ -26,5 +30,23 @@ pub fn basic_auth(username: &str, password: &str) -> Result<String> {
 
     let mut result = "Basic ".to_owned();
     result.push_str(&btoa(&s)?);
+    Ok(result)
+}
+
+pub fn random_id<const N: usize>() -> Result<String> {
+    let random = crate::crypto::get_random_values::<N>()?;
+    Ok(base64::encode_config(random, base64::URL_SAFE_NO_PAD))
+}
+
+pub fn to_path(id: &str) -> Result<String> {
+    if !id.is_ascii() || id.len() < 3 {
+        return Err("invalid id".into());
+    }
+    let mut result = String::with_capacity(4 + id.len());
+    result.push_str(unsafe { id.get_unchecked(0..1) });
+    result.push('/');
+    result.push_str(unsafe { id.get_unchecked(1..2) });
+    result.push('/');
+    result.push_str(unsafe { id.get_unchecked(2..) });
     Ok(result)
 }

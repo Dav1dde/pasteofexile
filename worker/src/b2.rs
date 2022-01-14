@@ -1,4 +1,5 @@
-use crate::crypto::{hex, sha1};
+use crate::crypto::sha1;
+use crate::utils::hex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use worker::{wasm_bindgen::JsValue, Env, Fetch, Headers, Method, Request, RequestInit, Result};
@@ -43,7 +44,7 @@ pub struct UploadResponse {
 
 #[derive(Clone, Debug)]
 pub struct UploadSettings<'a> {
-    pub file_name: &'a str,
+    pub filename: &'a str,
     pub content_type: &'a str,
 }
 
@@ -126,7 +127,7 @@ impl B2 {
 
         let mut headers = Headers::new();
         headers.set("Authorization", &upload.authorization_token)?;
-        headers.set("X-Bz-File-Name", settings.file_name)?;
+        headers.set("X-Bz-File-Name", settings.filename)?;
         headers.set("Content-Type", settings.content_type)?;
         headers.set("X-Bz-Content-Sha1", &sha1)?;
 

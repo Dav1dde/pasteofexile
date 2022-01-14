@@ -16,6 +16,12 @@ pub async fn sha1(data: &mut [u8]) -> Result<Vec<u8>> {
     Ok(js_sys::Uint8Array::new(&digest).to_vec())
 }
 
-pub fn hex(data: &[u8]) -> String {
-    data.iter().map(|x| format!("{:02X}", x)).collect()
+pub fn get_random_values<const N: usize>() -> Result<[u8; N]> {
+    let worker: WorkerGlobalScope = js_sys::global().unchecked_into();
+
+    let mut result = [0; N];
+    worker
+        .crypto()?
+        .get_random_values_with_u8_array(&mut result)?;
+    Ok(result)
 }
