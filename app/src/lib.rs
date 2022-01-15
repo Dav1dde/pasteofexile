@@ -4,7 +4,11 @@ use sycamore::prelude::*;
 mod components;
 mod context;
 mod pages;
+mod pob;
 mod router;
+
+#[cfg(feature = "ssr")]
+mod head;
 
 pub use context::Context;
 pub use router::Route;
@@ -14,6 +18,11 @@ use components::ThemeToggle;
 #[cfg(feature = "ssr")]
 pub fn render_to_string(context: Context) -> String {
     sycamore::render_to_string(|| view! { App(Some(context)) })
+}
+
+#[cfg(feature = "ssr")]
+pub fn render_head(context: Context) -> String {
+    sycamore::render_to_string(|| view! { head::Head(context) })
 }
 
 #[component(App<G>)]

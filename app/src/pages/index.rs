@@ -20,7 +20,7 @@ pub fn index_page() -> View<G> {
         (*pob.get())
             .as_ref()
             .ok()
-            .map(|pob| format!("Level {} {}", pob.level(), pob.ascendancy_name()))
+            .map(crate::pob::title)
             .unwrap_or_else(|| "Share your Build".to_owned())
     );
 

@@ -1,9 +1,12 @@
+use lazycell::LazyCell;
+use pob::{PathOfBuilding, SerdePathOfBuilding};
 use std::rc::Rc;
 
 use crate::Route;
 
 struct ContextInner {
     route: Option<Route>,
+    host: String,
     inner: Inner,
 }
 
@@ -17,40 +20,51 @@ impl Context {
         Self {
             inner: Rc::new(ContextInner {
                 route: None,
+                host: "".to_owned(),
                 inner: Inner::None,
             }),
         }
     }
 
-    pub fn index() -> Self {
+    pub fn index(host: String) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::Index),
+                host,
                 inner: Inner::None,
             }),
         }
     }
 
-    pub fn not_found() -> Self {
+    pub fn not_found(host: String) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::NotFound),
+                host,
                 inner: Inner::None,
             }),
         }
     }
 
-    pub fn paste(name: String, content: String) -> Self {
+    pub fn paste(host: String, name: String, content: String) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::Paste(name)),
-                inner: Inner::Paste(Paste { content }),
+                host,
+                inner: Inner::Paste(Paste {
+                    content,
+                    pob: LazyCell::new(),
+                }),
             }),
         }
     }
 
     pub fn route(&self) -> Option<&Route> {
         self.inner.route.as_ref()
+    }
+
+    pub fn host(&self) -> &str {
+        &self.inner.host
     }
 
     // TODO: I dont like this get_* naming
@@ -64,11 +78,18 @@ impl Context {
 
 pub struct Paste {
     content: String,
+    pob: LazyCell<Rc<SerdePathOfBuilding>>,
 }
 
 impl Paste {
     pub fn content(&self) -> &str {
         &self.content
+    }
+
+    pub fn path_of_building(&self) -> anyhow::Result<Rc<SerdePathOfBuilding>> {
+        self.pob
+            .try_borrow_with(|| Ok(Rc::new(SerdePathOfBuilding::from_export(&self.content)?)))
+            .map(|x| x.clone())
     }
 }
 

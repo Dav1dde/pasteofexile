@@ -1,10 +1,10 @@
-name = "ssr-workers"
+name = "pasteofexile"
 type = "javascript"
 workers_dev = true
 compatibility_date = "2022-01-05"
 
 [build]
-command = "trunk build --release && cd worker && worker-build --release"
+command = "./build.sh --release"
 
 [build.upload]
 dir    = "worker/build/worker"
@@ -12,7 +12,7 @@ format = "modules"
 main   = "./shim.mjs"
 
 [[build.upload.rules]]
-globs = ["worker/**/*.wasm"]
+globs = ["**/*.wasm"]
 type  = "CompiledWasm"
 
 [site]

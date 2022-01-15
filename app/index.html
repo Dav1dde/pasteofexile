@@ -3,8 +3,16 @@
     <head>
         <base href="/">
         <link rel="stylesheet" href="styles.css" />
+
+        <link data-trunk rel="copy-dir" href="assets/"/>
+
+        <!-- %head% -->
     </head>
     <body class="antialiased text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800">
-        <div id="app">%app%</div>
+        <div id="app">
+            <!-- %app% -->
+        </div>
+
+        <link data-trunk rel="rust" data-wasm-opt="z" />
     </body>
 </html>

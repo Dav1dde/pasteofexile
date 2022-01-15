@@ -4,7 +4,7 @@ workers_dev = true
 compatibility_date = "2022-01-05"
 
 [build]
-command = "trunk build && cd worker && worker-build --dev"
+command = "./build.sh --dev"
 
 [build.upload]
 dir    = "worker/build/worker"

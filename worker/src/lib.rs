@@ -10,11 +10,9 @@ mod utils;
 async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
     let mut data = req.bytes().await?;
 
-    worker::console_log!("{:?}", worker::Date::now().as_millis());
     // TODO: proper error handling
     // TODO: maybe shortcut this without actually parsing
     SerdePathOfBuilding::from_export(std::str::from_utf8(&data).unwrap()).unwrap();
-    worker::console_log!("{:?}", worker::Date::now().as_millis());
 
     let b2 = b2::B2::from_env(env)?;
     let auth = b2.get_auth_details().await?;
@@ -35,7 +33,13 @@ async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
     )
     .await?;
 
-    Response::from_json(&Upload { id })
+    // Weird garbage data bug, but this seems to make it better
+    let response = serde_json::to_string(&Upload { id })?;
+    let mut response = Response::from_bytes(response.into_bytes())?;
+    response
+        .headers_mut()
+        .set("Content-Type", "application/json")?;
+    Ok(response)
 }
 
 #[derive(Serialize)]
@@ -43,23 +47,24 @@ struct Upload {
     id: String,
 }
 
-async fn build_context(env: &Env, route: app::Route) -> Result<app::Context> {
+async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<app::Context> {
+    let host = req.url()?.host_str().unwrap().to_owned();
     use app::{Context, Route::*};
     let ctx = match route {
-        Index => Context::index(),
-        NotFound => Context::not_found(),
+        Index => Context::index(host),
+        NotFound => Context::not_found(host),
         Paste(name) => {
             let b2 = b2::B2::from_env(env)?;
 
             match utils::to_path(&name) {
-                Err(_) => Context::not_found(),
+                Err(_) => Context::not_found(host),
                 Ok(path) => {
                     let mut response = b2.download(&path).await?;
                     if response.status_code() == 200 {
                         let content = response.text().await?;
-                        Context::paste(name, content)
+                        Context::paste(host, name, content)
                     } else {
-                        Context::not_found()
+                        Context::not_found(host)
                     }
                 }
             }
@@ -67,6 +72,12 @@ async fn build_context(env: &Env, route: app::Route) -> Result<app::Context> {
     };
 
     Ok(ctx)
+}
+
+#[derive(Serialize)]
+struct Oembed<'a> {
+    provider_name: &'a str,
+    provider_url: &'a str,
 }
 
 #[event(fetch)]
@@ -82,6 +93,13 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         return Response::error("Invalid Method", 405);
     }
 
+    if req.path() == "/oembed.json" {
+        return Response::from_json(&Oembed {
+            provider_name: "Paste of Exile",
+            provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
+        });
+    }
+
     let kv = env.kv("__STATIC_CONTENT")?;
 
     if assets::is_asset_path(&req.path()) {
@@ -89,10 +107,16 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     }
 
     let route = app::Route::resolve(&req.path());
-    let ctx = build_context(&env, route).await?;
+    let ctx = build_context(&req, &env, route).await?;
 
-    let index = kv.get("index.html").text().await?.expect("index html");
-    let index = index.replace("%app%", &app::render_to_string(ctx));
+    let index = kv
+        .get(&assets::resolve("index.html"))
+        .text()
+        .await?
+        .ok_or_else(|| worker::Error::RustError("index.html does not exist".to_owned()))?;
+    let index = index.replace("<!-- %head% -->", &app::render_head(ctx.clone()));
+    let index = index.replace("<!-- %app% -->", &app::render_to_string(ctx));
 
-    Response::from_html(index)
+    #[allow(clippy::redundant_clone)]
+    Response::from_html(index.clone())
 }
