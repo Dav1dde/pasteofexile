@@ -1,6 +1,6 @@
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use serde::Serialize;
-use worker::{event, Env, Method, Request, Response, Result};
+use worker::{console_log, event, Env, Method, Request, Response, Result};
 
 mod assets;
 mod b2;
@@ -80,9 +80,34 @@ struct Oembed<'a> {
     provider_url: &'a str,
 }
 
+async fn download(env: &Env, id: &str) -> worker::Result<String> {
+    let b2 = b2::B2::from_env(env)?;
+    console_log!("Downloading: {}", id);
+
+    let path = utils::to_path(id)?;
+    let mut response = b2.download(&path).await?;
+    if response.status_code() == 200 {
+        Ok(response.text().await?)
+    } else {
+        Err(worker::Error::RustError(
+            "failed to download paste".to_owned(),
+        ))
+    }
+}
+
+fn is_raw_url(path: &str) -> Option<&str> {
+    path.trim_start_matches('/')
+        .split_once('/')
+        .filter(|(_, raw)| *raw == "raw")
+        .map(|(id, _)| id)
+}
+
 #[event(fetch)]
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
+
+    // TODO: error handling and error responses
+    // TODO: caching header
 
     // TODO: use a sycamore router for this?
     if req.path() == "/api/v1/paste/" && req.method() == Method::Post {
@@ -98,6 +123,10 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             provider_name: "Paste of Exile",
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
         });
+    }
+    if let Some(id) = is_raw_url(&req.path()) {
+        let content = download(&env, id).await?;
+        return Response::ok(content);
     }
 
     let kv = env.kv("__STATIC_CONTENT")?;

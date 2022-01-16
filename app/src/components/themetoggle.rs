@@ -1,16 +1,5 @@
+use crate::memo_cond as css;
 use sycamore::prelude::*;
-
-macro_rules! css {
-    ($signal:ident, $if:expr, $else:expr) => {{
-        create_memo(cloned!($signal => move || {
-            if *$signal.get() {
-                $if
-            } else {
-                $else
-            }
-        }))
-    }};
-}
 
 static SVG_SUN: &str = r#"
 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

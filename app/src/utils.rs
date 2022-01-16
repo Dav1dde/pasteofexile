@@ -5,6 +5,24 @@ macro_rules! memo {
             $x
         }))
     };
+    ($signal1:ident, $signal2:ident, $x:expr) => {
+        create_memo(cloned!(($signal1, $signal2) => move || {
+            $x
+        }))
+    };
+}
+
+#[macro_export]
+macro_rules! memo_cond {
+    ($signal:ident, $if:expr, $else:expr) => {{
+        create_memo(cloned!($signal => move || {
+            if *$signal.get() {
+                $if
+            } else {
+                $else
+            }
+        }))
+    }};
 }
 
 #[macro_export]

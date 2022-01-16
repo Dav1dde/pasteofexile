@@ -1,6 +1,8 @@
 use sycamore::context::{ContextProvider, ContextProviderProps};
 use sycamore::prelude::*;
 
+#[cfg(not(feature = "ssr"))]
+mod api;
 mod components;
 mod context;
 mod pages;
