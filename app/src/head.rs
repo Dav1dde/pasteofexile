@@ -1,5 +1,5 @@
 use crate::{Context, Route};
-use pob::PathOfBuilding;
+use pob::PathOfBuildingExt;
 use sycamore::prelude::*;
 
 static TITLE: &str = "Paste of Exile";
@@ -48,8 +48,8 @@ fn get_meta(ctx: &Context) -> Meta {
             let pob = ctx.get_paste().unwrap().path_of_building().unwrap();
             let title = crate::pob::title(&*pob);
             let description = "3000 Life, 500 ES, 900 Mana\n1003 DPS\nConfig: Sirus".to_owned();
-            let image = format!("/assets/asc/{}.png", pob.ascendancy_name());
-            let color = get_color(pob.ascendancy_name());
+            let image = format!("/assets/asc/{}.png", pob.ascendancy_or_class_name());
+            let color = get_color(pob.ascendancy_or_class_name());
             Meta {
                 title,
                 description,

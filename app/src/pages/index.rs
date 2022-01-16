@@ -1,19 +1,19 @@
+use crate::{effect, memo};
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use sycamore::prelude::*;
-
-macro_rules! memo {
-    ($signal:ident, $x:expr) => {
-        create_memo(cloned!($signal => move || {
-            $x
-        }))
-    };
-}
 
 #[component(IndexPage<G>)]
 pub fn index_page() -> View<G> {
     let value = Signal::new(String::new());
 
     let pob = memo!(value, SerdePathOfBuilding::from_export(&*value.get()));
+    effect!(
+        pob,
+        if pob.get().is_err() {
+            log::info!("{:?}", pob.get())
+        }
+    );
+
     let submit_disabled = memo!(pob, pob.get().is_err());
     let title = memo!(
         pob,

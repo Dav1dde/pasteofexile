@@ -1,10 +1,17 @@
 use anyhow::Context;
 use flate2::bufread::ZlibDecoder;
-use std::io::{self, Read};
+use std::{
+    io::{self, Read},
+    str::FromStr,
+};
 
+mod passives;
 mod serde;
+mod stats;
 
+pub use self::passives::Keystone;
 pub use self::serde::SerdePathOfBuilding;
+pub use self::stats::Stat;
 
 pub trait PathOfBuilding {
     fn from_xml(xml: &str) -> anyhow::Result<Self>
@@ -23,9 +30,53 @@ pub trait PathOfBuilding {
     fn level(&self) -> u8;
 
     fn class_name(&self) -> &str;
-    fn ascendancy_name(&self) -> &str;
+    fn ascendancy_name(&self) -> Option<&str>;
     fn notes(&self) -> &str;
+
+    fn stat(&self, stat: Stat) -> Option<&str>;
+    fn main_skill_name(&self) -> Option<&str>;
+    fn main_skill_supported_by(&self, skill: &str) -> bool;
+    fn has_tree_node(&self, node: u32) -> bool;
 }
+
+pub trait PathOfBuildingExt: PathOfBuilding {
+    fn ascendancy_or_class_name(&self) -> &str {
+        self.ascendancy_name().unwrap_or_else(|| self.class_name())
+    }
+
+    fn main_skill_supported_by_any<T>(&self, skills: T) -> bool
+    where
+        T: IntoIterator,
+        T::Item: AsRef<str>,
+    {
+        skills
+            .into_iter()
+            .any(|skill| self.main_skill_supported_by(skill.as_ref()))
+    }
+
+    fn stat_parse<T: FromStr>(&self, name: Stat) -> Option<T> {
+        PathOfBuilding::stat(self, name).and_then(|x| x.parse().ok())
+    }
+
+    fn stat_at_least(&self, name: Stat, value: f32) -> bool {
+        self.stat_parse::<f32>(name)
+            .map(|v| v >= value)
+            .unwrap_or(false)
+    }
+
+    fn stat_at_most(&self, name: Stat, value: f32) -> bool {
+        self.stat_parse::<f32>(name)
+            .map(|v| v <= value)
+            .unwrap_or(false)
+    }
+
+    fn has_keystone(&self, keystone: Keystone) -> bool {
+        // TODO: check on gear
+        self.has_tree_node(keystone.node())
+    }
+}
+
+impl<T: PathOfBuilding> PathOfBuildingExt for T {}
 
 impl std::fmt::Debug for dyn PathOfBuilding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

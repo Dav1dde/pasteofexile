@@ -10,10 +10,12 @@ ssr = ["sycamore/ssr"]
 client = ["sycamore/experimental-hydrate", "web-sys", "reqwasm", "wasm-bindgen-futures"]
 
 [dependencies]
-sycamore = "0.7"
-sycamore-router = "0.7"
+# sycamore = "0.7"
+# sycamore-router = "0.7"
 # sycamore = { path = "../../sycamore/packages/sycamore" }
 # sycamore-router = { path = "../../sycamore/packages/sycamore-router" }
+sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore" }
+sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore-router" }
 web-sys = { version = "0.3", optional = true }
 wasm-bindgen-futures = { version = "0.4.28", optional = true }
 reqwasm = { version = "0.4", optional = true }

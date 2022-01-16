@@ -154,6 +154,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "darling"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0d720b8683f8dd83c65155f0530560cba68cd2bf395f6513a483caee57ff7f4"
+dependencies = [
+ "darling_core",
+ "darling_macro",
+]
+
+[[package]]
+name = "darling_core"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a340f241d2ceed1deb47ae36c4144b2707ec7dd0b649f894cb39bb595986324"
+dependencies = [
+ "fnv",
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn",
+]
+
+[[package]]
+name = "darling_macro"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72c41b3b7352feb3211a0d743dc5700a4e3b60f51bd2b368892d1e0f9a95f44b"
+dependencies = [
+ "darling_core",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "flate2"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -317,6 +352,12 @@ dependencies = [
  "fnv",
  "itoa",
 ]
+
+[[package]]
+name = "ident_case"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
@@ -587,6 +628,7 @@ dependencies = [
  "log",
  "quick-xml",
  "serde",
+ "serde_with",
 ]
 
 [[package]]
@@ -660,6 +702,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustversion"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2cc38e8fa666e2de3c4aba7edeb5ffc5246c1c2ed0e3d17e560aeeba736b23f"
+
+[[package]]
 name = "ryu"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -697,6 +745,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_with"
+version = "1.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad6056b4cb69b6e43e3a0f055def223380baecc99da683884f205bf347f7c4b3"
+dependencies = [
+ "rustversion",
+ "serde",
+ "serde_with_macros",
+]
+
+[[package]]
+name = "serde_with_macros"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12e47be9471c72889ebafb5e14d5ff930d89ae7a67bbdb5f8abb564f845a927e"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -715,10 +786,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "strsim"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
 name = "sycamore"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5cea65876897bb946a623e16bf3df2de4997a6872d95b99dfaed5dd8e14e264"
+source = "git+https://github.com/sycamore-rs/sycamore.git?rev=f1fd670#f1fd670c5306e39892f0190d059fcde2e4516e71"
 dependencies = [
  "ahash",
  "html-escape",
@@ -737,8 +813,7 @@ dependencies = [
 [[package]]
 name = "sycamore-macro"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d6911dba86d928ed3c898ee182c1a8a9f00299aa78875bc9308e7fd389e5bb4"
+source = "git+https://github.com/sycamore-rs/sycamore.git?rev=f1fd670#f1fd670c5306e39892f0190d059fcde2e4516e71"
 dependencies = [
  "once_cell",
  "proc-macro2",
@@ -749,8 +824,7 @@ dependencies = [
 [[package]]
 name = "sycamore-reactive"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20809429d0f9c2ffcbb3f192957a5d0c505519138e41c5d38808c5b42b3c53ab"
+source = "git+https://github.com/sycamore-rs/sycamore.git?rev=f1fd670#f1fd670c5306e39892f0190d059fcde2e4516e71"
 dependencies = [
  "ahash",
  "indexmap",
@@ -762,8 +836,7 @@ dependencies = [
 [[package]]
 name = "sycamore-router"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cace57b69d923ef7ac5a1291bee73fa62e7d75b1f3a713db70d30ab0ee032185"
+source = "git+https://github.com/sycamore-rs/sycamore.git?rev=f1fd670#f1fd670c5306e39892f0190d059fcde2e4516e71"
 dependencies = [
  "sycamore",
  "sycamore-router-macro",
@@ -774,8 +847,7 @@ dependencies = [
 [[package]]
 name = "sycamore-router-macro"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a1f83a4862484dba897a6dc64c4a72b5c808c9af05573f7a55133b4f110ac66"
+source = "git+https://github.com/sycamore-rs/sycamore.git?rev=f1fd670#f1fd670c5306e39892f0190d059fcde2e4516e71"
 dependencies = [
  "nom",
  "proc-macro2",
