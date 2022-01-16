@@ -116,7 +116,9 @@ mod tests {
         assert_eq!("Occultist", pob.ascendancy_or_class_name());
         assert_eq!(8516, pob.notes().len());
         assert_eq!(Some("Poisonous Concoction"), pob.main_skill_name());
+        assert!(!pob.main_skill_supported_by(pob.main_skill_name().unwrap()));
         assert!(pob.main_skill_supported_by("Unbound Ailments"));
         assert!(!pob.main_skill_supported_by("Unbound Ailments 2.0"));
+        assert!(pob.main_skill_supported_by("Lifetap")); // no gem_id
     }
 }

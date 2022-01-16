@@ -122,7 +122,7 @@
 			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportAilments" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemUnboundAilments" quality="20" enabled="true" count="1" nameSpec="Unbound Ailments" skillMinion="SummonedReaper"/>
 			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportGreaterMultipleProjectiles" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemGreaterMultipleProjectiles" quality="20" enabled="true" count="1" nameSpec="Greater Multiple Projectiles" skillMinion="SummonedReaper"/>
 			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportGreaterVolley" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemGreaterVolley" quality="20" enabled="true" count="1" nameSpec="Greater Volley"/>
-			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportLifetap" qualityId="Default" gemId="Metadata/Items/Gems/SupportGemLifetap" quality="20" enabled="true" count="1" nameSpec="Lifetap"/>
+            <Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportLifetap" qualityId="Default" quality="20" enabled="true" count="1" nameSpec="Lifetap"/>
 		</Skill>
 		<Skill mainActiveSkillCalcs="1" includeInFullDPS="false" label="" groupCount="nil" enabled="true" slot="Weapon 2" mainActiveSkill="1">
 			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="NewShieldCharge" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SkillGemShieldCharge" quality="0" enabled="true" count="1" nameSpec="Shield Charge" skillMinion="SummonedPhantasm"/>

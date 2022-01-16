@@ -65,12 +65,19 @@ impl Skill {
 pub(crate) struct Gem {
     #[serde(rename = "nameSpec")]
     pub name: String,
-    pub gem_id: String,
+    pub skill_id: Option<String>,
+    pub gem_id: Option<String>,
 }
 
 impl Gem {
     pub fn is_support(&self) -> bool {
-        self.gem_id.starts_with("Metadata/Items/Gems/Support")
+        if let Some(gem_id) = &self.gem_id {
+            return gem_id.starts_with("Metadata/Items/Gems/Support");
+        }
+        if let Some(skill_id) = &self.skill_id {
+            return skill_id.starts_with("Support");
+        }
+        self.name.contains("Support")
     }
 
     pub fn is_active(&self) -> bool {

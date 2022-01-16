@@ -1,6 +1,6 @@
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use serde::Serialize;
-use worker::{console_log, event, Env, Method, Request, Response, Result};
+use worker::{event, Env, Method, Request, Response, Result};
 
 mod assets;
 mod b2;
@@ -82,12 +82,12 @@ struct Oembed<'a> {
 
 async fn download(env: &Env, id: &str) -> worker::Result<String> {
     let b2 = b2::B2::from_env(env)?;
-    console_log!("Downloading: {}", id);
 
     let path = utils::to_path(id)?;
     let mut response = b2.download(&path).await?;
     if response.status_code() == 200 {
-        Ok(response.text().await?)
+        #[allow(clippy::redundant_clone)]
+        Ok(response.text().await?.clone())
     } else {
         Err(worker::Error::RustError(
             "failed to download paste".to_owned(),
