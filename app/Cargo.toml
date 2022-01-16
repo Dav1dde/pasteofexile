@@ -7,18 +7,18 @@ edition = "2021"
 [features]
 default = ["client"]
 ssr = ["sycamore/ssr"]
-client = ["sycamore/experimental-hydrate", "web-sys", "reqwasm", "wasm-bindgen-futures"]
+client = ["sycamore/experimental-hydrate", "wasm-bindgen-futures"]
 
 [dependencies]
-# sycamore = "0.7"
+# sycamore = { version = "0.7", features = ["futures"] }
 # sycamore-router = "0.7"
-# sycamore = { path = "../../sycamore/packages/sycamore" }
+# sycamore = { path = "../../sycamore/packages/sycamore", features = ["futures"] }
 # sycamore-router = { path = "../../sycamore/packages/sycamore-router" }
-sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore" }
+sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures"] }
 sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore-router" }
-web-sys = { version = "0.3", optional = true }
+web-sys = "0.3"
 wasm-bindgen-futures = { version = "0.4.28", optional = true }
-reqwasm = { version = "0.4", optional = true }
+reqwasm = "0.4"
 console_error_panic_hook = "0.1"
 console_log = "0.2"
 log = "0.4"
@@ -27,4 +27,3 @@ pob = { path = "../pob/" }
 lazycell = "1"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
-futures = "0.3"

@@ -32,4 +32,13 @@ macro_rules! effect {
             $x
         }))
     };
+    ($signal1:ident, $signal2:ident, $x:expr) => {
+        create_effect(cloned!($signal => move || {
+            $x
+        }))
+    };
+}
+
+pub fn is_hydrating() -> bool {
+    sycamore::utils::hydrate::get_current_id().is_some()
 }

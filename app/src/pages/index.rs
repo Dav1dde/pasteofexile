@@ -35,18 +35,17 @@ pub fn index_page() -> View<G> {
     #[cfg(not(feature = "ssr"))]
     let btn_submit = cloned!((loading, value) => move |_| {
         use wasm_bindgen_futures::spawn_local;
-        use futures::FutureExt;
 
         if *loading.get() {
             log::info!("can't submit, already loading");
             return;
         }
 
-        let loading2 = loading.clone();
-        let future = crate::api::create_paste(value.get()).then(|response| async move {
-            match response {
+        let value = value.get();
+        let future = cloned!(loading => async move {
+            match crate::api::create_paste(value).await {
                 Err(err) => {
-                    loading2.set(false);
+                    loading.set(false);
                     log::info!("{:?}", err);
                 }
                 Ok(response) => sycamore_router::navigate(&response.id),

@@ -7,6 +7,7 @@ pub struct PasteResponse {
     pub id: String,
 }
 
+#[allow(dead_code)] // Only used in !SSR
 pub async fn create_paste(content: Rc<String>) -> anyhow::Result<PasteResponse> {
     let resp = Request::post("/api/v1/paste/")
         .body(&*content)
@@ -21,7 +22,8 @@ pub async fn create_paste(content: Rc<String>) -> anyhow::Result<PasteResponse> 
 }
 
 pub async fn get_paste(id: String) -> anyhow::Result<String> {
-    let resp = Request::get(&format!("/{}/raw", &id)).send().await?;
+    let path = format!("/{}/raw", id);
+    let resp = Request::get(&path).send().await?;
 
     if !resp.ok() {
         return Err(handle_error_response(resp).await);
