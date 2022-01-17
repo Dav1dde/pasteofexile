@@ -39,6 +39,20 @@ macro_rules! effect {
     };
 }
 
+#[macro_export]
+macro_rules! try_block {
+    { $($token:tt)* } => {
+        (move || { $($token)* })()
+    }
+}
+
+#[macro_export]
+macro_rules! try_block_async {
+    { $($token:tt)* } => {
+        (move || async move { $($token)* })().await
+    }
+}
+
 pub fn is_hydrating() -> bool {
     sycamore::utils::hydrate::get_current_id().is_some()
 }

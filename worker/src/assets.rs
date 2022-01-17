@@ -1,3 +1,4 @@
+use crate::{Error, Result};
 use std::borrow::Cow;
 use wasm_bindgen::prelude::*;
 use worker::{kv::KvStore, Request, Response};
@@ -20,13 +21,13 @@ pub fn is_asset_path(path: &str) -> bool {
     last_segment.contains('.')
 }
 
-pub async fn serve_asset(req: Request, store: KvStore) -> worker::Result<Response> {
+pub async fn serve_asset(req: Request, store: KvStore) -> Result<Response> {
     let path = req.path();
     let path = path.trim_start_matches('/');
     let path = resolve(path);
     let value = match store.get(&path).bytes().await? {
         Some(value) => value,
-        None => return Response::error("Not Found", 404),
+        None => return Err(Error::NotFound("asset", path.to_string())),
     };
     #[allow(clippy::redundant_clone)]
     let mut response = Response::from_bytes(value.clone())?;

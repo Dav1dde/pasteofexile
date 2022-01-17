@@ -1,5 +1,6 @@
-use crate::{effect, future::LocalBoxFuture, pages, utils::is_hydrating, Context};
-use anyhow::Result;
+use crate::{
+    effect, future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Result,
+};
 use sycamore::component::Component;
 use sycamore::prelude::*;
 use sycamore::DomNode;
@@ -28,11 +29,11 @@ impl Route {
 pub trait RoutedComponent<G: Html>: Component<G> {
     type RouteArg: Clone;
 
-    fn from_context(ctx: Context) -> anyhow::Result<<Self as Component<G>>::Props>;
-    fn from_hydration(element: Element) -> anyhow::Result<<Self as Component<G>>::Props>;
+    fn from_context(ctx: Context) -> Result<<Self as Component<G>>::Props>;
+    fn from_hydration(element: Element) -> Result<<Self as Component<G>>::Props>;
     fn from_dynamic<'a>(
         args: Self::RouteArg,
-    ) -> LocalBoxFuture<'a, anyhow::Result<<Self as Component<G>>::Props>>;
+    ) -> LocalBoxFuture<'a, Result<<Self as Component<G>>::Props>>;
 }
 
 #[component(Router<G>)]
@@ -68,14 +69,13 @@ fn switch<G: Html>(route: ReadSignal<Route>, ctx: Option<Context>) -> View<G> {
 
         // TODO: error handling, error pages, let errors show 404 site (e.g. paste does not exist)
         if let Some(ctx) = ctx {
-            view.set(render(Page::from_context(ctx).unwrap()));
+            view.set(render(Page::from_context(ctx)));
         } else if is_hydrating() {
-            view.set(render(Page::from_hydration(&route).unwrap()));
+            view.set(render(Page::from_hydration(&route)));
         } else {
             #[cfg(not(feature = "ssr"))]
             sycamore::futures::spawn_local_in_scope(cloned!(view => async move {
-                let page = Page::from_dynamic(&route).await.unwrap();
-                view.set(render(page));
+                view.set(render(Page::from_dynamic(&route).await))
             }));
         }
     });
@@ -87,18 +87,23 @@ enum Page<G: Html> {
     Index,
     Paste(<pages::PastePage<G> as Component<G>>::Props),
     NotFound,
+    ServerError,
 }
 
 impl<G: Html> Page<G> {
-    fn from_context(ctx: Context) -> Result<Self> {
-        Ok(match ctx.route().unwrap() {
-            Route::Index => Self::Index,
-            Route::Paste(_) => Self::Paste(pages::PastePage::<G>::from_context(ctx).unwrap()),
-            Route::NotFound => Self::NotFound,
-        })
+    fn from_context(ctx: Context) -> Self {
+        let page = try_block! {
+            Ok::<_, Error>(match ctx.route().unwrap() {
+                Route::Index => Self::Index,
+                Route::Paste(_) => Self::Paste(pages::PastePage::<G>::from_context(ctx)?),
+                Route::NotFound => Self::NotFound,
+            })
+        };
+
+        Self::resolve(page)
     }
 
-    fn from_hydration(route: &Route) -> Result<Self> {
+    fn from_hydration(route: &Route) -> Self {
         let hk = sycamore::utils::hydrate::get_current_id().unwrap();
         let element = web_sys::window()
             .unwrap()
@@ -111,23 +116,49 @@ impl<G: Html> Page<G> {
             .unwrap()
             .unwrap();
 
-        Ok(match route {
-            Route::Index => Self::Index,
-            Route::Paste(_) => Self::Paste(pages::PastePage::<G>::from_hydration(element)?),
-            Route::NotFound => Self::NotFound,
-        })
+        let page = try_block! {
+            Ok::<_, Error>(match route {
+                Route::Index => Self::Index,
+                Route::Paste(_) => Self::Paste(pages::PastePage::<G>::from_hydration(element)?),
+                Route::NotFound => Self::NotFound,
+            })
+        };
+
+        Self::resolve(page)
     }
 
     #[cfg(not(feature = "ssr"))]
-    async fn from_dynamic(route: &Route) -> Result<Self> {
+    async fn from_dynamic(route: &Route) -> Self {
+        use crate::try_block_async;
+
         // TODO: do we need this arg.clone()?
-        Ok(match route {
-            Route::Index => Self::Index,
-            Route::Paste(arg) => {
-                Self::Paste(pages::PastePage::<G>::from_dynamic(arg.clone()).await?)
-            }
-            Route::NotFound => Self::NotFound,
-        })
+        let page = try_block_async! {
+            Ok::<_, Error>(match route {
+                Route::Index => Self::Index,
+                Route::Paste(arg) => {
+                    Self::Paste(pages::PastePage::<G>::from_dynamic(arg.clone()).await?)
+                }
+                Route::NotFound => Self::NotFound,
+            })
+        };
+
+        Self::resolve(page)
+    }
+
+    fn resolve(r: Result<Self>) -> Self {
+        let err = match r {
+            Ok(page) => return page,
+            Err(err) => err,
+        };
+
+        log::info!("encountered error: {:?}", err);
+        // TODO: error context on these errors,
+        // e.g. not found page displaying the resource type
+        // TODO: actually set the response code in SSR
+        match err {
+            Error::NotFound(_, _) => Self::NotFound,
+            _ => Self::ServerError,
+        }
     }
 }
 
@@ -141,6 +172,9 @@ fn render<G: Html>(page: Page<G>) -> View<G> {
         },
         Page::NotFound => view! {
             "404 Not Found"
+        },
+        Page::ServerError => view! {
+            "Unknown Error"
         },
     }
 }

@@ -3,6 +3,7 @@ use sycamore::prelude::*;
 mod api;
 mod components;
 mod context;
+mod error;
 mod future;
 mod pages;
 mod pob;
@@ -13,6 +14,7 @@ mod utils;
 mod head;
 
 pub use context::Context;
+pub use error::{Error, Result};
 pub use router::Route;
 
 use components::ThemeToggle;

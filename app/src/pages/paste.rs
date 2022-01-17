@@ -1,5 +1,6 @@
 use crate::future::LocalBoxFuture;
 use crate::router::RoutedComponent;
+use crate::Result;
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use std::rc::Rc;
 use sycamore::prelude::*;
@@ -12,7 +13,7 @@ pub struct Data {
 impl<G: Html> RoutedComponent<G> for PastePage<G> {
     type RouteArg = String;
 
-    fn from_context(ctx: crate::Context) -> anyhow::Result<Data> {
+    fn from_context(ctx: crate::Context) -> Result<Data> {
         let paste = ctx.get_paste().unwrap();
         Ok(Data {
             content: paste.content().to_owned(),
@@ -20,7 +21,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
         })
     }
 
-    fn from_hydration(element: web_sys::Element) -> anyhow::Result<Data> {
+    fn from_hydration(element: web_sys::Element) -> Result<Data> {
         let content = element
             .query_selector("textarea")
             .unwrap()
@@ -31,7 +32,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
         Ok(Data { content, pob })
     }
 
-    fn from_dynamic<'a>(id: Self::RouteArg) -> LocalBoxFuture<'a, anyhow::Result<Data>> {
+    fn from_dynamic<'a>(id: Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
         Box::pin(async move {
             let content = crate::api::get_paste(id).await?;
             let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);

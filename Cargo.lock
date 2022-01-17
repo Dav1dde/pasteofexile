@@ -49,6 +49,7 @@ dependencies = [
  "serde",
  "sycamore",
  "sycamore-router",
+ "thiserror",
  "wasm-bindgen-futures",
  "web-sys",
 ]
@@ -1120,6 +1121,7 @@ dependencies = [
  "pob",
  "serde",
  "serde_json",
+ "thiserror",
  "wasm-bindgen",
  "web-sys",
  "worker 0.0.7",

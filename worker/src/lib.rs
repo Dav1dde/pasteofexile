@@ -1,11 +1,14 @@
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use serde::Serialize;
-use worker::{event, Env, Method, Request, Response, Result};
+use worker::{event, Env, Method, Request, Response};
 
 mod assets;
 mod b2;
 mod crypto;
+mod error;
 mod utils;
+
+pub use self::error::{Error, Result};
 
 async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
     let mut data = req.bytes().await?;
@@ -80,18 +83,22 @@ struct Oembed<'a> {
     provider_url: &'a str,
 }
 
-async fn download(env: &Env, id: &str) -> worker::Result<String> {
+async fn download(env: &Env, id: &str) -> Result<String> {
     let b2 = b2::B2::from_env(env)?;
 
     let path = utils::to_path(id)?;
     let mut response = b2.download(&path).await?;
-    if response.status_code() == 200 {
-        #[allow(clippy::redundant_clone)]
-        Ok(response.text().await?.clone())
-    } else {
-        Err(worker::Error::RustError(
-            "failed to download paste".to_owned(),
-        ))
+    match response.status_code() {
+        200 =>
+        {
+            #[allow(clippy::redundant_clone)]
+            Ok(response.text().await?.clone())
+        }
+        404 => Err(Error::NotFound("paste", id.to_owned())),
+        status => Err(Error::RemoteFailed(
+            status,
+            "failed to get paste".to_owned(),
+        )),
     }
 }
 
@@ -102,10 +109,42 @@ fn is_raw_url(path: &str) -> Option<&str> {
         .map(|(id, _)| id)
 }
 
+#[derive(Debug, Serialize)]
+struct ErrorResponse {
+    code: u16,
+    message: String,
+}
+
 #[event(fetch)]
-pub async fn main(req: Request, env: Env) -> Result<Response> {
+pub async fn main(req: Request, env: Env) -> worker::Result<Response> {
     utils::set_panic_hook();
 
+    let err = match try_main(req, env).await {
+        Ok(response) => return Ok(response),
+        Err(err) => err,
+    };
+
+    let err = match err {
+        err @ Error::NotFound(_, _) => ErrorResponse {
+            code: 404,
+            message: err.to_string(),
+        },
+        err => ErrorResponse {
+            code: 500,
+            message: err.to_string(),
+        },
+    };
+
+    let mut headers = worker::Headers::new();
+    headers.set("Content-Type", "application/json")?;
+    let response = Response::ok(serde_json::to_string(&err)?)?
+        .with_status(err.code)
+        .with_headers(headers);
+
+    Ok(response)
+}
+
+async fn try_main(req: Request, env: Env) -> Result<Response> {
     // TODO: error handling and error responses
     // TODO: caching header
 
@@ -115,18 +154,18 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     }
 
     if req.method() != Method::Get {
-        return Response::error("Invalid Method", 405);
+        return Ok(Response::error("Invalid Method", 405)?);
     }
 
     if req.path() == "/oembed.json" {
-        return Response::from_json(&Oembed {
+        return Ok(Response::from_json(&Oembed {
             provider_name: "Paste of Exile",
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
-        });
+        })?);
     }
     if let Some(id) = is_raw_url(&req.path()) {
         let content = download(&env, id).await?;
-        return Response::ok(content);
+        return Ok(Response::ok(content)?);
     }
 
     let kv = env.kv("__STATIC_CONTENT")?;
@@ -147,5 +186,5 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     let index = index.replace("<!-- %app% -->", &app::render_to_string(ctx));
 
     #[allow(clippy::redundant_clone)]
-    Response::from_html(index.clone())
+    Ok(Response::from_html(index.clone())?)
 }
