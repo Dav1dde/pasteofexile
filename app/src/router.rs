@@ -62,14 +62,20 @@ fn switch_none<G: Html>(route: ReadSignal<Route>) -> View<G> {
 fn switch<G: Html>(route: ReadSignal<Route>, ctx: Option<Context>) -> View<G> {
     // TODO: loading view?
     let view = Signal::new(View::empty());
+    let store = Signal::new("");
 
-    effect!(view, {
+    effect!(view, store, {
         let route = route.get();
         let ctx = ctx.clone();
 
         // TODO: error handling, error pages, let errors show 404 site (e.g. paste does not exist)
         if let Some(ctx) = ctx {
-            view.set(render(Page::from_context(ctx)));
+            let page = Page::from_context(ctx);
+            // During SSR store the page, so we can recover it during hydration
+            if let Some(s) = page.store() {
+                store.set(s);
+            }
+            view.set(render(page));
         } else if is_hydrating() {
             view.set(render(Page::from_hydration(&route)));
         } else {
@@ -80,7 +86,7 @@ fn switch<G: Html>(route: ReadSignal<Route>, ctx: Option<Context>) -> View<G> {
         }
     });
 
-    view! { div { (view.get().as_ref().clone()) } }
+    view! { div(data-route=*store.get()) { (view.get().as_ref().clone()) } }
 }
 
 enum Page<G: Html> {
@@ -105,12 +111,32 @@ impl<G: Html> Page<G> {
 
     fn from_hydration(route: &Route) -> Self {
         let hk = sycamore::utils::hydrate::get_current_id().unwrap();
+
+        // Router component including the data-router attribute
         let element = web_sys::window()
             .unwrap()
             .document()
             .unwrap()
             .body()
             .unwrap()
+            .query_selector(&format!("[data-hk=\"{}.{}\"]", hk.0, hk.1))
+            .unwrap()
+            .unwrap();
+
+        // Recover a page that was stored during SSR.
+        // This usually happens when we were supposed to render a page, but the page threw an error
+        // and it was in place redirected to an error page.
+        let stored_page = element
+            .get_attribute("data-route")
+            .as_deref()
+            .and_then(Self::restore);
+
+        if let Some(page) = stored_page {
+            return page;
+        }
+
+        // Update to the contained components element
+        let element = element
             // (hk.0 + 1, hk.1) to select the next component -> the actual child/page
             .query_selector(&format!("[data-hk=\"{}.{}\"]", hk.0 + 1, hk.1))
             .unwrap()
@@ -158,6 +184,22 @@ impl<G: Html> Page<G> {
         match err {
             Error::NotFound(_, _) => Self::NotFound,
             _ => Self::ServerError,
+        }
+    }
+
+    fn store(&self) -> Option<&'static str> {
+        match self {
+            Self::NotFound => Some("not_found"),
+            Self::ServerError => Some("server_error"),
+            _ => None,
+        }
+    }
+
+    fn restore<'a>(previous: impl Into<Option<&'a str>>) -> Option<Self> {
+        match previous.into()? {
+            "not_found" => Some(Self::NotFound),
+            "server_error" => Some(Self::ServerError),
+            _ => None,
         }
     }
 }

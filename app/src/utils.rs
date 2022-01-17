@@ -33,7 +33,7 @@ macro_rules! effect {
         }))
     };
     ($signal1:ident, $signal2:ident, $x:expr) => {
-        create_effect(cloned!($signal => move || {
+        create_effect(cloned!(($signal1, $signal2) => move || {
             $x
         }))
     };
