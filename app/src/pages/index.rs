@@ -63,7 +63,6 @@ pub fn index_page() -> View<G> {
 
     view! {
         div(class="flex flex-col gap-y-3") {
-            a(href="/404") { "Error 404" }
             h1(class="dark:text-slate-100 text-slate-900") { (title.get()) }
             textarea(
                 bind:value=value,

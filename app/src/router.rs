@@ -1,3 +1,4 @@
+use crate::ResponseContext;
 use crate::{
     effect, future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Result,
 };
@@ -106,7 +107,15 @@ impl<G: Html> Page<G> {
             })
         };
 
-        Self::resolve(page)
+        let page = Self::resolve(page);
+
+        match page {
+            Self::NotFound => ResponseContext::set_status_code(404),
+            Self::ServerError => ResponseContext::set_status_code(500),
+            _ => (),
+        }
+
+        page
     }
 
     fn from_hydration(route: &Route) -> Self {

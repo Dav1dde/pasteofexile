@@ -1,18 +1,20 @@
 use crate::{Error, Result};
 use std::borrow::Cow;
 use wasm_bindgen::prelude::*;
-use worker::{kv::KvStore, Request, Response};
+use worker::{
+    kv::{self, KvStore},
+    Request, Response,
+};
 
-//#[link(wasm_import_module = "./custom.js")]
-#[wasm_bindgen(raw_module = "./assets.mjs")]
-extern "C" {
-    fn get_asset(name: &str) -> Option<String>;
+pub const STATIC_CONTENT: &str = "__STATIC_CONTENT";
+
+pub trait KvAssetExt {
+    fn get_asset(&self, name: &str) -> kv::GetOptionsBuilder;
 }
 
-pub fn resolve(name: &str) -> Cow<'_, str> {
-    match get_asset(name) {
-        Some(name) => Cow::Owned(name),
-        None => Cow::Borrowed(name),
+impl KvAssetExt for KvStore {
+    fn get_asset(&self, name: &str) -> kv::GetOptionsBuilder {
+        self.get(&resolve(name))
     }
 }
 
@@ -35,6 +37,18 @@ pub async fn serve_asset(req: Request, store: KvStore) -> Result<Response> {
         .headers_mut()
         .set("Content-Type", get_mime(&path).unwrap_or("text/plain"))?;
     Ok(response)
+}
+
+#[wasm_bindgen(raw_module = "./assets.mjs")]
+extern "C" {
+    fn get_asset(name: &str) -> Option<String>;
+}
+
+fn resolve(name: &str) -> Cow<'_, str> {
+    match get_asset(name) {
+        Some(name) => Cow::Owned(name),
+        None => Cow::Borrowed(name),
+    }
 }
 
 fn get_mime(path: &str) -> Option<&'static str> {

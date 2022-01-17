@@ -18,4 +18,25 @@ pub enum Error {
 
     #[error(transparent)]
     Worker(#[from] worker::Error),
+
+    #[error("{0}")]
+    Error(String),
+}
+
+impl From<String> for Error {
+    fn from(err: String) -> Self {
+        Error::Error(err)
+    }
+}
+
+impl From<&str> for Error {
+    fn from(err: &str) -> Self {
+        Error::Error(err.to_owned())
+    }
+}
+
+impl From<wasm_bindgen::JsValue> for Error {
+    fn from(js_value: wasm_bindgen::JsValue) -> Self {
+        Self::Worker(js_value.into())
+    }
 }

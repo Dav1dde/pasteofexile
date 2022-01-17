@@ -7,6 +7,7 @@ mod error;
 mod future;
 mod pages;
 mod pob;
+mod response_context;
 mod router;
 mod utils;
 
@@ -15,13 +16,14 @@ mod head;
 
 pub use context::Context;
 pub use error::{Error, Result};
+pub use response_context::ResponseContext;
 pub use router::Route;
 
 use components::ThemeToggle;
 
 #[cfg(feature = "ssr")]
-pub fn render_to_string(context: Context) -> String {
-    sycamore::render_to_string(|| view! { App(Some(context)) })
+pub fn render_to_string(context: Context) -> (String, ResponseContext) {
+    ResponseContext::with(|| sycamore::render_to_string(|| view! { App(Some(context)) }))
 }
 
 #[cfg(feature = "ssr")]

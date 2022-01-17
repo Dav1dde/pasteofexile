@@ -4,11 +4,13 @@ use worker::{event, Env, Method, Request, Response};
 
 mod assets;
 mod b2;
+mod bindgen;
 mod crypto;
 mod error;
 mod utils;
 
 pub use self::error::{Error, Result};
+use assets::KvAssetExt;
 
 async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
     let mut data = req.bytes().await?;
@@ -83,16 +85,18 @@ struct Oembed<'a> {
     provider_url: &'a str,
 }
 
-async fn download(env: &Env, id: &str) -> Result<String> {
+async fn download(env: &Env, id: &str) -> Result<Response> {
     let b2 = b2::B2::from_env(env)?;
 
     let path = utils::to_path(id)?;
-    let mut response = b2.download(&path).await?;
+    let response = b2.download(&path).await?;
     match response.status_code() {
-        200 =>
-        {
-            #[allow(clippy::redundant_clone)]
-            Ok(response.text().await?.clone())
+        200 => {
+            let mut headers = worker::Headers::new();
+            headers.set("Content-Type", "text/plain")?;
+            headers.set("Cache-Control", "max-age=31536000")?;
+
+            bindgen::Response::dup(response, &headers)
         }
         404 => Err(Error::NotFound("paste", id.to_owned())),
         status => Err(Error::RemoteFailed(
@@ -164,11 +168,10 @@ async fn try_main(req: Request, env: Env) -> Result<Response> {
         })?);
     }
     if let Some(id) = is_raw_url(&req.path()) {
-        let content = download(&env, id).await?;
-        return Ok(Response::ok(content)?);
+        return download(&env, id).await;
     }
 
-    let kv = env.kv("__STATIC_CONTENT")?;
+    let kv = env.kv(assets::STATIC_CONTENT)?;
 
     if assets::is_asset_path(&req.path()) {
         return assets::serve_asset(req, kv).await;
@@ -177,14 +180,13 @@ async fn try_main(req: Request, env: Env) -> Result<Response> {
     let route = app::Route::resolve(&req.path());
     let ctx = build_context(&req, &env, route).await?;
 
-    let index = kv
-        .get(&assets::resolve("index.html"))
-        .text()
-        .await?
-        .ok_or_else(|| worker::Error::RustError("index.html does not exist".to_owned()))?;
-    let index = index.replace("<!-- %head% -->", &app::render_head(ctx.clone()));
-    let index = index.replace("<!-- %app% -->", &app::render_to_string(ctx));
+    let head = app::render_head(ctx.clone());
+    let (app, rctx) = app::render_to_string(ctx);
+
+    let index = kv.get_asset("index.html").text().await?.unwrap();
+    let index = index.replace("<!-- %head% -->", &head);
+    let index = index.replace("<!-- %app% -->", &app);
 
     #[allow(clippy::redundant_clone)]
-    Ok(Response::from_html(index.clone())?)
+    Ok(Response::from_html(index.clone())?.with_status(rctx.status_code()))
 }
