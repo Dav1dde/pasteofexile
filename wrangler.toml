@@ -3,6 +3,10 @@ type = "javascript"
 workers_dev = true
 compatibility_date = "2022-01-05"
 
+[[kv_namespaces]]
+binding = "B2_CREDENTIALS"
+id = "<unset>"
+
 [build]
 command = "./build.sh --release"
 

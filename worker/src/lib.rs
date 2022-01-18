@@ -5,6 +5,7 @@ use worker::{event, Env, Method, Request, Response};
 mod assets;
 mod b2;
 mod bindgen;
+mod consts;
 mod crypto;
 mod error;
 mod utils;
@@ -20,15 +21,13 @@ async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
     SerdePathOfBuilding::from_export(std::str::from_utf8(&data).unwrap()).unwrap();
 
     let b2 = b2::B2::from_env(env)?;
-    let auth = b2.get_auth_details().await?;
-    let upload = b2.get_upload_url(&auth).await?;
 
     let sha1 = crypto::sha1(&mut data).await?;
     let id = utils::hash_to_short_id(&sha1, 9)?;
     let filename = utils::to_path(&id)?;
 
+    log::debug!("--> uploading paste '{}' to '{}'", id, filename);
     b2.upload(
-        &upload,
         &b2::UploadSettings {
             filename: &filename,
             content_type: "text/plain",
@@ -37,6 +36,7 @@ async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
         &mut data,
     )
     .await?;
+    log::debug!("<-- paste uploaded");
 
     // Weird garbage data bug, but this seems to make it better
     let response = serde_json::to_string(&Upload { id })?;
@@ -119,9 +119,37 @@ struct ErrorResponse {
     message: String,
 }
 
+#[cfg(feature = "debug")]
+thread_local!(static LAST_LOG_MSG: std::cell::Cell<u64> = std::cell::Cell::new(0));
+
 #[event(fetch)]
 pub async fn main(req: Request, env: Env) -> worker::Result<Response> {
-    utils::set_panic_hook();
+    #[cfg(feature = "debug")]
+    {
+        LAST_LOG_MSG.with(|last| last.set(worker::Date::now().as_millis()));
+
+        console_error_panic_hook::set_once();
+        let _ = fern::Dispatch::new()
+            .format(|out, message, record| {
+                let now = worker::Date::now().as_millis();
+                let last = LAST_LOG_MSG.with(|last| last.replace(now));
+
+                out.finish(format_args!(
+                    "[+ {:>5}] <{:<25}> {:>5}: {}",
+                    now - last,
+                    format!(
+                        "{}:{}",
+                        record.file().unwrap_or_else(|| record.target()),
+                        record.line().unwrap_or(0)
+                    ),
+                    record.level(),
+                    message,
+                ))
+            })
+            .level(log::LevelFilter::Debug)
+            .chain(fern::Output::call(console_log::log))
+            .apply();
+    }
 
     let err = match try_main(req, env).await {
         Ok(response) => return Ok(response),
@@ -171,7 +199,7 @@ async fn try_main(req: Request, env: Env) -> Result<Response> {
         return download(&env, id).await;
     }
 
-    let kv = env.kv(assets::STATIC_CONTENT)?;
+    let kv = env.kv(consts::KV_STATIC_CONTENT)?;
 
     if assets::is_asset_path(&req.path()) {
         return assets::serve_asset(req, kv).await;

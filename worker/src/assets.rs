@@ -6,8 +6,6 @@ use worker::{
     Request, Response,
 };
 
-pub const STATIC_CONTENT: &str = "__STATIC_CONTENT";
-
 pub trait KvAssetExt {
     fn get_asset(&self, name: &str) -> kv::GetOptionsBuilder;
 }

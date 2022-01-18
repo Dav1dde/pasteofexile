@@ -191,6 +191,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fern"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c9a4820f0ccc8a7afd67c39a0f1a0f4b07ca1725164271a64939d7aeb9af065"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "flate2"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1117,7 +1126,10 @@ dependencies = [
  "base64",
  "cfg-if 0.1.10",
  "console_error_panic_hook",
+ "console_log",
+ "fern",
  "js-sys",
+ "log",
  "pob",
  "serde",
  "serde_json",

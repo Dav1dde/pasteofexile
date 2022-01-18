@@ -1,18 +1,6 @@
-use cfg_if::cfg_if;
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
 use worker::{js_sys, Result};
-
-cfg_if! {
-    // https://github.com/rustwasm/console_error_panic_hook#readme
-    if #[cfg(feature = "console_error_panic_hook")] {
-        extern crate console_error_panic_hook;
-        pub use self::console_error_panic_hook::set_once as set_panic_hook;
-    } else {
-        #[inline]
-        pub fn set_panic_hook() {}
-    }
-}
 
 pub fn hex(data: &[u8]) -> String {
     data.iter().map(|x| format!("{:02X}", x)).collect()
