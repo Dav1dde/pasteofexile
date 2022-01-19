@@ -1,5 +1,5 @@
 use serde::Serialize;
-use worker::{event, Env, Request, Response};
+use worker::{event, Env, Method, Request, Response};
 
 mod api;
 mod assets;
@@ -12,6 +12,7 @@ mod utils;
 
 pub use self::error::{Error, Result};
 use assets::EnvAssetExt;
+use utils::ResponseExt;
 
 async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<app::Context> {
     // TODO: refactor this context garbage, maybe make it into a trait?
@@ -87,7 +88,6 @@ pub async fn main(req: Request, env: Env) -> worker::Result<Response> {
     let response = Response::ok(serde_json::to_string(&err)?)?
         .with_status(err.code)
         .with_headers(headers);
-
     Ok(response)
 }
 
@@ -98,11 +98,12 @@ async fn try_main(mut req: Request, env: Env) -> Result<Response> {
         return Ok(response);
     }
 
-    if req.path() == "/oembed.json" {
-        return Ok(Response::from_json(&Oembed {
+    if req.path() == "/oembed.json" && req.method() == Method::Get {
+        let oembed = Oembed {
             provider_name: "Paste of Exile",
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
-        })?);
+        };
+        return Response::from_json(&oembed)?.cache_for(12 * 3_600);
     }
 
     if let Some(response) = assets::try_handle(&mut req, &env).await? {
@@ -120,7 +121,10 @@ async fn try_main(mut req: Request, env: Env) -> Result<Response> {
     let index = index.replace("<!-- %app% -->", &app);
 
     #[allow(clippy::redundant_clone)]
-    Ok(Response::from_html(index.clone())?.with_status(rctx.status_code()))
+    let response = Response::from_html(index.clone())?
+        .with_status(rctx.status_code())
+        .cache_for(3_600)?;
+    Ok(response)
 }
 
 #[cfg(feature = "debug")]

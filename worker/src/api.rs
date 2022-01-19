@@ -41,7 +41,7 @@ async fn handle_download(env: &Env, id: &str) -> Result<Response> {
             headers.set("Content-Type", "text/plain")?;
             headers.set("Cache-Control", "max-age=31536000")?;
 
-            bindgen::Response::dup(response, &headers)
+            bindgen::Response::dup(response, headers)
         }
         404 => Err(Error::NotFound("paste", id.to_owned())),
         status => Err(Error::RemoteFailed(

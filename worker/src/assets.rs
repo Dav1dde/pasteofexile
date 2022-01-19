@@ -1,4 +1,4 @@
-use crate::{consts, Error, Result};
+use crate::{consts, utils::ResponseExt, Error, Result};
 use std::borrow::Cow;
 use wasm_bindgen::prelude::*;
 use worker::{
@@ -57,11 +57,10 @@ async fn serve_asset(req: &Request, env: &Env) -> Result<Response> {
     };
 
     #[allow(clippy::redundant_clone)]
-    let mut response = Response::from_bytes(value.clone())?;
-    response
-        .headers_mut()
-        .set("Content-Type", get_mime(&path).unwrap_or("text/plain"))?;
-    Ok(response)
+    Response::from_bytes(value.clone())?
+        .with_content_type(get_mime(&path).unwrap_or("text/plain"))?
+        .cache_for(consts::CACHE_ASSETS)?
+        .with_etag(&path)
 }
 
 #[wasm_bindgen(raw_module = "./assets.mjs")]

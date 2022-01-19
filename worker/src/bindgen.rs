@@ -15,7 +15,7 @@ extern "C" {
 impl Response {
     pub fn dup(
         response: worker::Response,
-        headers: &worker::Headers,
+        headers: worker::Headers,
     ) -> crate::Result<worker::Response> {
         let mut response_init = web_sys::ResponseInit::new();
         response_init.headers(&headers.0);
@@ -25,6 +25,7 @@ impl Response {
         let response = response.unchecked_into::<worker_sys::Response>();
         let body = worker::ResponseBody::Stream(response);
 
-        Ok(worker::Response::from_body(body)?)
+        let response = worker::Response::from_body(body)?.with_headers(headers);
+        Ok(response)
     }
 }
