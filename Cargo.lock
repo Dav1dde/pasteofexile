@@ -640,6 +640,7 @@ dependencies = [
  "quick-xml",
  "serde",
  "serde_with",
+ "thiserror",
 ]
 
 [[package]]

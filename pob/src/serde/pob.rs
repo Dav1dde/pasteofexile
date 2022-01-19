@@ -1,5 +1,5 @@
 use crate::serde::model::*;
-use crate::Stat;
+use crate::{Error, Result, Stat};
 
 #[derive(Debug)]
 pub struct SerdePathOfBuilding {
@@ -17,10 +17,10 @@ impl SerdePathOfBuilding {
 }
 
 impl crate::PathOfBuilding for SerdePathOfBuilding {
-    fn from_xml(s: &str) -> anyhow::Result<Self> {
-        Ok(Self {
-            pob: quick_xml::de::from_str(s)?,
-        })
+    fn from_xml(s: &str) -> Result<Self> {
+        let pob = quick_xml::de::from_str(s).map_err(Error::ParseXml)?;
+
+        Ok(Self { pob })
     }
 
     fn level(&self) -> u8 {

@@ -92,7 +92,7 @@ impl B2 {
             &RequestInit {
                 method: Method::Post,
                 headers,
-                body: Some(unsafe { worker::js_sys::Uint8Array::view(content) }.into()),
+                body: Some(unsafe { js_sys::Uint8Array::view(content) }.into()),
                 ..Default::default()
             },
         )?;

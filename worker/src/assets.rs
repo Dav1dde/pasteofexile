@@ -1,9 +1,9 @@
-use crate::{Error, Result};
+use crate::{consts, Error, Result};
 use std::borrow::Cow;
 use wasm_bindgen::prelude::*;
 use worker::{
     kv::{self, KvStore},
-    Request, Response,
+    Env, Request, Response,
 };
 
 pub trait KvAssetExt {
@@ -16,19 +16,46 @@ impl KvAssetExt for KvStore {
     }
 }
 
-pub fn is_asset_path(path: &str) -> bool {
-    let last_segment = path.rsplit_once("/").map(|x| x.1).unwrap_or(path);
-    last_segment.contains('.')
+pub trait EnvAssetExt {
+    fn get_asset(&self, name: &str) -> Result<kv::GetOptionsBuilder>;
+    fn get_assets(&self) -> Result<kv::KvStore>;
 }
 
-pub async fn serve_asset(req: Request, store: KvStore) -> Result<Response> {
+impl EnvAssetExt for Env {
+    fn get_asset(&self, name: &str) -> Result<kv::GetOptionsBuilder> {
+        Ok(self.get_assets()?.get_asset(name))
+    }
+
+    fn get_assets(&self) -> Result<kv::KvStore> {
+        Ok(self.kv(consts::KV_STATIC_CONTENT)?)
+    }
+}
+
+pub async fn try_handle(req: &mut Request, env: &Env) -> Result<Option<Response>> {
+    // does the last segment contain a '.'
+    let is_asset_path = req
+        .path()
+        .rsplit_once("/")
+        .map(|x| x.1)
+        .unwrap_or(&req.path())
+        .contains('.');
+
+    if is_asset_path {
+        Ok(Some(serve_asset(req, env).await?))
+    } else {
+        Ok(None)
+    }
+}
+
+async fn serve_asset(req: &Request, env: &Env) -> Result<Response> {
     let path = req.path();
     let path = path.trim_start_matches('/');
     let path = resolve(path);
-    let value = match store.get(&path).bytes().await? {
+    let value = match env.get_asset(&path)?.bytes().await? {
         Some(value) => value,
         None => return Err(Error::NotFound("asset", path.to_string())),
     };
+
     #[allow(clippy::redundant_clone)]
     let mut response = Response::from_bytes(value.clone())?;
     response

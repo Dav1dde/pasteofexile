@@ -1,7 +1,7 @@
-use pob::{PathOfBuilding, SerdePathOfBuilding};
 use serde::Serialize;
-use worker::{event, Env, Method, Request, Response};
+use worker::{event, Env, Request, Response};
 
+mod api;
 mod assets;
 mod b2;
 mod bindgen;
@@ -11,48 +11,10 @@ mod error;
 mod utils;
 
 pub use self::error::{Error, Result};
-use assets::KvAssetExt;
-
-async fn handle_upload(mut req: Request, env: &Env) -> Result<Response> {
-    let mut data = req.bytes().await?;
-
-    // TODO: proper error handling
-    // TODO: maybe shortcut this without actually parsing
-    SerdePathOfBuilding::from_export(std::str::from_utf8(&data).unwrap()).unwrap();
-
-    let b2 = b2::B2::from_env(env)?;
-
-    let sha1 = crypto::sha1(&mut data).await?;
-    let id = utils::hash_to_short_id(&sha1, 9)?;
-    let filename = utils::to_path(&id)?;
-
-    log::debug!("--> uploading paste '{}' to '{}'", id, filename);
-    b2.upload(
-        &b2::UploadSettings {
-            filename: &filename,
-            content_type: "text/plain",
-            sha1: Some(&utils::hex(&sha1)),
-        },
-        &mut data,
-    )
-    .await?;
-    log::debug!("<-- paste uploaded");
-
-    // Weird garbage data bug, but this seems to make it better
-    let response = serde_json::to_string(&Upload { id })?;
-    let mut response = Response::from_bytes(response.into_bytes())?;
-    response
-        .headers_mut()
-        .set("Content-Type", "application/json")?;
-    Ok(response)
-}
-
-#[derive(Serialize)]
-struct Upload {
-    id: String,
-}
+use assets::EnvAssetExt;
 
 async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<app::Context> {
+    // TODO: refactor this context garbage, maybe make it into a trait?
     let host = req.url()?.host_str().unwrap().to_owned();
     use app::{Context, Route::*};
     let ctx = match route {
@@ -85,34 +47,6 @@ struct Oembed<'a> {
     provider_url: &'a str,
 }
 
-async fn download(env: &Env, id: &str) -> Result<Response> {
-    let b2 = b2::B2::from_env(env)?;
-
-    let path = utils::to_path(id)?;
-    let response = b2.download(&path).await?;
-    match response.status_code() {
-        200 => {
-            let mut headers = worker::Headers::new();
-            headers.set("Content-Type", "text/plain")?;
-            headers.set("Cache-Control", "max-age=31536000")?;
-
-            bindgen::Response::dup(response, &headers)
-        }
-        404 => Err(Error::NotFound("paste", id.to_owned())),
-        status => Err(Error::RemoteFailed(
-            status,
-            "failed to get paste".to_owned(),
-        )),
-    }
-}
-
-fn is_raw_url(path: &str) -> Option<&str> {
-    path.trim_start_matches('/')
-        .split_once('/')
-        .filter(|(_, raw)| *raw == "raw")
-        .map(|(id, _)| id)
-}
-
 #[derive(Debug, Serialize)]
 struct ErrorResponse {
     code: u16,
@@ -121,34 +55,15 @@ struct ErrorResponse {
 
 #[cfg(feature = "debug")]
 thread_local!(static LAST_LOG_MSG: std::cell::Cell<u64> = std::cell::Cell::new(0));
+#[cfg(feature = "debug")]
+static LOG_INIT: std::sync::Once = std::sync::Once::new();
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env) -> worker::Result<Response> {
     #[cfg(feature = "debug")]
     {
         LAST_LOG_MSG.with(|last| last.set(worker::Date::now().as_millis()));
-
-        console_error_panic_hook::set_once();
-        let _ = fern::Dispatch::new()
-            .format(|out, message, record| {
-                let now = worker::Date::now().as_millis();
-                let last = LAST_LOG_MSG.with(|last| last.replace(now));
-
-                out.finish(format_args!(
-                    "[+ {:>5}] <{:<25}> {:>5}: {}",
-                    now - last,
-                    format!(
-                        "{}:{}",
-                        record.file().unwrap_or_else(|| record.target()),
-                        record.line().unwrap_or(0)
-                    ),
-                    record.level(),
-                    message,
-                ))
-            })
-            .level(log::LevelFilter::Debug)
-            .chain(fern::Output::call(console_log::log))
-            .apply();
+        LOG_INIT.call_once(setup_logging);
     }
 
     let err = match try_main(req, env).await {
@@ -176,17 +91,11 @@ pub async fn main(req: Request, env: Env) -> worker::Result<Response> {
     Ok(response)
 }
 
-async fn try_main(req: Request, env: Env) -> Result<Response> {
-    // TODO: error handling and error responses
+async fn try_main(mut req: Request, env: Env) -> Result<Response> {
     // TODO: caching header
 
-    // TODO: use a sycamore router for this?
-    if req.path() == "/api/v1/paste/" && req.method() == Method::Post {
-        return handle_upload(req, &env).await;
-    }
-
-    if req.method() != Method::Get {
-        return Ok(Response::error("Invalid Method", 405)?);
+    if let Some(response) = api::try_handle(&mut req, &env).await? {
+        return Ok(response);
     }
 
     if req.path() == "/oembed.json" {
@@ -195,14 +104,9 @@ async fn try_main(req: Request, env: Env) -> Result<Response> {
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
         })?);
     }
-    if let Some(id) = is_raw_url(&req.path()) {
-        return download(&env, id).await;
-    }
 
-    let kv = env.kv(consts::KV_STATIC_CONTENT)?;
-
-    if assets::is_asset_path(&req.path()) {
-        return assets::serve_asset(req, kv).await;
+    if let Some(response) = assets::try_handle(&mut req, &env).await? {
+        return Ok(response);
     }
 
     let route = app::Route::resolve(&req.path());
@@ -211,10 +115,35 @@ async fn try_main(req: Request, env: Env) -> Result<Response> {
     let head = app::render_head(ctx.clone());
     let (app, rctx) = app::render_to_string(ctx);
 
-    let index = kv.get_asset("index.html").text().await?.unwrap();
+    let index = env.get_asset("index.html")?.text().await?.unwrap();
     let index = index.replace("<!-- %head% -->", &head);
     let index = index.replace("<!-- %app% -->", &app);
 
     #[allow(clippy::redundant_clone)]
     Ok(Response::from_html(index.clone())?.with_status(rctx.status_code()))
+}
+
+#[cfg(feature = "debug")]
+fn setup_logging() {
+    console_error_panic_hook::set_once();
+    let _ = fern::Dispatch::new()
+        .format(|out, message, record| {
+            let now = worker::Date::now().as_millis();
+            let last = LAST_LOG_MSG.with(|last| last.replace(now));
+
+            out.finish(format_args!(
+                "[+ {:>5}] <{:<25}> {:>5}: {}",
+                now - last,
+                format!(
+                    "{}:{}",
+                    record.file().unwrap_or_else(|| record.target()),
+                    record.line().unwrap_or(0)
+                ),
+                record.level(),
+                message,
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(fern::Output::call(console_log::log))
+        .apply();
 }

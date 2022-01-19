@@ -1,30 +1,33 @@
-use anyhow::Context;
 use flate2::bufread::ZlibDecoder;
 use std::{
     io::{self, Read},
     str::FromStr,
 };
 
+mod error;
 mod passives;
 mod serde;
 mod stats;
 
+pub use self::error::{Error, Result};
 pub use self::passives::Keystone;
 pub use self::serde::SerdePathOfBuilding;
 pub use self::stats::Stat;
 
 pub trait PathOfBuilding {
-    fn from_xml(xml: &str) -> anyhow::Result<Self>
+    fn from_xml(xml: &str) -> Result<Self>
     where
         Self: Sized;
-    fn from_export(data: &str) -> anyhow::Result<Self>
+    fn from_export(data: &str) -> Result<Self>
     where
         Self: Sized,
     {
-        let inp = base64::decode_config(data.trim(), base64::URL_SAFE).context("base64 decode")?;
-        let deflated = deflate(&inp).context("deflate")?;
+        let inp =
+            base64::decode_config(data.trim(), base64::URL_SAFE).map_err(Error::Base64Decode)?;
 
-        Self::from_xml(&deflated).context("parse from xml")
+        let deflated = deflate(&inp).map_err(Error::Deflate)?;
+
+        Self::from_xml(&deflated)
     }
 
     fn level(&self) -> u8;

@@ -16,5 +16,8 @@ pub enum Error {
     Reqwasm(#[from] reqwasm::Error),
 
     #[error(transparent)]
+    PobError(#[from] pob::Error),
+
+    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }
