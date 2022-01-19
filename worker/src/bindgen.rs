@@ -28,4 +28,9 @@ impl Response {
         let response = worker::Response::from_body(body)?.with_headers(headers);
         Ok(response)
     }
+
+    pub fn persist(response: worker::Response) -> crate::Result<worker::Response> {
+        let headers = response.headers().clone();
+        Self::dup(response, headers)
+    }
 }

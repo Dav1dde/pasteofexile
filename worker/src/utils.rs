@@ -1,6 +1,6 @@
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
-use worker::{js_sys, Response, Result};
+use worker::{js_sys, worker_sys, Response, Result};
 
 pub fn hex(data: &[u8]) -> String {
     data.iter().map(|x| format!("{:02X}", x)).collect()
@@ -58,11 +58,28 @@ pub trait ResponseExt: Sized {
     }
 
     fn with_header(self, name: &str, value: &str) -> crate::Result<Self>;
+
+    fn cloned(self) -> crate::Result<(Self, Self)>;
 }
 
 impl ResponseExt for Response {
     fn with_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
         self.headers_mut().set(name, value)?;
         Ok(self)
+    }
+
+    fn cloned(self) -> crate::Result<(Self, Self)> {
+        let headers = self.headers().clone();
+
+        let response1: worker_sys::Response = self.into();
+        let response2 = response1.clone()?;
+
+        let body1 = worker::ResponseBody::Stream(response1);
+        let body2 = worker::ResponseBody::Stream(response2);
+
+        let response1 = worker::Response::from_body(body1)?.with_headers(headers.clone());
+        let response2 = worker::Response::from_body(body2)?.with_headers(headers);
+
+        Ok((response1, response2))
     }
 }

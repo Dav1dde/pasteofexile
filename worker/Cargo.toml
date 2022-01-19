@@ -13,7 +13,8 @@ debug = ["console_log", "console_error_panic_hook", "fern"]
 [dependencies]
 app = { path = "../app", features = ["ssr"], default-features = false }
 cfg-if = "0.1.2"
-worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "12ff82f", package = "worker" }
+worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "75681ad", package = "worker" }
+# worker = { path = "../../workers-rs/worker/" }
 serde_json = "1"
 serde = "1"
 web-sys = { version = "0.3", features = ["Crypto", "SubtleCrypto", "WorkerGlobalScope"] }

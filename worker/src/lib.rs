@@ -1,5 +1,7 @@
+use std::future::Future;
+
 use serde::Serialize;
-use worker::{event, Env, Method, Request, Response};
+use worker::{event, Cache, Env, Method, Request, Response};
 
 mod api;
 mod assets;
@@ -60,14 +62,14 @@ thread_local!(static LAST_LOG_MSG: std::cell::Cell<u64> = std::cell::Cell::new(0
 static LOG_INIT: std::sync::Once = std::sync::Once::new();
 
 #[event(fetch)]
-pub async fn main(req: Request, env: Env) -> worker::Result<Response> {
+pub async fn main(mut req: Request, env: Env, ctx: worker::Context) -> worker::Result<Response> {
     #[cfg(feature = "debug")]
     {
         LAST_LOG_MSG.with(|last| last.set(worker::Date::now().as_millis()));
         LOG_INIT.call_once(setup_logging);
     }
 
-    let err = match try_main(req, env).await {
+    let err = match cached(&mut req, &env, &ctx, try_main).await {
         Ok(response) => return Ok(response),
         Err(err) => err,
     };
@@ -91,10 +93,8 @@ pub async fn main(req: Request, env: Env) -> worker::Result<Response> {
     Ok(response)
 }
 
-async fn try_main(mut req: Request, env: Env) -> Result<Response> {
-    // TODO: caching header
-
-    if let Some(response) = api::try_handle(&mut req, &env).await? {
+async fn try_main(req: &mut Request, env: &Env, _ctx: &worker::Context) -> Result<Response> {
+    if let Some(response) = api::try_handle(req, env).await? {
         return Ok(response);
     }
 
@@ -106,12 +106,12 @@ async fn try_main(mut req: Request, env: Env) -> Result<Response> {
         return Response::from_json(&oembed)?.cache_for(12 * 3_600);
     }
 
-    if let Some(response) = assets::try_handle(&mut req, &env).await? {
+    if let Some(response) = assets::try_handle(req, env).await? {
         return Ok(response);
     }
 
     let route = app::Route::resolve(&req.path());
-    let ctx = build_context(&req, &env, route).await?;
+    let ctx = build_context(req, env, route).await?;
 
     let head = app::render_head(ctx.clone());
     let (app, rctx) = app::render_to_string(ctx);
@@ -125,6 +125,49 @@ async fn try_main(mut req: Request, env: Env) -> Result<Response> {
         .with_status(rctx.status_code())
         .cache_for(3_600)?;
     Ok(response)
+}
+
+async fn cached<'a, 'b, F, Fut>(
+    req: &'a mut Request,
+    env: &'a Env,
+    ctx: &'a worker::Context,
+    f: F,
+) -> Result<Response>
+where
+    F: FnOnce(&'b mut Request, &'b Env, &'b worker::Context) -> Fut,
+    'a: 'b,
+    Fut: Future<Output = Result<Response>>,
+{
+    let cache = Cache::default();
+    let use_cache = req.method() == Method::Get;
+
+    if use_cache {
+        // TODO: figure out why this doesn't seem to work on workers -> cache always empty
+        if let Some(cached) = cache.get(&*req, true).await? {
+            log::debug!("cache hit");
+            // TODO: 304 handling?
+            return cached.with_header("Cf-Cache-Status", "HIT");
+        }
+    }
+
+    // TODO: figure this lifetime out, the clone may not be required
+    let request_for_cache = req.clone()?;
+
+    let response = f(req, env, ctx).await?;
+
+    if use_cache {
+        let (response, response_for_cache) = response.cloned()?;
+
+        ctx.wait_until(async move {
+            log::debug!("--> caching response");
+            let _ = cache.put(&request_for_cache, response_for_cache).await;
+            log::debug!("<-- response cached");
+        });
+
+        bindgen::Response::persist(response.with_header("Cf-Cache-Status", "MISS")?)
+    } else {
+        Ok(response)
+    }
 }
 
 #[cfg(feature = "debug")]
