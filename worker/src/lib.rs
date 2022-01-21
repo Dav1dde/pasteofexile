@@ -10,6 +10,7 @@ mod bindgen;
 mod consts;
 mod crypto;
 mod error;
+mod retry;
 mod utils;
 
 pub use self::error::{Error, Result};
@@ -127,16 +128,15 @@ async fn try_main(req: &mut Request, env: &Env, _ctx: &worker::Context) -> Resul
     Ok(response)
 }
 
-async fn cached<'a, 'b, F, Fut>(
+async fn cached<'a, F, Fut>(
     req: &'a mut Request,
     env: &'a Env,
     ctx: &'a worker::Context,
     f: F,
 ) -> Result<Response>
 where
-    F: FnOnce(&'b mut Request, &'b Env, &'b worker::Context) -> Fut,
-    'a: 'b,
-    Fut: Future<Output = Result<Response>>,
+    F: Fn(&'a mut Request, &'a Env, &'a worker::Context) -> Fut,
+    Fut: Future<Output = Result<Response>> + 'a,
 {
     let cache = Cache::default();
     let use_cache = req.method() == Method::Get;
@@ -150,17 +150,20 @@ where
         }
     }
 
-    // TODO: figure this lifetime out, the clone may not be required
+    // I think I cannot get around this clone in current rust,
+    // if I use HRTBs for `F`, I cannot give `Fut` the correct lifetime.
+    // except by using a `BoxFuture`, which isn't really better.
+    // --> clone always (need to clone in most cases anyways)
     let request_for_cache = req.clone()?;
-
     let response = f(req, env, ctx).await?;
+    let req = request_for_cache;
 
     if use_cache {
         let (response, response_for_cache) = response.cloned()?;
 
         ctx.wait_until(async move {
             log::debug!("--> caching response");
-            let _ = cache.put(&request_for_cache, response_for_cache).await;
+            let _ = cache.put(&req, response_for_cache).await;
             log::debug!("<-- response cached");
         });
 

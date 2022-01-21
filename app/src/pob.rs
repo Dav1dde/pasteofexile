@@ -36,7 +36,7 @@ pub fn title<T: PathOfBuilding>(pob: &T) -> String
 where
     T: std::fmt::Debug,
 {
-    let mut items = Vec::with_capacity(3);
+    let mut items = Vec::with_capacity(5);
     let level = format!("Level {}", pob.level());
     items.push(level.as_str());
 

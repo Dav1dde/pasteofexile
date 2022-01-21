@@ -69,7 +69,6 @@ fn switch<G: Html>(route: ReadSignal<Route>, ctx: Option<Context>) -> View<G> {
         let route = route.get();
         let ctx = ctx.clone();
 
-        // TODO: error handling, error pages, let errors show 404 site (e.g. paste does not exist)
         if let Some(ctx) = ctx {
             let page = Page::from_context(ctx);
             // During SSR store the page, so we can recover it during hydration
@@ -166,7 +165,6 @@ impl<G: Html> Page<G> {
     async fn from_dynamic(route: &Route) -> Self {
         use crate::try_block_async;
 
-        // TODO: do we need this arg.clone()?
         let page = try_block_async! {
             Ok::<_, Error>(match route {
                 Route::Index => Self::Index,
@@ -189,7 +187,6 @@ impl<G: Html> Page<G> {
         log::info!("encountered error: {:?}", err);
         // TODO: error context on these errors,
         // e.g. not found page displaying the resource type
-        // TODO: actually set the response code in SSR
         match err {
             Error::NotFound(_, _) => Self::NotFound,
             _ => Self::ServerError,
