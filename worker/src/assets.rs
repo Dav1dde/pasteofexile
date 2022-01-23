@@ -56,8 +56,7 @@ async fn serve_asset(req: &Request, env: &Env) -> Result<Response> {
         None => return Err(Error::NotFound("asset", path.to_string())),
     };
 
-    #[allow(clippy::redundant_clone)]
-    Response::from_bytes(value.clone())?
+    Response::from_bytes(value)?
         .with_content_type(get_mime(&path).unwrap_or("text/plain"))?
         .cache_for(consts::CACHE_ASSETS)?
         .with_etag(&path)

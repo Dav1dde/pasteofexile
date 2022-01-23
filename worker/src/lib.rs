@@ -121,8 +121,7 @@ async fn try_main(req: &mut Request, env: &Env, _ctx: &worker::Context) -> Resul
     let index = index.replace("<!-- %head% -->", &head);
     let index = index.replace("<!-- %app% -->", &app);
 
-    #[allow(clippy::redundant_clone)]
-    let response = Response::from_html(index.clone())?
+    let response = Response::from_html(index)?
         .with_status(rctx.status_code())
         .cache_for(3_600)?;
     Ok(response)
