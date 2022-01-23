@@ -1,7 +1,6 @@
-use std::future::Future;
-
 use serde::Serialize;
-use worker::{event, Cache, Env, Method, Request, Response};
+use std::future::Future;
+use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
 mod api;
 mod assets;
@@ -62,7 +61,7 @@ thread_local!(static LAST_LOG_MSG: std::cell::Cell<u64> = std::cell::Cell::new(0
 static LOG_INIT: std::sync::Once = std::sync::Once::new();
 
 #[event(fetch)]
-pub async fn main(mut req: Request, env: Env, ctx: worker::Context) -> worker::Result<Response> {
+pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Response> {
     #[cfg(feature = "debug")]
     {
         LAST_LOG_MSG.with(|last| last.set(worker::Date::now().as_millis()));
@@ -85,7 +84,7 @@ pub async fn main(mut req: Request, env: Env, ctx: worker::Context) -> worker::R
         },
     };
 
-    let mut headers = worker::Headers::new();
+    let mut headers = Headers::new(); // Don't use ResponseExt here, it returns crate::Result
     headers.set("Content-Type", "application/json")?;
     let response = Response::ok(serde_json::to_string(&err)?)?
         .with_status(err.code)
@@ -93,7 +92,7 @@ pub async fn main(mut req: Request, env: Env, ctx: worker::Context) -> worker::R
     Ok(response)
 }
 
-async fn try_main(req: &mut Request, env: &Env, _ctx: &worker::Context) -> Result<Response> {
+async fn try_main(req: &mut Request, env: &Env, _ctx: &Context) -> Result<Response> {
     if let Some(response) = api::try_handle(req, env).await? {
         return Ok(response);
     }

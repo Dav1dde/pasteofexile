@@ -7,30 +7,42 @@ edition = "2021"
 [features]
 default = ["client"]
 ssr = ["sycamore/ssr"]
-client = ["sycamore/experimental-hydrate", "wasm-bindgen-futures", "gloo-timers"]
+client = [
+    "sycamore/experimental-hydrate",
+    "wasm-bindgen-futures",
+    "gloo-timers",
+    "console_error_panic_hook",
+    "console_log",
+]
 
 [dependencies]
+pob = { path = "../pob/" }
+
 # sycamore = { version = "0.7", features = ["futures"] }
 # sycamore-router = "0.7"
 # sycamore = { path = "../../sycamore/packages/sycamore", features = ["futures"] }
 # sycamore-router = { path = "../../sycamore/packages/sycamore-router" }
 sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures"] }
 sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore-router" }
+
 # TODO: lot's of this stuff is only required in the client feature
-# TODO: this includes web_sys_unstable_apis
-web-sys = { version = "0.3", features = ["Window", "Navigator", "HtmlDocument",
-"HtmlTextAreaElement", "Selection"] }
-wasm-bindgen = "0.2.78"
-wasm-bindgen-futures = { version = "0.4.28", optional = true }
-reqwasm = "0.4"
-console_error_panic_hook = "0.1"
-console_log = "0.2"
+web-sys = { version = "0.3", features = [
+    "Window", "HtmlDocument", "HtmlTextAreaElement", "Selection"
+]}
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = { version = "0.4", optional = true }
+reqwasm = "0.4" # TODO: this should be optional
+
+serde = { version = "1", features = ["derive"] }
+
+console_error_panic_hook = { version = "0.1", optional = true }
+console_log = { version = "0.2", optional = true }
+
 log = "0.4"
 cfg-if = "1"
-pob = { path = "../pob/" }
 lazycell = "1"
 anyhow = "1"
 thiserror = "1"
-serde = { version = "1", features = ["derive"] }
+
 gloo-timers = { version = "0.2", features = ["futures"], optional = true }
-separator = "0.4"
+thousands = "0.2"

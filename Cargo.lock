@@ -47,11 +47,11 @@ dependencies = [
  "log",
  "pob",
  "reqwasm",
- "separator",
  "serde",
  "sycamore",
  "sycamore-router",
  "thiserror",
+ "thousands",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -742,12 +742,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73b4b750c782965c211b42f022f59af1fbceabdd026623714f104152f1ec149f"
 
 [[package]]
-name = "separator"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f97841a747eef040fcd2e7b3b9a220a7205926e60488e673d9e4926d27772ce5"
-
-[[package]]
 name = "serde"
 version = "1.0.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -921,6 +915,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "thousands"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bf63baf9f5039dadc247375c29eb13706706cfde997d0330d05aa63a77d8820"
 
 [[package]]
 name = "thread_local"
@@ -1142,7 +1142,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "worker"
+name = "worker-app"
 version = "0.1.0"
 dependencies = [
  "app",
@@ -1158,7 +1158,7 @@ dependencies = [
  "thiserror",
  "wasm-bindgen",
  "web-sys",
- "worker 0.0.7",
+ "worker",
 ]
 
 [[package]]

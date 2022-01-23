@@ -3,10 +3,9 @@ use ::pob::{Config, Keystone, PathOfBuilding, PathOfBuildingExt, SerdePathOfBuil
 use std::borrow::Cow;
 use std::rc::Rc;
 use sycamore::prelude::*;
+use thousands::Separable;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlTextAreaElement;
-// TODO: this crate is a dogshit
-use separator::{separated_float, separated_int, separated_uint_with_output};
 
 pub struct Data {
     content: String,
@@ -394,14 +393,14 @@ impl<'a> Element<'a> {
 
     fn stat_int(mut self, value: Option<f32>) -> Self {
         self.stat = value
-            .map(|value| separated_int!(format!("{}", value as i32)))
+            .map(|value| (value as i64).separate_with_commas())
             .map(Cow::Owned);
         self
     }
 
     fn stat_float(mut self, value: Option<f32>) -> Self {
         self.stat = value
-            .map(|value| separated_float!(format!("{:0.2}", value)))
+            .map(|value| format!("{:0.2}", value).separate_with_commas())
             .map(Cow::Owned);
         self
     }

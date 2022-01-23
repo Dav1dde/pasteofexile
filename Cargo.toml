@@ -8,5 +8,5 @@ members = [
 [profile.release]
 panic = 'abort'
 codegen-units = 1
-opt-level = "z"
+opt-level = 3 # switch back to "s" or "z" when hitting the worker limit
 lto = true
