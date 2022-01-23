@@ -53,7 +53,7 @@ pub fn app(ctx: Option<Context>) -> View<G> {
 
     view! {
         div {
-            nav(class="flex p-4 border-b border-slate-900/10 lg:px-8 dark:border-slate-300/10 mb-10") {
+            nav(class="flex p-4 lg:px-8 mb-10 bg-slate-200 dark:bg-slate-900 dark:drop-shadow-lg") {
                 a(class="flex-auto", href="/", on:click=navigate_index) { "POB B.in" }
                 ThemeToggle()
             }

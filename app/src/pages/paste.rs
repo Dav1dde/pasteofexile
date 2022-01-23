@@ -72,7 +72,18 @@ impl CopyState {
 #[component(PastePage<G>)]
 pub fn paste_page(Data { content, pob }: Data) -> View<G> {
     let title = pob::title(&*pob);
+
     let notes = pob.notes().to_owned();
+    let notes = if !notes.is_empty() {
+        view! {
+            div {
+                h3(class="text-lg dark:text-slate-100 text-slate-900 mt-5 mb-1") { "Notes" }
+                pre(class="text-xs break-words whitespace-pre-line font-mono sm:ml-3 mb-10") { (notes) }
+            }
+        }
+    } else {
+        View::empty()
+    };
 
     let select_all = |event: web_sys::Event| {
         let s: HtmlTextAreaElement = event.target().unwrap().unchecked_into();
@@ -154,13 +165,10 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
             }
         }
         div {
-            h3(class="text-lg dark:text-slate-100 text-slate-900") { "Tree" }
+            h3(class="text-lg dark:text-slate-100 text-slate-900 mb-1") { "Tree" }
             PobTreeTable(pob)
         }
-        div {
-            h3(class="text-lg dark:text-slate-100 text-slate-900") { "Notes" }
-            pre(class="text-xs break-words whitespace-pre-line font-mono") { (notes) }
-        }
+        (notes)
     }
 }
 
