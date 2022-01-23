@@ -1,4 +1,4 @@
-use crate::{b2, bindgen, crypto, utils, Error, Result};
+use crate::{b2, crypto, utils, Error, Result};
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use serde::Serialize;
 use worker::{Env, Method, Request, Response};
@@ -41,7 +41,7 @@ async fn handle_download(env: &Env, id: &str) -> Result<Response> {
             headers.set("Content-Type", "text/plain")?;
             headers.set("Cache-Control", "max-age=31536000")?;
 
-            bindgen::Response::dup(response, headers)
+            Ok(response.with_headers(headers))
         }
         404 => Err(Error::NotFound("paste", id.to_owned())),
         status => Err(Error::RemoteFailed(

@@ -57,12 +57,18 @@ pub trait ResponseExt: Sized {
         self.with_header("Etag", &entity_id)
     }
 
+    fn dup_headers(self) -> Self;
     fn with_header(self, name: &str, value: &str) -> crate::Result<Self>;
 
     fn cloned(self) -> crate::Result<(Self, Self)>;
 }
 
 impl ResponseExt for Response {
+    fn dup_headers(self) -> Self {
+        let headers = self.headers().clone();
+        self.with_headers(headers)
+    }
+
     fn with_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
         self.headers_mut().set(name, value)?;
         Ok(self)

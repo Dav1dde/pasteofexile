@@ -14,7 +14,7 @@ debug = ["console_log", "console_error_panic_hook", "fern"]
 app = { path = "../app", features = ["ssr"], default-features = false }
 pob = { path = "../pob/" }
 
-worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "dd0811c2", package = "worker" }
+worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "f9b7a4842", package = "worker" }
 # worker = { path = "../../workers-rs/worker/" }
 
 serde_json = "1"

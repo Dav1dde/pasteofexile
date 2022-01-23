@@ -6,7 +6,6 @@ use worker::{event, Cache, Env, Method, Request, Response};
 mod api;
 mod assets;
 mod b2;
-mod bindgen;
 mod consts;
 mod crypto;
 mod error;
@@ -141,13 +140,12 @@ where
     let use_cache = req.method() == Method::Get;
 
     if use_cache {
-        // TODO: figure out why this doesn't seem to work on workers -> cache always empty
         if let Some(response) = cache.get(&*req, true).await? {
             log::debug!("cache hit");
             // TODO: 304 handling?
-            let mut headers = response.headers().clone();
-            headers.set("Cf-Cache-Status", "HIT")?;
-            return bindgen::Response::dup(response, headers);
+            return response
+                .dup_headers() // cached response has immutable headers
+                .with_header("Cf-Cache-Status", "HIT");
         }
     }
 
@@ -168,7 +166,7 @@ where
             log::debug!("<-- response cached");
         });
 
-        bindgen::Response::persist(response.with_header("Cf-Cache-Status", "MISS")?)
+        response.with_header("Cf-Cache-Status", "MISS")
     } else {
         Ok(response)
     }
