@@ -295,9 +295,20 @@ fn offense<G: GenericNode>(pob: &SerdePathOfBuilding) -> View<G> {
         .stat_float(pob.stat_parse(Stat::CombinedDps))
         .add_to(&mut elements);
 
+    // TODO: this is cast rate for spells
     Element::new("Speed")
         .color("text-amber-50")
         .stat_float(pob.stat_parse(Stat::Speed))
+        .add_to(&mut elements);
+
+    Element::new("Hit Rate")
+        .color("text-amber-50")
+        .stat_float(pob.stat_parse(Stat::HitRate))
+        .add_to(&mut elements);
+
+    Element::new("Hit Chance")
+        .color("text-amber-50")
+        .stat_percent(pob.stat(Stat::HitChance))
         .add_to(&mut elements);
 
     if pob::is_crit(pob) {
