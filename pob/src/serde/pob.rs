@@ -46,7 +46,16 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     fn stat(&self, stat: Stat) -> Option<&str> {
         self.pob
             .build
-            .stats
+            .player_stats
+            .iter()
+            .find(|x| stat == x.name)
+            .map(|stat| stat.value.as_str())
+    }
+
+    fn minion_stat(&self, stat: Stat) -> Option<&str> {
+        self.pob
+            .build
+            .minion_stats
             .iter()
             .find(|x| stat == x.name)
             .map(|stat| stat.value.as_str())
@@ -89,6 +98,19 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .iter()
             .flat_map(|x| x.support_gems())
             .any(|gem| gem.name == skill)
+    }
+
+    fn tree_specs(&self) -> Vec<crate::TreeSpec> {
+        self.pob
+            .tree
+            .specs
+            .iter()
+            .map(|spec| crate::TreeSpec {
+                title: spec.title.as_deref(),
+                url: spec.url.as_deref(),
+                nodes: &spec.nodes,
+            })
+            .collect()
     }
 
     fn has_tree_node(&self, node: u32) -> bool {
@@ -141,6 +163,8 @@ mod tests {
         assert!(pob.main_skill_supported_by("Unbound Ailments"));
         assert!(!pob.main_skill_supported_by("Unbound Ailments 2.0"));
         assert!(pob.main_skill_supported_by("Lifetap")); // no gem_id
-                                                         // TODO: test configs
+        assert!(pob.minion_stat(Stat::AverageDamage).is_none());
+        assert_eq!(Some("1"), pob.minion_stat(Stat::EnduranceChargesMax));
+        // TODO: test configs
     }
 }

@@ -1,5 +1,5 @@
-use crate::{pob::TitleConfig, Context, Route};
-use pob::PathOfBuildingExt;
+use crate::{pob, Context, Route};
+use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
 use sycamore::prelude::*;
 
 const TITLE: &str = "POB B.in";
@@ -46,11 +46,10 @@ fn get_meta(ctx: &Context) -> Meta {
         Route::Paste(_) => {
             let pob = ctx.get_paste().unwrap().path_of_building().unwrap();
 
-            let config = TitleConfig { no_title: true };
-            let title = crate::pob::title_with_config(&*pob, &config);
+            let config = pob::TitleConfig { no_title: true };
+            let title = pob::title_with_config(&*pob, &config);
 
-            // TODO: proper description
-            let description = "3000 HP, 500 ES, 900 Mana\n1003 DPS\nConfig: Sirus".to_owned();
+            let description = get_paste_summary(&pob).join("\n");
 
             let image = format!("/assets/asc/{}.png", pob.ascendancy_or_class_name());
             let color = get_color(pob.ascendancy_or_class_name());
@@ -63,6 +62,24 @@ fn get_meta(ctx: &Context) -> Meta {
             }
         }
     }
+}
+
+fn get_paste_summary(pob: &SerdePathOfBuilding) -> Vec<String> {
+    let core_stats = pob::summary::core_stats(pob);
+    let defense = pob::summary::defense(pob);
+    let offense = pob::summary::offense(pob);
+    let config = pob::summary::config(pob);
+
+    vec![core_stats, defense, offense, config]
+        .into_iter()
+        .map(|line| {
+            line.into_iter()
+                .filter_map(|stat| stat.render_to_string())
+                .collect::<Vec<_>>()
+        })
+        .map(|line| line.join("\u{318d}"))
+        .map(|line| format!("\u{27A4} {}", line))
+        .collect()
 }
 
 fn get_color(ascendancy_name: &str) -> &'static str {

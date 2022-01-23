@@ -39,10 +39,19 @@ pub trait PathOfBuilding {
     fn notes(&self) -> &str;
 
     fn stat(&self, stat: Stat) -> Option<&str>;
+    fn minion_stat(&self, stat: Stat) -> Option<&str>;
     fn config(&self, config: Config) -> ConfigValue;
     fn main_skill_name(&self) -> Option<&str>;
     fn main_skill_supported_by(&self, skill: &str) -> bool;
+
+    fn tree_specs(&self) -> Vec<TreeSpec>;
     fn has_tree_node(&self, node: u32) -> bool;
+}
+
+pub struct TreeSpec<'a> {
+    pub title: Option<&'a str>,
+    pub url: Option<&'a str>,
+    pub nodes: &'a [u32],
 }
 
 pub trait PathOfBuildingExt: PathOfBuilding {
@@ -72,6 +81,22 @@ pub trait PathOfBuildingExt: PathOfBuilding {
 
     fn stat_at_most(&self, name: Stat, value: f32) -> bool {
         self.stat_parse::<f32>(name)
+            .map(|v| v <= value)
+            .unwrap_or(false)
+    }
+
+    fn minion_stat_parse<T: FromStr>(&self, name: Stat) -> Option<T> {
+        PathOfBuilding::minion_stat(self, name).and_then(|x| x.parse().ok())
+    }
+
+    fn minion_stat_at_least(&self, name: Stat, value: f32) -> bool {
+        self.minion_stat_parse::<f32>(name)
+            .map(|v| v >= value)
+            .unwrap_or(false)
+    }
+
+    fn minion_stat_at_most(&self, name: Stat, value: f32) -> bool {
+        self.minion_stat_parse::<f32>(name)
             .map(|v| v <= value)
             .unwrap_or(false)
     }

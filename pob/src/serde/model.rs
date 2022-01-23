@@ -26,13 +26,15 @@ pub(crate) struct Build {
     pub level: u8,
     pub class_name: String,
     pub ascend_class_name: String,
-    #[serde(rename = "$value")]
-    pub stats: Vec<PlayerStat>,
+    #[serde(default, rename = "PlayerStat")]
+    pub player_stats: Vec<BuildStat>,
+    #[serde(default, rename = "MinionStat")]
+    pub minion_stats: Vec<BuildStat>,
     pub main_socket_group: u8,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PlayerStat {
+pub(crate) struct BuildStat {
     #[serde(rename = "stat")]
     pub name: String,
     pub value: String,
@@ -47,9 +49,9 @@ pub(crate) struct Skills {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Skill {
-    #[serde(deserialize_with = "u8_or_nil")]
-    pub main_active_skill: u8, // can be "nil"
-    #[serde(rename = "$value")]
+    #[serde(default, deserialize_with = "u8_or_nil")]
+    pub main_active_skill: u8,
+    #[serde(default, rename = "$value")]
     pub gems: Vec<Gem>,
 }
 
@@ -99,12 +101,12 @@ pub(crate) struct Tree {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Spec {
-    // #[serde(default)]
-    // title: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
     #[serde(default, with = "StringWithSeparator::<CommaSeparator>")]
     pub nodes: Vec<u32>,
-    // #[serde(rename = "URL")]
-    // url: String,
+    #[serde(default, rename = "URL")]
+    pub url: Option<String>,
 }
 
 #[derive(Default, Debug, Deserialize)]

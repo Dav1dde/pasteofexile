@@ -82,6 +82,7 @@
 		<PlayerStat stat="EnduranceCharges" value="0"/>
 		<PlayerStat stat="EnduranceChargesMax" value="3"/>
 		<PlayerStat stat="ActiveTotemLimit" value="1"/>
+		<MinionStat stat="EnduranceChargesMax" value="1"/>
 	</Build>
 	<Import/>
 	<Calcs>

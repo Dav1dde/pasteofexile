@@ -1,5 +1,10 @@
 use pob::{Keystone, PathOfBuilding, PathOfBuildingExt, Stat};
 
+mod element;
+pub mod summary;
+
+pub use self::element::Element;
+
 macro_rules! push_if {
     ($vec:ident, $expr:expr, $value:expr) => {{
         if $expr {
@@ -11,17 +16,14 @@ macro_rules! push_if {
     }};
 }
 
-#[inline]
 pub fn is_crit<T: PathOfBuilding>(pob: &T) -> bool {
     !pob.has_keystone(Keystone::ElementalOverload) && pob.stat_at_least(Stat::CritChance, 20.0)
 }
 
-#[inline]
 pub fn is_low_life<T: PathOfBuilding>(pob: &T) -> bool {
     pob.stat_at_most(Stat::LifeUnreservedPercent, 50.0)
 }
 
-#[inline]
 pub fn is_hybrid<T: PathOfBuilding>(pob: &T) -> bool {
     !pob.has_keystone(Keystone::ChaosInoculation)
         && !pob.has_keystone(Keystone::EldritchBattery)
