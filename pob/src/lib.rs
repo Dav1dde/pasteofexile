@@ -4,11 +4,13 @@ use std::{
     str::FromStr,
 };
 
+mod config;
 mod error;
 mod passives;
 mod serde;
 mod stats;
 
+pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
 pub use self::passives::Keystone;
 pub use self::serde::SerdePathOfBuilding;
@@ -37,6 +39,7 @@ pub trait PathOfBuilding {
     fn notes(&self) -> &str;
 
     fn stat(&self, stat: Stat) -> Option<&str>;
+    fn config(&self, config: Config) -> ConfigValue;
     fn main_skill_name(&self) -> Option<&str>;
     fn main_skill_supported_by(&self, skill: &str) -> bool;
     fn has_tree_node(&self, node: u32) -> bool;

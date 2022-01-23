@@ -143,13 +143,6 @@ impl<G: Html> Page<G> {
             return page;
         }
 
-        // Update to the contained components element
-        let element = element
-            // (hk.0 + 1, hk.1) to select the next component -> the actual child/page
-            .query_selector(&format!("[data-hk=\"{}.{}\"]", hk.0 + 1, hk.1))
-            .unwrap()
-            .unwrap();
-
         let page = try_block! {
             Ok::<_, Error>(match route {
                 Route::Index => Self::Index,

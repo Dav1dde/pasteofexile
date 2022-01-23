@@ -1,5 +1,5 @@
 use crate::serde::model::*;
-use crate::{Error, Result, Stat};
+use crate::{Config, ConfigValue, Error, Result, Stat};
 
 #[derive(Debug)]
 pub struct SerdePathOfBuilding {
@@ -50,6 +50,26 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .iter()
             .find(|x| stat == x.name)
             .map(|stat| stat.value.as_str())
+    }
+
+    fn config(&self, config: Config) -> ConfigValue {
+        self.pob
+            .config
+            .input
+            .iter()
+            .find(|x| config == x.name)
+            .map(|stat| {
+                if let Some(ref value) = stat.string {
+                    ConfigValue::String(value)
+                } else if let Some(value) = stat.number {
+                    ConfigValue::Number(value)
+                } else if let Some(value) = stat.boolean {
+                    ConfigValue::Bool(value)
+                } else {
+                    ConfigValue::None
+                }
+            })
+            .unwrap_or(ConfigValue::None)
     }
 
     fn main_skill_name(&self) -> Option<&str> {
@@ -105,6 +125,7 @@ mod tests {
         assert_eq!(Some("3"), pob.stat(Stat::EnduranceChargesMax));
         assert_eq!(Some(3), pob.stat_parse(Stat::EnduranceChargesMax));
         assert_eq!(None, pob.stat_parse::<u8>(Stat::AverageDamage));
+        // TODO: test configs
     }
 
     #[test]
@@ -120,5 +141,6 @@ mod tests {
         assert!(pob.main_skill_supported_by("Unbound Ailments"));
         assert!(!pob.main_skill_supported_by("Unbound Ailments 2.0"));
         assert!(pob.main_skill_supported_by("Lifetap")); // no gem_id
+                                                         // TODO: test configs
     }
 }

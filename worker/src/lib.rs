@@ -101,7 +101,7 @@ async fn try_main(req: &mut Request, env: &Env, _ctx: &worker::Context) -> Resul
 
     if req.path() == "/oembed.json" && req.method() == Method::Get {
         let oembed = Oembed {
-            provider_name: "Paste of Exile",
+            provider_name: "Paste of Exile - POB B.in",
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
         };
         return Response::from_json(&oembed)?.cache_for(12 * 3_600);
@@ -143,10 +143,12 @@ where
 
     if use_cache {
         // TODO: figure out why this doesn't seem to work on workers -> cache always empty
-        if let Some(cached) = cache.get(&*req, true).await? {
+        if let Some(response) = cache.get(&*req, true).await? {
             log::debug!("cache hit");
             // TODO: 304 handling?
-            return cached.with_header("Cf-Cache-Status", "HIT");
+            let mut headers = response.headers().clone();
+            headers.set("Cf-Cache-Status", "HIT")?;
+            return bindgen::Response::dup(response, headers);
         }
     }
 

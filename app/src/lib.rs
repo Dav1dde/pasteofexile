@@ -54,7 +54,7 @@ pub fn app(ctx: Option<Context>) -> View<G> {
     view! {
         div {
             nav(class="flex p-4 border-b border-slate-900/10 lg:px-8 dark:border-slate-300/10 mb-10") {
-                a(class="flex-auto", href="/", on:click=navigate_index) { "Paste of Exile" }
+                a(class="flex-auto", href="/", on:click=navigate_index) { "POB B.in" }
                 ThemeToggle()
             }
             div(class="max-w-screen-xl mx-auto px-5 xl:px-0") {

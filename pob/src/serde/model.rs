@@ -13,8 +13,11 @@ pub(crate) struct PathOfBuilding {
     #[serde(rename = "Tree")]
     pub tree: Tree,
 
-    #[serde(rename = "Notes")]
+    #[serde(default, rename = "Notes")]
     pub notes: String,
+
+    #[serde(default, rename = "Config")]
+    pub config: Config,
 }
 
 #[derive(Debug, Deserialize)]
@@ -102,4 +105,18 @@ pub(crate) struct Spec {
     pub nodes: Vec<u32>,
     // #[serde(rename = "URL")]
     // url: String,
+}
+
+#[derive(Default, Debug, Deserialize)]
+pub(crate) struct Config {
+    #[serde(default, rename = "Input")]
+    pub input: Vec<Input>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Input {
+    pub name: String,
+    pub string: Option<String>,
+    pub boolean: Option<bool>,
+    pub number: Option<f32>,
 }

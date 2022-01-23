@@ -12,17 +12,17 @@ macro_rules! push_if {
 }
 
 #[inline]
-fn is_crit<T: PathOfBuilding>(pob: &T) -> bool {
+pub fn is_crit<T: PathOfBuilding>(pob: &T) -> bool {
     !pob.has_keystone(Keystone::ElementalOverload) && pob.stat_at_least(Stat::CritChance, 20.0)
 }
 
 #[inline]
-fn is_low_life<T: PathOfBuilding>(pob: &T) -> bool {
+pub fn is_low_life<T: PathOfBuilding>(pob: &T) -> bool {
     pob.stat_at_most(Stat::LifeUnreservedPercent, 50.0)
 }
 
 #[inline]
-fn is_hybrid<T: PathOfBuilding>(pob: &T) -> bool {
+pub fn is_hybrid<T: PathOfBuilding>(pob: &T) -> bool {
     !pob.has_keystone(Keystone::ChaosInoculation)
         && !pob.has_keystone(Keystone::EldritchBattery)
         && !is_low_life(pob)
@@ -32,13 +32,53 @@ fn is_hybrid<T: PathOfBuilding>(pob: &T) -> bool {
         )
 }
 
-pub fn title<T: PathOfBuilding>(pob: &T) -> String
-where
-    T: std::fmt::Debug,
-{
+pub fn ehp<T: PathOfBuilding>(pob: &T) -> u32 {
+    let mut ehp = pob.stat_parse(Stat::LifeUnreserved).unwrap_or(1);
+
+    if pob.has_keystone(Keystone::ChaosInoculation) {
+        // CI doesn't work with MoM
+        return 1 + pob.stat_parse(Stat::EnergyShield).unwrap_or(0);
+    }
+
+    if !pob.has_keystone(Keystone::EldritchBattery) {
+        ehp += pob.stat_parse(Stat::EnergyShield).unwrap_or(0);
+    }
+
+    if pob.has_keystone(Keystone::MindOverMatter) {
+        let mom_percent = 0.35; // TODO figure out exact %
+
+        let mut mana = pob.stat_parse(Stat::ManaUnreserved).unwrap_or(0);
+        if pob.has_keystone(Keystone::EldritchBattery) {
+            mana += pob.stat_parse(Stat::EnergyShield).unwrap_or(0);
+        }
+
+        // https://old.reddit.com/r/pathofexile/comments/8lio2g/how_to_calculate_ehp_with_mom/dzg03d1/
+        // Maxiumum amount of Mana
+        let max_mana_soak = (ehp as f32 * (mom_percent / (1.0 - mom_percent))) as u32;
+
+        // More mana than max_mana_soak does not add to total EHP
+        ehp += mana.min(max_mana_soak);
+    }
+
+    ehp
+}
+
+#[derive(Default)]
+pub struct TitleConfig {
+    pub no_title: bool,
+}
+
+pub fn title<T: PathOfBuilding>(pob: &T) -> String {
+    title_with_config(pob, &TitleConfig::default())
+}
+
+pub fn title_with_config<T: PathOfBuilding>(pob: &T, config: &TitleConfig) -> String {
     let mut items = Vec::with_capacity(5);
+
     let level = format!("Level {}", pob.level());
-    items.push(level.as_str());
+    if !config.no_title {
+        items.push(level.as_str());
+    }
 
     push_if!(items, is_low_life(pob), "LL");
     push_if!(items, is_hybrid(pob), "Hybrid");

@@ -7,7 +7,7 @@ edition = "2021"
 [features]
 default = ["client"]
 ssr = ["sycamore/ssr"]
-client = ["sycamore/experimental-hydrate", "wasm-bindgen-futures"]
+client = ["sycamore/experimental-hydrate", "wasm-bindgen-futures", "gloo-timers"]
 
 [dependencies]
 # sycamore = { version = "0.7", features = ["futures"] }
@@ -16,7 +16,11 @@ client = ["sycamore/experimental-hydrate", "wasm-bindgen-futures"]
 # sycamore-router = { path = "../../sycamore/packages/sycamore-router" }
 sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures"] }
 sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore-router" }
-web-sys = "0.3"
+# TODO: lot's of this stuff is only required in the client feature
+# TODO: this includes web_sys_unstable_apis
+web-sys = { version = "0.3", features = ["Window", "Navigator", "HtmlDocument",
+"HtmlTextAreaElement", "Selection"] }
+wasm-bindgen = "0.2.78"
 wasm-bindgen-futures = { version = "0.4.28", optional = true }
 reqwasm = "0.4"
 console_error_panic_hook = "0.1"
@@ -28,3 +32,5 @@ lazycell = "1"
 anyhow = "1"
 thiserror = "1"
 serde = { version = "1", features = ["derive"] }
+gloo-timers = { version = "0.2", features = ["futures"], optional = true }
+separator = "0.4"

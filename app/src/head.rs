@@ -1,11 +1,10 @@
-use crate::{Context, Route};
+use crate::{pob::TitleConfig, Context, Route};
 use pob::PathOfBuildingExt;
 use sycamore::prelude::*;
 
-static TITLE: &str = "Paste of Exile";
-static DESCRIPTION: &str =
-    "Paste of Exile is a website to share your Path of Building builds online";
-static DEFAULT_COLOR: &str = "#0ea5e9";
+const TITLE: &str = "POB B.in";
+const DESCRIPTION: &str = "POB B.in is a website to share your Path of Building builds online";
+const DEFAULT_COLOR: &str = "#0ea5e9";
 
 struct Meta {
     title: String,
@@ -46,10 +45,16 @@ fn get_meta(ctx: &Context) -> Meta {
         },
         Route::Paste(_) => {
             let pob = ctx.get_paste().unwrap().path_of_building().unwrap();
-            let title = crate::pob::title(&*pob);
-            let description = "3000 Life, 500 ES, 900 Mana\n1003 DPS\nConfig: Sirus".to_owned();
+
+            let config = TitleConfig { no_title: true };
+            let title = crate::pob::title_with_config(&*pob, &config);
+
+            // TODO: proper description
+            let description = "3000 HP, 500 ES, 900 Mana\n1003 DPS\nConfig: Sirus".to_owned();
+
             let image = format!("/assets/asc/{}.png", pob.ascendancy_or_class_name());
             let color = get_color(pob.ascendancy_or_class_name());
+
             Meta {
                 title,
                 description,

@@ -6,6 +6,6 @@ dist = "app/dist"
 dist = "app/dist"
 
 [[hooks]]
-stage = "build"
+stage = "pre_build"
 command = "sh"
 command_arguments = ["-c", "yarn tailwindcss -i app/tailwind.css -o $TRUNK_STAGING_DIR/styles.css --minify"]
