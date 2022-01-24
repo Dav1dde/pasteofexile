@@ -1,3 +1,7 @@
+const ONE_KB: usize = 1024;
+
+pub const MAX_UPLOAD_SIZE: usize = 50 * ONE_KB;
+
 pub const KV_STATIC_CONTENT: &str = "__STATIC_CONTENT";
 pub const KV_B2_CREDENTIALS: &str = "B2_CREDENTIALS";
 

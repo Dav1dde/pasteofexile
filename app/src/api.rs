@@ -8,6 +8,12 @@ pub struct PasteResponse {
     pub id: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ErrorResponse {
+    pub code: u16,
+    pub message: String,
+}
+
 #[allow(dead_code)] // Only used in !SSR
 pub async fn create_paste(content: Rc<String>) -> Result<PasteResponse> {
     let resp = Request::post("/api/v1/paste/")
@@ -38,5 +44,9 @@ pub async fn get_paste(id: String) -> Result<String> {
 }
 
 async fn handle_error_response(resp: Response) -> Error {
-    Error::UnhandledStatus(resp.status(), resp.status_text())
+    if let Ok(err) = resp.json::<ErrorResponse>().await {
+        Error::ApiError(err.code, err.message)
+    } else {
+        Error::UnhandledStatus(resp.status(), resp.status_text())
+    }
 }

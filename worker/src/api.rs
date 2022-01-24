@@ -1,5 +1,5 @@
 use crate::{
-    b2, crypto,
+    b2, consts, crypto,
     utils::{self, ResponseExt},
     Error, Result,
 };
@@ -66,9 +66,14 @@ async fn handle_download(env: &Env, id: &str) -> Result<Response> {
 async fn handle_upload(req: &mut Request, env: &Env) -> Result<Response> {
     let mut data = req.bytes().await?;
 
-    // TODO: proper error handling
-    // TODO: maybe shortcut this without actually parsing
-    SerdePathOfBuilding::from_export(std::str::from_utf8(&data).unwrap()).unwrap();
+    if data.len() > consts::MAX_UPLOAD_SIZE {
+        return Err(Error::BadRequest("Paste too large".to_owned()));
+    }
+
+    let s = std::str::from_utf8(&data)
+        .map_err(|_| "invalid content".to_owned())
+        .map_err(Error::BadRequest)?;
+    let _ = SerdePathOfBuilding::from_export(s).map_err(|e| Error::BadRequest(e.to_string()));
 
     let b2 = b2::B2::from_env(env)?;
 

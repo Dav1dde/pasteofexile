@@ -11,7 +11,7 @@ mod error;
 mod retry;
 mod utils;
 
-pub use self::error::{Error, Result};
+pub use self::error::{Error, ErrorResponse, Result};
 use assets::EnvAssetExt;
 use utils::ResponseExt;
 
@@ -49,12 +49,6 @@ struct Oembed<'a> {
     provider_url: &'a str,
 }
 
-#[derive(Debug, Serialize)]
-struct ErrorResponse {
-    code: u16,
-    message: String,
-}
-
 #[cfg(feature = "debug")]
 thread_local!(static LAST_LOG_MSG: std::cell::Cell<u64> = std::cell::Cell::new(0));
 #[cfg(feature = "debug")]
@@ -68,23 +62,13 @@ pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Re
         LOG_INIT.call_once(setup_logging);
     }
 
-    let err = match cached(&mut req, &env, &ctx, try_main).await {
+    let err: ErrorResponse = match cached(&mut req, &env, &ctx, try_main).await {
         Ok(response) => return Ok(response),
-        Err(err) => err,
+        Err(err) => err.into(),
     };
 
-    let err = match err {
-        err @ Error::NotFound(_, _) => ErrorResponse {
-            code: 404,
-            message: err.to_string(),
-        },
-        err => ErrorResponse {
-            code: 500,
-            message: err.to_string(),
-        },
-    };
-
-    let mut headers = Headers::new(); // Don't use ResponseExt here, it returns crate::Result
+    // Don't use ResponseExt here, it returns crate::Result
+    let mut headers = Headers::new();
     headers.set("Content-Type", "application/json")?;
     let response = Response::ok(serde_json::to_string(&err)?)?
         .with_status(err.code)

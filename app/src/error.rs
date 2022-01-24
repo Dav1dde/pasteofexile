@@ -9,8 +9,11 @@ pub enum Error {
     #[error("The requested {0} with id {1} does not exist")]
     NotFound(&'static str, String),
 
-    #[error("Fetch failed with status code {0}: {1}")]
+    #[error("{0}: {1}")]
     UnhandledStatus(u16, String),
+
+    #[error("Error {0}: {1}")]
+    ApiError(u16, String),
 
     #[error(transparent)]
     Reqwasm(#[from] reqwasm::Error),

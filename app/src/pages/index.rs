@@ -14,15 +14,24 @@ Creating ...
 pub fn index_page() -> View<G> {
     let value = Signal::new(String::new());
     let loading = Signal::new(false);
+    let error = Signal::new("".to_owned());
 
-    let pob = memo!(value, {
+    let pob = memo!(value, error, {
+        let _ = error.get(); // register signal
+
         let value = &*value.get();
         if value.trim().is_empty() {
             return None;
         }
-        SerdePathOfBuilding::from_export(value)
-            .map_err(|e| log::info!("{}", e))
-            .ok()
+
+        match SerdePathOfBuilding::from_export(value) {
+            Ok(pob) => Some(pob),
+            Err(err) => {
+                log::info!("{}", err);
+                error.set("Invalid PoB Code".to_owned());
+                None
+            }
+        }
     });
 
     let title = memo!(
@@ -34,7 +43,7 @@ pub fn index_page() -> View<G> {
     );
 
     #[cfg(not(feature = "ssr"))]
-    let btn_submit = cloned!((loading, value) => move |_| {
+    let btn_submit = cloned!((loading, value, error) => move |_| {
         use wasm_bindgen_futures::spawn_local;
 
         if *loading.get() {
@@ -42,11 +51,14 @@ pub fn index_page() -> View<G> {
             return;
         }
 
+        error.set("".to_owned());
+
         let value = value.get();
-        let future = cloned!(loading => async move {
+        let future = cloned!((loading, error) => async move {
             match crate::api::create_paste(value).await {
                 Err(err) => {
                     loading.set(false);
+                    error.set(err.to_string());
                     log::info!("{:?}", err);
                 }
                 Ok(response) => sycamore_router::navigate(&response.id),
@@ -63,20 +75,24 @@ pub fn index_page() -> View<G> {
     let btn_submit_disabled = memo!(loading, pob, *loading.get() || pob.get().is_none());
     let btn_content = memo_cond!(loading, SPINNER, "Create");
 
+    let on_input = cloned!(error => move |_| error.set("".to_owned()));
+
     view! {
         div(class="flex flex-col gap-y-3") {
             h1(class="dark:text-slate-100 text-slate-900") { (title.get()) }
             textarea(
                 bind:value=value,
+                on:input=on_input,
                 spellcheck=false,
                 class="dark:bg-slate-500 bg-slate-200 block w-full mt-1 py-2 px-3 rounded-sm shadow-sm focus:outline-none dark:text-slate-300 text-slate-700 resize-none text-sm break-all",
                 style="min-height: 60vh"
             )
-            div(class="text-right") {
+            div(class="flex") {
+                div(class="flex-auto flex items-center text-red-500") { (*error.get()) }
                 button(
                     on:click=btn_submit,
                     disabled=*btn_submit_disabled.get(),
-                    class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex",
+                    class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed flex",
                     dangerously_set_inner_html=*btn_content.get()
                 ) {
                 }

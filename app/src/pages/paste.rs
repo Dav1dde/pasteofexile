@@ -150,7 +150,7 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
                 textarea(
                     ref=content_ref,
                     on:click=select_all,
-                    class="flex-auto resize-none text-sm break-all outline-none max-h-40 min-h-[5rem] dark:bg-slate-500 bg-slate-200 dark:text-slate-300 text-slate-700 rounded-sm shadow-sm pl-1",
+                    class="flex-auto resize-none text-sm break-all outline-none max-h-40 min-h-[5rem] dark:bg-slate-600 bg-slate-200 dark:text-slate-300 text-slate-700 rounded-sm shadow-sm pl-1",
                     readonly=true
                 ) {
                     (content)
