@@ -5,7 +5,7 @@ use crate::{
 };
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use serde::Serialize;
-use worker::{Env, Method, Request, Response};
+use worker::{Env, Headers, Method, Request, Response};
 
 #[derive(Serialize)]
 struct Upload {
@@ -28,10 +28,21 @@ fn is_download_url<'a>(path: &'a str, req: &Request) -> Option<&'a str> {
     if req.method() != Method::Get {
         return None;
     }
+
+    is_pob_download_url(path).or_else(|| is_raw_download_url(path))
+}
+
+fn is_raw_download_url(path: &str) -> Option<&str> {
     path.trim_start_matches('/')
         .split_once('/')
         .filter(|(_, raw)| *raw == "raw")
         .map(|(id, _)| id)
+}
+
+fn is_pob_download_url(path: &str) -> Option<&str> {
+    path.rsplit_once('/')
+        .filter(|(path, _)| *path == "/pob")
+        .map(|(_, id)| id)
 }
 
 async fn handle_download(env: &Env, id: &str) -> Result<Response> {
@@ -41,7 +52,7 @@ async fn handle_download(env: &Env, id: &str) -> Result<Response> {
     let response = b2.download(&path).await?;
     match response.status_code() {
         200 => response
-            .dup_headers()
+            .with_headers(Headers::new())
             .with_content_type("text/plain")?
             .cache_for(31536000),
         404 => Err(Error::NotFound("paste", id.to_owned())),
