@@ -1,9 +1,27 @@
 use crate::serde::model::*;
 use crate::{Config, ConfigValue, Error, Result, Stat};
+use owning_ref::OwningHandle;
 
-#[derive(Debug)]
 pub struct SerdePathOfBuilding {
-    pob: PathOfBuilding,
+    // pob: OwningHandle<Box<str>, Baz>,
+    data: *const str,
+    pob: PathOfBuilding<'static>
+}
+
+impl Drop for SerdePathOfBuilding {
+    fn drop(&mut self) {
+        drop(unsafe { Box::from_raw(self.data as *mut str) })
+    }
+}
+
+struct Baz(PathOfBuilding<'static>);
+
+impl std::ops::Deref for Baz {
+    type Target = PathOfBuilding<'static>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl SerdePathOfBuilding {
@@ -18,9 +36,35 @@ impl SerdePathOfBuilding {
 
 impl crate::PathOfBuilding for SerdePathOfBuilding {
     fn from_xml(s: &str) -> Result<Self> {
-        let pob = quick_xml::de::from_str(s).map_err(Error::ParseXml)?;
+        // TODO: evaluate roxmltree
 
-        Ok(Self { pob })
+        // let pob = OwningHandle::new_with_fn(s.to_owned().into_boxed_str(), |v| {
+        //     let v: &'static str = unsafe { &*v as &'static str };
+        //     let d = quick_xml::de::from_str::<PathOfBuilding>(&*v).unwrap();
+        //     Baz(d)
+        // });
+
+        log::info!("{}", s);
+
+        // let s = Box::new(s.to_owned());
+        // let s = Box::leak(s);
+        // let pob: PathOfBuilding = quick_xml::de::from_str(&*s).map_err(Error::ParseXml)?;
+
+        let s = s.to_owned().into_boxed_str();
+        let s = Box::into_raw(s);
+        let pob: PathOfBuilding = quick_xml::de::from_str(unsafe { &*s as &'static str })
+            .map_err(Error::ParseXml)?;
+
+        for item in pob.items.item.iter() {
+            println!("{}: {}", matches!(item, std::borrow::Cow::Borrowed(_)), item);
+        }
+
+        match &pob.build.ascend_class_name {
+            std::borrow::Cow::Owned(_) => panic!("what a dogshit is"),
+            _ => log::info!("FUck yeah"),
+        }
+
+        Ok(Self { data: s, pob })
     }
 
     fn level(&self) -> u8 {
@@ -48,8 +92,8 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .build
             .player_stats
             .iter()
-            .find(|x| stat == x.name)
-            .map(|stat| stat.value.as_str())
+            .find(|x| stat.name() == x.name)
+            .map(|stat| &*stat.value)
     }
 
     fn minion_stat(&self, stat: Stat) -> Option<&str> {
@@ -57,8 +101,8 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .build
             .minion_stats
             .iter()
-            .find(|x| stat == x.name)
-            .map(|stat| stat.value.as_str())
+            .find(|x| stat.name()  == x.name)
+            .map(|stat| &*stat.value)
     }
 
     fn config(&self, config: Config) -> ConfigValue {
@@ -66,7 +110,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .config
             .input
             .iter()
-            .find(|x| config == x.name)
+            .find(|x| config.name() == x.name)
             .map(|stat| {
                 if let Some(ref value) = stat.string {
                     ConfigValue::String(value)
@@ -90,7 +134,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                     index => skill.active_gems().nth(index as usize - 1),
                 }
             })
-            .map(|gem| gem.name.as_str())
+            .map(|gem| &*gem.name)
     }
 
     fn main_skill_supported_by(&self, skill: &str) -> bool {

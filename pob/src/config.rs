@@ -7,7 +7,7 @@ pub enum Config {
 }
 
 impl Config {
-    fn name(&self) -> &'static str {
+    pub fn name(&self) -> &'static str {
         match self {
             Self::Boss => "enemyIsBoss",
             Self::EnemyShocked => "conditionEnemyShocked",

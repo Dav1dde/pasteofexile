@@ -1,61 +1,76 @@
 use crate::serde::utils::u8_or_nil;
 use serde::Deserialize;
 use serde_with::{rust::StringWithSeparator, CommaSeparator};
+use std::borrow::Cow;
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PathOfBuilding {
-    #[serde(rename = "Build")]
-    pub build: Build,
+pub(crate) struct PathOfBuilding<'a> {
+    #[serde(borrow, rename = "Build")]
+    pub build: Build<'a>,
 
-    #[serde(rename = "Skills")]
-    pub skills: Skills,
+    #[serde(borrow, rename = "Skills")]
+    pub skills: Skills<'a>,
 
-    #[serde(rename = "Tree")]
-    pub tree: Tree,
+    #[serde(borrow, rename = "Tree")]
+    pub tree: Tree<'a>,
 
-    #[serde(default, rename = "Notes")]
-    pub notes: String,
+    #[serde(borrow, rename = "Notes")]
+    pub notes: Cow<'a, str>,
 
-    #[serde(default, rename = "Config")]
-    pub config: Config,
+    #[serde(borrow, default, rename = "Config")]
+    pub config: Config<'a>,
+
+    #[serde(borrow, rename = "Items")]
+    pub items: Items<'a>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Build {
+pub(crate) struct Items<'a> {
+    #[serde(borrow, rename = "Item")]
+    pub item: Vec<Cow<'a, str>>,
+
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Build<'a> {
     pub level: u8,
-    pub class_name: String,
-    pub ascend_class_name: String,
-    #[serde(default, rename = "PlayerStat")]
-    pub player_stats: Vec<BuildStat>,
-    #[serde(default, rename = "MinionStat")]
-    pub minion_stats: Vec<BuildStat>,
+    #[serde(borrow)]
+    pub class_name: Cow<'a, str>,
+    #[serde(borrow)]
+    pub ascend_class_name: Cow<'a, str>,
+    #[serde(borrow, default, rename = "PlayerStat")]
+    pub player_stats: Vec<BuildStat<'a>>,
+    #[serde(borrow, default, rename = "MinionStat")]
+    pub minion_stats: Vec<BuildStat<'a>>,
     pub main_socket_group: u8,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct BuildStat {
-    #[serde(rename = "stat")]
-    pub name: String,
-    pub value: String,
+pub(crate) struct BuildStat<'a> {
+    #[serde(borrow, rename = "stat")]
+    pub name: Cow<'a, str>,
+    #[serde(borrow)]
+    pub value: Cow<'a, str>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Skills {
-    #[serde(default, rename = "$value")]
-    pub skills: Vec<Skill>,
+pub(crate) struct Skills<'a> {
+    #[serde(borrow, default, rename = "$value")]
+    pub skills: Vec<Skill<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Skill {
+pub(crate) struct Skill<'a> {
     #[serde(default, deserialize_with = "u8_or_nil")]
     pub main_active_skill: u8,
-    #[serde(default, rename = "$value")]
-    pub gems: Vec<Gem>,
+    #[serde(borrow, default, rename = "$value")]
+    pub gems: Vec<Gem<'a>>,
 }
 
-impl Skill {
+impl<'a> Skill<'a> {
     pub fn active_gems(&self) -> impl Iterator<Item = &Gem> {
         self.gems.iter().filter(|gem| gem.is_active())
     }
@@ -67,14 +82,16 @@ impl Skill {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Gem {
-    #[serde(rename = "nameSpec")]
-    pub name: String,
-    pub skill_id: Option<String>,
-    pub gem_id: Option<String>,
+pub(crate) struct Gem<'a> {
+    #[serde(borrow, rename = "nameSpec")]
+    pub name: Cow<'a, str>,
+    #[serde(borrow)]
+    pub skill_id: Option<Cow<'a, str>>,
+    #[serde(borrow)]
+    pub gem_id: Option<Cow<'a, str>>,
 }
 
-impl Gem {
+impl<'a> Gem<'a> {
     pub fn is_support(&self) -> bool {
         if let Some(gem_id) = &self.gem_id {
             return gem_id.starts_with("Metadata/Items/Gems/Support");
@@ -92,33 +109,35 @@ impl Gem {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Tree {
+pub(crate) struct Tree<'a> {
     pub active_spec: u8,
-    #[serde(rename = "Spec")]
-    pub specs: Vec<Spec>,
+    #[serde(borrow, rename = "Spec")]
+    pub specs: Vec<Spec<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Spec {
-    #[serde(default)]
-    pub title: Option<String>,
+pub(crate) struct Spec<'a> {
+    #[serde(borrow, default)]
+    pub title: Option<Cow<'a, str>>,
     #[serde(default, with = "StringWithSeparator::<CommaSeparator>")]
     pub nodes: Vec<u32>,
-    #[serde(default, rename = "URL")]
-    pub url: Option<String>,
+    #[serde(borrow, default, rename = "URL")]
+    pub url: Option<Cow<'a, str>>,
 }
 
 #[derive(Default, Debug, Deserialize)]
-pub(crate) struct Config {
-    #[serde(default, rename = "Input")]
-    pub input: Vec<Input>,
+pub(crate) struct Config<'a> {
+    #[serde(borrow, default, rename = "Input")]
+    pub input: Vec<Input<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Input {
-    pub name: String,
-    pub string: Option<String>,
+pub(crate) struct Input<'a> {
+    #[serde(borrow)]
+    pub name: Cow<'a, str>,
+    #[serde(borrow)]
+    pub string: Option<Cow<'a, str>>,
     pub boolean: Option<bool>,
     pub number: Option<f32>,
 }

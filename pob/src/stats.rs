@@ -35,7 +35,7 @@ pub enum Stat {
 }
 
 impl Stat {
-    fn name(&self) -> &'static str {
+    pub fn name(&self) -> &'static str {
         match self {
             Self::Armour => "Armour",
             Self::AttackDodgeChance => "AttackDodgeChance",
@@ -69,6 +69,12 @@ impl Stat {
             Self::SpellSuppressionChance => "SpellSuppressionChance",
             Self::Custom(s) => s,
         }
+    }
+}
+
+impl AsRef<str> for Stat {
+    fn as_ref(&self) -> &str {
+        self.name()
     }
 }
 
