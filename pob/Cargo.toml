@@ -11,5 +11,15 @@ base64 = "0.13"
 serde = { version = "1", features = [ "derive" ] }
 serde_with = "1"
 quick-xml = { version = "0.22", features = [ "serialize" ] }
+roxmltree = { version = "0.14" }
 anyhow = "1"
 thiserror = "1"
+
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "parse"
+harness = false
+

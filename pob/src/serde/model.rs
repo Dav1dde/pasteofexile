@@ -18,6 +18,16 @@ pub(crate) struct PathOfBuilding {
 
     #[serde(default, rename = "Config")]
     pub config: Config,
+
+    #[serde(rename = "Items")]
+    pub items: Items,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Items {
+    #[serde(rename = "Item")]
+    pub item: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

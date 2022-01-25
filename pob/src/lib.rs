@@ -7,16 +7,19 @@ use std::{
 mod config;
 mod error;
 mod passives;
+mod roxmltree;
 mod serde;
 mod stats;
 
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
 pub use self::passives::Keystone;
+pub use self::roxmltree::RoXmlPathOfBuilding;
 pub use self::serde::SerdePathOfBuilding;
 pub use self::stats::Stat;
 
 pub trait PathOfBuilding {
+    /*
     fn from_xml(xml: &str) -> Result<Self>
     where
         Self: Sized;
@@ -31,6 +34,7 @@ pub trait PathOfBuilding {
 
         Self::from_xml(&deflated)
     }
+    */
 
     fn level(&self) -> u8;
 

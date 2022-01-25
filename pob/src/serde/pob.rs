@@ -7,6 +7,12 @@ pub struct SerdePathOfBuilding {
 }
 
 impl SerdePathOfBuilding {
+    pub fn from_xml(s: &str) -> Result<Self> {
+        let pob = quick_xml::de::from_str(s).map_err(Error::ParseXml)?;
+
+        Ok(Self { pob })
+    }
+
     fn main_skill(&self) -> Option<&Skill> {
         let index = self.pob.build.main_socket_group;
         if index < 1 {
@@ -17,12 +23,6 @@ impl SerdePathOfBuilding {
 }
 
 impl crate::PathOfBuilding for SerdePathOfBuilding {
-    fn from_xml(s: &str) -> Result<Self> {
-        let pob = quick_xml::de::from_str(s).map_err(Error::ParseXml)?;
-
-        Ok(Self { pob })
-    }
-
     fn level(&self) -> u8 {
         self.pob.build.level
     }
