@@ -1,9 +1,10 @@
 use crate::serde::model::*;
-use crate::{Config, ConfigValue, Error, Result, Stat};
+use crate::{Config, ConfigValue, Error, Keystone, Result, Stat};
 
 #[derive(Debug)]
 pub struct SerdePathOfBuilding {
     pob: PathOfBuilding,
+    // TODO: quick access list (indices) for active items (?)
 }
 
 impl SerdePathOfBuilding {
@@ -13,6 +14,27 @@ impl SerdePathOfBuilding {
             return None;
         }
         self.pob.skills.skills.get(index as usize - 1)
+    }
+
+    fn has_keystone_on_gear(&self, keystone: Keystone) -> bool {
+        let keystone = match keystone.as_item_stat() {
+            Some(keystone) => keystone,
+            None => return false,
+        };
+
+        self.pob
+            .items
+            .items
+            .iter()
+            .filter(|item| {
+                self.pob
+                    .items
+                    .slots
+                    .iter()
+                    .any(|slot| item.id == slot.item_id)
+            })
+            .flat_map(|item| item.content.content.lines())
+            .any(|stat| stat == keystone)
     }
 }
 
@@ -125,6 +147,10 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .map(|spec| spec.nodes.contains(&node))
             .unwrap_or(false)
     }
+
+    fn has_keystone(&self, keystone: Keystone) -> bool {
+        self.has_tree_node(keystone.node()) || self.has_keystone_on_gear(keystone)
+    }
 }
 
 #[cfg(test)]
@@ -153,18 +179,27 @@ mod tests {
     #[test]
     fn parse_v316_poison_occ() {
         let pob = SerdePathOfBuilding::from_xml(V316_POISON_OCC).unwrap();
+
         assert_eq!(96, pob.level());
         assert_eq!("Witch", pob.class_name());
         assert_eq!(Some("Occultist"), pob.ascendancy_name());
         assert_eq!("Occultist", pob.ascendancy_or_class_name());
         assert_eq!(8516, pob.notes().len());
         assert_eq!(Some("Poisonous Concoction"), pob.main_skill_name());
+
         assert!(!pob.main_skill_supported_by(pob.main_skill_name().unwrap()));
         assert!(pob.main_skill_supported_by("Unbound Ailments"));
         assert!(!pob.main_skill_supported_by("Unbound Ailments 2.0"));
         assert!(pob.main_skill_supported_by("Lifetap")); // no gem_id
+
         assert!(pob.minion_stat(Stat::AverageDamage).is_none());
         assert_eq!(Some("1"), pob.minion_stat(Stat::EnduranceChargesMax));
+
+        // EB: is in a non-active item
+        assert!(!pob.has_keystone(Keystone::EldritchBattery));
+        // MoM is on an active item
+        assert!(pob.has_keystone(Keystone::MindOverMatter));
+
         // TODO: test configs
     }
 }

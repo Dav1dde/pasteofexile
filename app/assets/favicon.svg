@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ptn rox -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve">
+<style type="text/css">
+@font-face {
+font-family: 'Fontin-Regular';
+src: url('https://web.poecdn.com/font/fontin-regular-webfont.woff');
+}
+.st0{fill:#B4B4B5;stroke:#000000;stroke-width:0.5355;stroke-miterlimit:10;}
+.st1{fill:#F4F4F4;stroke:#000000;stroke-width:0.5355;stroke-miterlimit:10;}
+</style>
+<path class="st0" d="M30.1,20.5c0.4-0.5,0.9,0.1,0.4,1.5c-0.4,1.1-2.8,6.5-10.3,9.5c-0.3,0.1-1.4,0.5-1.2,0.1l1.2-5l1-3.3l2.3-1.2
+l3.2-0.1l2.1,0.1L30.1,20.5z"/>
+<path class="st1" d="M18.8,31.7l-14.5,0c-1.6,0-3-1.3-3-2.9l0-25c0-2,1.6-3.6,3.6-3.6l22.4,0c1.9,0,3.5,1.5,3.5,3.4l0.1,16.5
+c0,2.6-1.9,2.7-3.3,2.7c-9.1-0.3-5.6,2.9-6.5,6.7c0,0-0.1,0.2-0.1,0.2C20.5,30.6,19.6,31.7,18.8,31.7z"/>
+<text transform="matrix(0.7135 -3.510319e-03 4.973372e-03 1 5.4582 19.435)" style="font-family:'Fontin-Regular'; font-size:17.4097px;">PoB</text>
+</svg>

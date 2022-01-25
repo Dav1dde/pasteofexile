@@ -30,9 +30,9 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
         )
         .add_to(&mut elements);
 
-    Element::new("eHP")
+    Element::new("Pool")
         .color(AMBER_50)
-        .stat_int(Some(pob::ehp(pob) as f32))
+        .stat_int(Some(pob::hp_pool(pob) as f32))
         .add_to(&mut elements);
 
     elements

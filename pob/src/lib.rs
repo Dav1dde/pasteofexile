@@ -46,6 +46,7 @@ pub trait PathOfBuilding {
 
     fn tree_specs(&self) -> Vec<TreeSpec>;
     fn has_tree_node(&self, node: u32) -> bool;
+    fn has_keystone(&self, keystone: Keystone) -> bool;
 }
 
 pub struct TreeSpec<'a> {
@@ -99,11 +100,6 @@ pub trait PathOfBuildingExt: PathOfBuilding {
         self.minion_stat_parse::<f32>(name)
             .map(|v| v <= value)
             .unwrap_or(false)
-    }
-
-    fn has_keystone(&self, keystone: Keystone) -> bool {
-        // TODO: check on gear
-        self.has_tree_node(keystone.node())
     }
 }
 

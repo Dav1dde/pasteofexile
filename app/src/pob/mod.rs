@@ -34,7 +34,7 @@ pub fn is_hybrid<T: PathOfBuilding>(pob: &T) -> bool {
         )
 }
 
-pub fn ehp<T: PathOfBuilding>(pob: &T) -> u32 {
+pub fn hp_pool<T: PathOfBuilding>(pob: &T) -> u32 {
     let mut ehp = pob.stat_parse(Stat::LifeUnreserved).unwrap_or(1);
 
     if pob.has_keystone(Keystone::ChaosInoculation) {

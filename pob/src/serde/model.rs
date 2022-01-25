@@ -1,4 +1,5 @@
 use crate::serde::utils::u8_or_nil;
+use serde::de;
 use serde::Deserialize;
 use serde_with::{rust::StringWithSeparator, CommaSeparator};
 
@@ -12,6 +13,9 @@ pub(crate) struct PathOfBuilding {
 
     #[serde(rename = "Tree")]
     pub tree: Tree,
+
+    #[serde(default, rename = "Items")]
+    pub items: Items,
 
     #[serde(default, rename = "Notes")]
     pub notes: String,
@@ -110,6 +114,67 @@ pub(crate) struct Spec {
 }
 
 #[derive(Default, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Items {
+    #[serde(default, rename = "Item")]
+    pub items: Vec<Item>,
+    #[serde(default, rename = "Slot")]
+    pub slots: Vec<Slot>,
+}
+
+#[derive(Default, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Item {
+    pub id: u16,
+    // this might be parsable with serde_as into a `(String, Vec<()>)`
+    #[serde(rename = "$value")]
+    pub content: ItemContent,
+}
+
+#[derive(Default, Debug)]
+pub(crate) struct ItemContent {
+    pub content: String,
+}
+
+impl<'de> de::Deserialize<'de> for ItemContent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = ItemContent;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("expected pob item")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: de::SeqAccess<'de>,
+            {
+                // first element is the item content
+                let content = seq.next_element::<String>()?.unwrap_or_else(String::new);
+                // following elements are mod ranges, ignore them for now
+                while seq.next_element::<()>()?.is_some() {}
+
+                Ok(ItemContent { content })
+            }
+        }
+
+        deserializer.deserialize_seq(Visitor)
+    }
+}
+
+#[derive(Default, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Slot {
+    pub item_id: u16,
+}
+
+#[derive(Default, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Config {
     #[serde(default, rename = "Input")]
     pub input: Vec<Input>,

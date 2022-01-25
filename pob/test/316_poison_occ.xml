@@ -906,6 +906,7 @@ Implicits: 1
 110% increased Evasion and Energy Shield
 +60 to maximum Energy Shield
 +109 to maximum Life
+Eldritch Battery
 {tags:elemental,cold,lightning,resistance}{crafted}{range:1}+(17-20)% to Cold and Lightning Resistances
 			<ModRange range="1" id="8"/>
 		</Item>
@@ -1022,6 +1023,7 @@ Int: 111
 180% increased Evasion Rating
 +66 to maximum Life
 30% increased Movement Speed
+Mind Over Matter
 		</Item>
 		<Item variant="2" id="5">
 			Rarity: UNIQUE

@@ -16,4 +16,13 @@ impl Keystone {
             Self::MindOverMatter => 34098,
         }
     }
+
+    pub(crate) fn as_item_stat(&self) -> Option<&'static str> {
+        // TODO: do we need translations here?
+        match self {
+            Self::EldritchBattery => Some("Eldritch Battery"),
+            Self::MindOverMatter => Some("Mind Over Matter"),
+            _ => None,
+        }
+    }
 }
