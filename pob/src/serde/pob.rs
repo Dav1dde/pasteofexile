@@ -127,10 +127,12 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .tree
             .specs
             .iter()
-            .map(|spec| crate::TreeSpec {
+            .enumerate()
+            .map(|(i, spec)| crate::TreeSpec {
                 title: spec.title.as_deref(),
                 url: spec.url.as_deref(),
                 nodes: &spec.nodes,
+                active: self.pob.tree.active_spec as usize == i + 1,
             })
             .collect()
     }

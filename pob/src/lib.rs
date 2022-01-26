@@ -53,6 +53,9 @@ pub struct TreeSpec<'a> {
     pub title: Option<&'a str>,
     pub url: Option<&'a str>,
     pub nodes: &'a [u32],
+
+    /// Whether the tree spec is active/selected
+    pub active: bool,
 }
 
 pub trait PathOfBuildingExt: PathOfBuilding {

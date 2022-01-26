@@ -11,6 +11,7 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
         .filter(filter_valid_url)
         .map(|spec| {
             let title = spec.title.unwrap_or("<Unnamed>").to_owned();
+
             let title = match spec.url {
                 Some(url) => {
                     let url = url.to_owned();
@@ -25,12 +26,18 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
                 }
             };
 
+            let active = if spec.active {
+                view! { span() { "*" } }
+            } else {
+                view! {}
+            };
+
             // TODO: read proper amount of nodes
             let nodes = spec.nodes.len().saturating_sub(10); // remove 10 points for ascendancy etc.
             let level = nodes.saturating_sub(23); // TODO: bandits, level progression
             let description = format!("Required Level {} ({} passive points)", level, nodes);
             view! {
-                div() { (title) }
+                div() { (title) (active) }
                 div(class="mb-3 sm:mb-0") { (description) }
             }
         })
