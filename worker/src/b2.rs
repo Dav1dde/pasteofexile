@@ -123,13 +123,22 @@ impl B2 {
     }
 
     pub async fn download(&self, path: &str) -> Result<worker::Response> {
-        // Requires a public pubic for now ...
+        // Requires a public url for now ...
         let mut url = self.public_file_url.to_owned();
         url.push('/');
         url.push_str(path);
 
-        let request = Request::new(&url, Method::Get)?;
-        Ok(Fetch::Request(request).send().await?)
+        retry(3, |_| async {
+            let request = Request::new(&url, Method::Get)?;
+            let response = Fetch::Request(request).send().await?;
+            if response.status_code() >= 400 {
+                log::info!("download failed {}", response.status_code());
+                Retry::err(Error::RemoteFailed(response.status_code(), "upload".into()))
+            } else {
+                Retry::ok(response)
+            }
+        })
+        .await
     }
 
     async fn get_upload_url(&self) -> Result<UploadDetails> {
