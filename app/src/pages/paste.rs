@@ -1,6 +1,6 @@
 use crate::{
     async_callback,
-    components::PobTreeTable,
+    components::{PobTreeTable, PoeGems},
     future::LocalBoxFuture,
     memo,
     pob::{self, Element},
@@ -73,11 +73,12 @@ impl CopyState {
 pub fn paste_page(Data { content, pob }: Data) -> View<G> {
     let title = pob::title(&*pob);
 
+    // TODO: colored notes
     let notes = pob.notes().to_owned();
     let notes = if !notes.is_empty() {
         view! {
-            div {
-                h3(class="text-lg dark:text-slate-100 text-slate-900 mt-5 mb-1") { "Notes" }
+            div(class="flex-auto") {
+                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Notes" }
                 pre(class="text-xs break-words whitespace-pre-line font-mono sm:ml-3 mb-10") { (notes) }
             }
         }
@@ -141,7 +142,7 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
     let summary = View::new_fragment(summary);
 
     view! {
-        div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-10") {
+        div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
             div(class="flex-auto flex flex-col gap-y-2") {
                 h1(class="text-xl mb-1 dark:text-slate-100 text-slate-900") { (title) }
                 (summary)
@@ -164,11 +165,17 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
                 }
             }
         }
-        div {
-            h3(class="text-lg dark:text-slate-100 text-slate-900 mb-1") { "Tree" }
-            PobTreeTable(pob)
-        }
+        div(class="flex flex-wrap gap-x-10 gap-y-10") {
+            div(class="flex-auto w-full lg:w-auto") {
+                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
+                PoeGems(pob.clone())
+            }
+            div(class="flex-1") {
+                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
+                PobTreeTable(pob)
+            }
         (notes)
+        }
     }
 }
 

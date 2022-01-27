@@ -8,6 +8,16 @@ pub struct SerdePathOfBuilding {
 }
 
 impl SerdePathOfBuilding {
+    pub fn from_xml(s: &str) -> Result<Self> {
+        let pob = quick_xml::de::from_str(s).map_err(Error::ParseXml)?;
+        Ok(Self { pob })
+    }
+
+    pub fn from_export(data: &str) -> Result<Self> {
+        let data = crate::utils::decompress(data)?;
+        Self::from_xml(&data)
+    }
+
     fn main_skill(&self) -> Option<&Skill> {
         let index = self.pob.build.main_socket_group;
         if index < 1 {
@@ -39,12 +49,6 @@ impl SerdePathOfBuilding {
 }
 
 impl crate::PathOfBuilding for SerdePathOfBuilding {
-    fn from_xml(s: &str) -> Result<Self> {
-        let pob = quick_xml::de::from_str(s).map_err(Error::ParseXml)?;
-
-        Ok(Self { pob })
-    }
-
     fn level(&self) -> u8 {
         self.pob.build.level
     }
@@ -120,6 +124,48 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .iter()
             .flat_map(|x| x.support_gems())
             .any(|gem| gem.name == skill)
+    }
+
+    fn skills(&self) -> Vec<crate::Skill> {
+        // starts at 1
+        let main_socket_group = self.pob.build.main_socket_group as usize;
+
+        self.pob
+            .skills
+            .skills
+            .iter()
+            .enumerate()
+            .map(|(index, s)| {
+                let is_selected = main_socket_group == index + 1;
+
+                let mut actives = 0;
+                let gems = s
+                    .gems
+                    .iter()
+                    .map(|g| {
+                        let is_selected = if g.is_active() {
+                            actives += 1;
+                            is_selected && s.main_active_skill == actives
+                        } else {
+                            false
+                        };
+                        crate::Gem {
+                            name: &g.name,
+                            is_active: g.is_active(),
+                            is_support: g.is_support(),
+                            is_selected,
+                        }
+                    })
+                    .collect();
+
+                crate::Skill {
+                    gems,
+                    label: s.label.as_deref(),
+                    slot: s.slot.as_deref(),
+                    is_selected,
+                }
+            })
+            .collect()
     }
 
     fn tree_specs(&self) -> Vec<crate::TreeSpec> {

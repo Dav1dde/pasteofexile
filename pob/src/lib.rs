@@ -1,14 +1,11 @@
-use flate2::bufread::ZlibDecoder;
-use std::{
-    io::{self, Read},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 mod config;
 mod error;
 mod passives;
 mod serde;
 mod stats;
+mod utils;
 
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
@@ -17,21 +14,6 @@ pub use self::serde::SerdePathOfBuilding;
 pub use self::stats::Stat;
 
 pub trait PathOfBuilding {
-    fn from_xml(xml: &str) -> Result<Self>
-    where
-        Self: Sized;
-    fn from_export(data: &str) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        let inp =
-            base64::decode_config(data.trim(), base64::URL_SAFE).map_err(Error::Base64Decode)?;
-
-        let deflated = deflate(&inp).map_err(Error::Deflate)?;
-
-        Self::from_xml(&deflated)
-    }
-
     fn level(&self) -> u8;
 
     fn class_name(&self) -> &str;
@@ -43,6 +25,8 @@ pub trait PathOfBuilding {
     fn config(&self, config: Config) -> ConfigValue;
     fn main_skill_name(&self) -> Option<&str>;
     fn main_skill_supported_by(&self, skill: &str) -> bool;
+
+    fn skills(&self) -> Vec<Skill>;
 
     fn tree_specs(&self) -> Vec<TreeSpec>;
     fn has_tree_node(&self, node: u32) -> bool;
@@ -56,6 +40,20 @@ pub struct TreeSpec<'a> {
 
     /// Whether the tree spec is active/selected
     pub active: bool,
+}
+
+pub struct Skill<'a> {
+    pub is_selected: bool,
+    pub label: Option<&'a str>,
+    pub slot: Option<&'a str>,
+    pub gems: Vec<Gem<'a>>,
+}
+
+pub struct Gem<'a> {
+    pub name: &'a str,
+    pub is_active: bool,
+    pub is_support: bool,
+    pub is_selected: bool,
 }
 
 pub trait PathOfBuildingExt: PathOfBuilding {
@@ -115,11 +113,4 @@ impl std::fmt::Debug for dyn PathOfBuilding {
             .field("ascendancy_name", &self.ascendancy_name())
             .finish()
     }
-}
-
-fn deflate(inp: &[u8]) -> io::Result<String> {
-    let mut deflater = ZlibDecoder::new(inp);
-    let mut s = String::new();
-    deflater.read_to_string(&mut s)?;
-    Ok(s)
 }

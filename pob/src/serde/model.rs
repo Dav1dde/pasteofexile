@@ -55,6 +55,10 @@ pub(crate) struct Skills {
 pub(crate) struct Skill {
     #[serde(default, deserialize_with = "u8_or_nil")]
     pub main_active_skill: u8,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub slot: Option<String>,
     #[serde(default, rename = "$value")]
     pub gems: Vec<Gem>,
 }

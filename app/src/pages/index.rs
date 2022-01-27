@@ -1,5 +1,5 @@
 use crate::{memo, memo_cond};
-use pob::{PathOfBuilding, SerdePathOfBuilding};
+use pob::SerdePathOfBuilding;
 use sycamore::prelude::*;
 
 const SPINNER: &str = r#"

@@ -1,5 +1,5 @@
 use lazycell::LazyCell;
-use pob::{PathOfBuilding, SerdePathOfBuilding};
+use pob::SerdePathOfBuilding;
 use std::rc::Rc;
 
 use crate::Route;

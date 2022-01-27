@@ -46,3 +46,4 @@ thiserror = "1"
 
 gloo-timers = { version = "0.2", features = ["futures"], optional = true }
 thousands = "0.2"
+itertools = "0.10"

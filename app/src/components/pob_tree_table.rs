@@ -26,18 +26,12 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
                 }
             };
 
-            let active = if spec.active {
-                view! { span() { "*" } }
-            } else {
-                view! {}
-            };
-
             // TODO: read proper amount of nodes
             let nodes = spec.nodes.len().saturating_sub(10); // remove 10 points for ascendancy etc.
             let level = nodes.saturating_sub(23); // TODO: bandits, level progression
-            let description = format!("Required Level {} ({} passive points)", level, nodes);
+            let description = format!("Level {} ({} passives)", level, nodes);
             view! {
-                div() { (title) (active) }
+                div(class=if spec.active { "font-bold" } else { "" }) { (title) }
                 div(class="mb-3 sm:mb-0") { (description) }
             }
         })
@@ -45,8 +39,10 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
 
     let rows = View::new_fragment(rows);
 
+    // TODO: try flexbox with 50% 50%
     view! {
-        div(class="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-x-8 sm:gap-y-1 sm:ml-3") {
+                                 // sm:grid-cols-[auto_1fr]
+        div(class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-y-1 sm:ml-3") {
             (rows)
         }
     }

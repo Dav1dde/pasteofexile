@@ -3,7 +3,7 @@ use crate::{
     utils::{self, ResponseExt},
     Error, Result,
 };
-use pob::{PathOfBuilding, SerdePathOfBuilding};
+use pob::SerdePathOfBuilding;
 use serde::Serialize;
 use worker::{Env, Headers, Method, Request, Response};
 
