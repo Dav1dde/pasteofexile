@@ -1,6 +1,7 @@
 use pob::{Keystone, PathOfBuilding, PathOfBuildingExt, Stat};
 
 mod element;
+pub mod formatting;
 pub mod summary;
 
 pub use self::element::Element;

@@ -47,3 +47,8 @@ thiserror = "1"
 gloo-timers = { version = "0.2", features = ["futures"], optional = true }
 thousands = "0.2"
 itertools = "0.10"
+
+
+[dev-dependencies]
+sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures", "ssr"] }
+

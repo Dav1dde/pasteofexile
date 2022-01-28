@@ -1,6 +1,6 @@
 use crate::{
     async_callback,
-    components::{PobTreeTable, PoeGems},
+    components::{PobColoredText, PobGems, PobTreeTable},
     future::LocalBoxFuture,
     memo,
     pob::{self, Element},
@@ -79,7 +79,9 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
         view! {
             div(class="flex-auto") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
-                pre(class="text-xs break-words whitespace-pre-line font-mono sm:ml-3 mb-10") { (notes) }
+                pre(class="text-xs break-words whitespace-pre-line font-mono sm:ml-3 mb-10") {
+                    PobColoredText(notes)
+                }
             }
         }
     } else {
@@ -168,7 +170,7 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
             div(class="flex-auto w-full lg:w-auto") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
-                PoeGems(pob.clone())
+                PobGems(pob.clone())
             }
             div(class="flex-1") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }

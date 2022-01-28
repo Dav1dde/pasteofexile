@@ -1,10 +1,11 @@
+use crate::components::PobColoredText;
 use itertools::Itertools;
 use pob::{PathOfBuilding, SerdePathOfBuilding, Skill};
 use std::rc::Rc;
 use sycamore::prelude::*;
 
-#[component(PoeGems<G>)]
-pub fn poe_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
+#[component(PobGems<G>)]
+pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     let mut skills = Vec::new();
 
     // TODO: text escape for pob escape codes
@@ -14,7 +15,7 @@ pub fn poe_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
             let labels = group
                 .filter(|s| s.label.is_some())
                 .map(|s| s.label.unwrap().to_owned())
-                .map(|label| view! { div { (label) } })
+                .map(|label| view! { div { PobColoredText(label) } })
                 .collect();
             let labels = View::new_fragment(labels);
             skills.push(view! {
