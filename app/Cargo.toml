@@ -50,5 +50,4 @@ itertools = "0.10"
 
 
 [dev-dependencies]
-sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures", "ssr"] }
-
+sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["ssr"] }

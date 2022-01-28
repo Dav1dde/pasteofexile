@@ -9,10 +9,12 @@ mod consts;
 mod crypto;
 mod error;
 mod retry;
+mod sentry;
 mod utils;
 
 pub use self::error::{Error, ErrorResponse, Result};
 use assets::EnvAssetExt;
+use sentry::Sentry;
 use utils::ResponseExt;
 
 async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<app::Context> {
@@ -64,7 +66,13 @@ pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Re
 
     let err: ErrorResponse = match cached(&mut req, &env, &ctx, try_main).await {
         Ok(response) => return Ok(response),
-        Err(err) => err.into(),
+        Err(err) => {
+            if let Some(sentry) = Sentry::from_env(&env) {
+                sentry.capture_err(&err, &req, &ctx);
+            }
+
+            err.into()
+        }
     };
 
     // Don't use ResponseExt here, it returns crate::Result

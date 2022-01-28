@@ -8,6 +8,8 @@ pub const KV_B2_CREDENTIALS: &str = "B2_CREDENTIALS";
 pub const ENV_B2_KEY_ID: &str = "B2_KEY_ID";
 pub const ENV_B2_APPLICATION_KEY: &str = "B2_APPLICATION_KEY";
 pub const ENV_B2_PUBLIC_FILE_URL: &str = "B2_PUBLIC_FILE_URL";
+pub const ENV_SENTRY_PROJECT: &str = "SENTRY_PROJECT";
+pub const ENV_SENTRY_TOKEN: &str = "SENTRY_TOKEN";
 
 const HOUR: u32 = 3_600;
 const DAY: u32 = 24 * HOUR;

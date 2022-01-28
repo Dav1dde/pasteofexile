@@ -12,6 +12,7 @@ pub use self::error::{Error, Result};
 pub use self::passives::Keystone;
 pub use self::serde::SerdePathOfBuilding;
 pub use self::stats::Stat;
+pub use self::utils::decompress;
 
 pub trait PathOfBuilding {
     fn level(&self) -> u8;

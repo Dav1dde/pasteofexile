@@ -73,7 +73,11 @@ async fn handle_upload(req: &mut Request, env: &Env) -> Result<Response> {
     let s = std::str::from_utf8(&data)
         .map_err(|_| "invalid content".to_owned())
         .map_err(Error::BadRequest)?;
-    let _ = SerdePathOfBuilding::from_export(s).map_err(|e| Error::BadRequest(e.to_string()));
+
+    // Generic 401, probably just actually bad data
+    let s = pob::decompress(s).map_err(|e| Error::BadRequest(e.to_string()))?;
+    // More specific error for a separate Sentry categoy
+    let _ = SerdePathOfBuilding::from_xml(&s).map_err(|e| Error::InvalidPoB(e.to_string()))?;
 
     let b2 = b2::B2::from_env(env)?;
 

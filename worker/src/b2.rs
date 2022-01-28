@@ -131,7 +131,7 @@ impl B2 {
         retry(3, |_| async {
             let request = Request::new(&url, Method::Get)?;
             let response = Fetch::Request(request).send().await?;
-            if response.status_code() >= 400 {
+            if response.status_code() >= 500 {
                 log::info!("download failed {}", response.status_code());
                 Retry::err(Error::RemoteFailed(response.status_code(), "upload".into()))
             } else {

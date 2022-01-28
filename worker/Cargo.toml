@@ -26,6 +26,7 @@ js-sys = "0.3"
 
 base64 = "0.13"
 thiserror = "1"
+git-version = "0.3"
 
 log = "0.4"
 fern = { version = "0.6", optional = true }
