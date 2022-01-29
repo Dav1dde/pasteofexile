@@ -26,9 +26,7 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
                 }
             };
 
-            // TODO: read proper amount of nodes
-            let nodes = spec.nodes.len().saturating_sub(10); // remove 10 points for ascendancy etc.
-            let level = nodes.saturating_sub(23); // TODO: bandits, level progression
+            let (nodes, level) = resolve_level(spec.nodes.len());
             let description = format!("Level {} ({} passives)", level, nodes);
             view! {
                 div(class=if spec.active { "font-bold" } else { "" }) { (title) }
@@ -41,8 +39,7 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
 
     // TODO: try flexbox with 50% 50%
     view! {
-                                 // sm:grid-cols-[auto_1fr]
-        div(class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-y-1 sm:ml-3") {
+        div(class="grid grid-cols-1 sm:grid-cols-[minmax(max-content,_350px)_max-content] gap-x-8 sm:gap-y-1 sm:ml-3") {
             (rows)
         }
     }
@@ -53,4 +50,45 @@ fn filter_valid_url(spec: &TreeSpec) -> bool {
         .url
         .map(|url| url.starts_with("https://pathofexile.com/"))
         .unwrap_or(false)
+}
+
+// TODO: needs auto-generated node information for ascendancies
+fn resolve_level(allocated: usize) -> (usize, usize) {
+    if allocated == 0 {
+        return (0, 0);
+    }
+
+    // character start node
+    let allocated = allocated - 1;
+
+    // points count towards allocated but aren't available skill tree points
+    let asc = match allocated {
+        0..=38 => 0,
+        39..=69 => 3, // 2 points + ascendancy start node
+        70..=90 => 5,
+        91..=98 => 7,
+        _ => 9,
+    };
+
+    // TODO: check for bandits
+    let bandits = match allocated {
+        0..=21 => 0,
+        _ => 2,
+    };
+
+    let quests = match allocated - asc - bandits {
+        0..=11 => 0,
+        12..=23 => 2,
+        24..=34 => 3,
+        35..=44 => 5,
+        45..=49 => 6,
+        50..=57 => 8,
+        58..=64 => 11,
+        65..=73 => 14,
+        74..=80 => 17,
+        81..=85 => 19,
+        _ => 22,
+    };
+
+    (allocated - asc, 1 + allocated - asc - bandits - quests)
 }
