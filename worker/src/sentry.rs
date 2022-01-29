@@ -38,7 +38,7 @@ struct Request<'a> {
     url: &'a str,
     method: &'a str,
     headers: HashMap<String, String>,
-    // stacktrace
+    data: Option<&'a str>,
 }
 
 #[derive(Serialize)]
@@ -96,6 +96,7 @@ impl Sentry {
                 url: &req.inner().url(),
                 method: &req.inner().method(),
                 headers: req.headers().into_iter().collect(),
+                data: err.payload(),
             },
             user: &User {
                 ip_address: &req

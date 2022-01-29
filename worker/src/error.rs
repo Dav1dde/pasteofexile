@@ -24,7 +24,8 @@ pub enum Error {
     BadRequest(String),
 
     #[error("{0}")]
-    InvalidPoB(String),
+    // error, XML
+    InvalidPoB(String, String),
 
     #[error("{0}")]
     Error(String),
@@ -33,27 +34,34 @@ pub enum Error {
 impl Error {
     pub fn name(&self) -> &'static str {
         match self {
-            Self::NotFound(_, _) => "NotFound",
-            Self::RemoteFailed(_, _) => "Remote Failed",
-            Self::Serde(_) => "Serde",
-            Self::Kv(_) => "Kv",
-            Self::Worker(_) => "Worker",
-            Self::BadRequest(_) => "BadRequest",
-            Self::InvalidPoB(_) => "InvalidPoB",
-            Self::Error(_) => "Error",
+            Self::NotFound(..) => "NotFound",
+            Self::RemoteFailed(..) => "Remote Failed",
+            Self::Serde(..) => "Serde",
+            Self::Kv(..) => "Kv",
+            Self::Worker(..) => "Worker",
+            Self::BadRequest(..) => "BadRequest",
+            Self::InvalidPoB(..) => "InvalidPoB",
+            Self::Error(..) => "Error",
         }
     }
 
     pub fn level(&self) -> &'static str {
         match self {
-            Self::NotFound(_, _) => "info",
-            Self::RemoteFailed(_, _) => "warning",
-            Self::Serde(_) => "error",
-            Self::Kv(_) => "error",
-            Self::Worker(_) => "error",
-            Self::BadRequest(_) => "info",
-            Self::InvalidPoB(_) => "error",
-            Self::Error(_) => "error",
+            Self::NotFound(..) => "info",
+            Self::RemoteFailed(..) => "warning",
+            Self::Serde(..) => "error",
+            Self::Kv(..) => "error",
+            Self::Worker(..) => "error",
+            Self::BadRequest(..) => "info",
+            Self::InvalidPoB(..) => "error",
+            Self::Error(..) => "error",
+        }
+    }
+
+    pub fn payload(&self) -> Option<&str> {
+        match self {
+            Self::InvalidPoB(_, ref payload) => Some(payload),
+            _ => None,
         }
     }
 }
@@ -85,11 +93,11 @@ pub struct ErrorResponse {
 impl From<Error> for ErrorResponse {
     fn from(err: Error) -> Self {
         match err {
-            err @ Error::NotFound(_, _) => ErrorResponse {
+            err @ Error::NotFound(..) => ErrorResponse {
                 code: 404,
                 message: err.to_string(),
             },
-            err @ Error::BadRequest(_) | err @ Error::InvalidPoB(_) => ErrorResponse {
+            err @ Error::BadRequest(..) | err @ Error::InvalidPoB(..) => ErrorResponse {
                 code: 400,
                 message: err.to_string(),
             },
