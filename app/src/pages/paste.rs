@@ -73,7 +73,6 @@ impl CopyState {
 pub fn paste_page(Data { content, pob }: Data) -> View<G> {
     let title = pob::title(&*pob);
 
-    // TODO: colored notes
     let notes = pob.notes().to_owned();
     let notes = if !notes.is_empty() {
         view! {
@@ -143,10 +142,21 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
         .collect();
     let summary = View::new_fragment(summary);
 
+    let src = pob
+        .ascendancy_name()
+        .map(|name| format!("/assets/asc/{}.png", name))
+        .unwrap_or_else(String::new);
+
     view! {
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
-            div(class="flex-auto flex flex-col gap-y-2") {
-                h1(class="text-xl mb-1 dark:text-slate-100 text-slate-900") { (title) }
+            div(class="flex-auto flex flex-col gap-y-2 -mt-[3px]") {
+                h1(class="flex items-center text-xl mb-1 dark:text-slate-100 text-slate-900") {
+                    img(src=src,
+                        width=50, height=50,
+                        class="rounded-full mr-3 -ml-2",
+                        onerror="this.style.display='none'") {}
+                    span(class="pt-[3px]") { (title) }
+                }
                 (summary)
             }
             div(class="flex flex-col flex-initial gap-y-3 md:w-96") {

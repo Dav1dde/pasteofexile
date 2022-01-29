@@ -15,7 +15,7 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
             let labels = group
                 .filter(|s| s.label.is_some())
                 .map(|s| s.label.unwrap().to_owned())
-                .map(|label| view! { div { PobColoredText(label) } })
+                .map(|label| view! { div(class="truncate") { PobColoredText(label) } })
                 .collect();
             let labels = View::new_fragment(labels);
             skills.push(view! {
