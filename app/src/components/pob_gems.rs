@@ -16,13 +16,16 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
                 .filter(|s| s.label.is_some())
                 .map(|s| s.label.unwrap().to_owned())
                 .map(|label| view! { div(class="truncate") { PobColoredText(label) } })
-                .collect();
+                .collect::<Vec<_>>();
+
+            let class = if labels.len() == 1 {
+                "break-inside-avoid leading-4 mt-5 first:mt-[0.5rem] underline"
+            } else {
+                "break-inside-avoid leading-4 mt-5 first:mt-[0.5rem]"
+            };
+
             let labels = View::new_fragment(labels);
-            skills.push(view! {
-                div(class="break-inside-avoid leading-4 mt-5 first:mt-[0.5rem]") {
-                    (labels)
-                }
-            });
+            skills.push(view! { div(class=class) { (labels) } });
         } else {
             // a bunch of skills with gems
             skills.extend(group.map(render_skill));
@@ -30,7 +33,6 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     }
 
     let skills = View::new_fragment(skills);
-
     view! {
         div(class="columns-[13rem] gap-5 sm:ml-3") {
             (skills)
@@ -55,7 +57,7 @@ fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
         .collect::<Vec<View<G>>>();
     let gems = View::new_fragment(gems);
 
-    let class = "flex flex-col break-inside-avoid mt-5 first:mt-0";
+    let class = "break-inside-avoid mt-5 first:mt-0";
 
     view! {
         div(class=class) {
