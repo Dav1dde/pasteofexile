@@ -5,6 +5,7 @@ mod components;
 mod context;
 mod error;
 mod future;
+mod meta;
 mod pages;
 mod pob;
 mod response_context;
@@ -16,6 +17,7 @@ mod head;
 
 pub use context::Context;
 pub use error::{Error, Result};
+pub use meta::Meta;
 pub use response_context::ResponseContext;
 pub use router::Route;
 
@@ -27,8 +29,8 @@ pub fn render_to_string(context: Context) -> (String, ResponseContext) {
 }
 
 #[cfg(feature = "ssr")]
-pub fn render_head(context: Context) -> String {
-    let mut result = sycamore::render_to_string(|| view! { head::Head(context) });
+pub fn render_head(meta: Meta) -> String {
+    let mut result = sycamore::render_to_string(|| view! { head::Head(meta) });
 
     // workaround to replace data-hk with data-xx to not interfer with hydration
     let bytes = unsafe { result.as_bytes_mut() };

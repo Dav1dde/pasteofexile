@@ -1,3 +1,4 @@
+use crate::Meta;
 use std::cell::RefCell;
 
 thread_local! {
@@ -13,16 +14,16 @@ macro_rules! with_ctx {
 }
 
 pub struct ResponseContext {
-    status_code: u16,
+    pub status_code: u16,
+    pub meta: Option<Meta>,
 }
 
 impl ResponseContext {
     fn new() -> Self {
-        Self { status_code: 200 }
-    }
-
-    pub fn status_code(&self) -> u16 {
-        self.status_code
+        Self {
+            status_code: 200,
+            meta: None,
+        }
     }
 
     pub(crate) fn with<F, R>(f: F) -> (R, ResponseContext)
@@ -42,6 +43,14 @@ impl ResponseContext {
         RESPONSE_CONTEXT.with(|ctx| {
             with_ctx!(ctx, {
                 ctx.status_code = status_code;
+            })
+        });
+    }
+
+    pub(crate) fn set_meta(meta: Meta) {
+        RESPONSE_CONTEXT.with(|ctx| {
+            with_ctx!(ctx, {
+                ctx.meta = Some(meta);
             })
         });
     }

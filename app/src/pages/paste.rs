@@ -2,12 +2,12 @@ use crate::{
     async_callback,
     components::{PobColoredText, PobGems, PobTreeTable},
     future::LocalBoxFuture,
-    memo,
+    memo, meta,
     pob::{self, Element},
     router::RoutedComponent,
-    Result,
+    Meta, Result,
 };
-use ::pob::{PathOfBuilding, SerdePathOfBuilding};
+use ::pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use std::rc::Rc;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
@@ -45,6 +45,25 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
             let content = crate::api::get_paste(id).await?;
             let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
             Ok(Data { content, pob })
+        })
+    }
+
+    fn meta(arg: &Data) -> Result<Meta> {
+        let pob: &SerdePathOfBuilding = &*arg.pob;
+
+        let config = pob::TitleConfig { no_title: true };
+        let title = pob::title_with_config(pob, &config);
+
+        let description = meta::get_paste_summary(pob).join("\n");
+
+        let image = format!("/assets/asc/{}.png", pob.ascendancy_or_class_name());
+        let color = meta::get_color(pob.ascendancy_or_class_name());
+
+        Ok(Meta {
+            title,
+            description,
+            image,
+            color,
         })
     }
 }

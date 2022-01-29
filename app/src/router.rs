@@ -1,6 +1,7 @@
 use crate::ResponseContext;
 use crate::{
-    effect, future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Result,
+    effect, future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Meta,
+    Result,
 };
 use sycamore::component::Component;
 use sycamore::prelude::*;
@@ -35,6 +36,8 @@ pub trait RoutedComponent<G: Html>: Component<G> {
     fn from_dynamic<'a>(
         args: Self::RouteArg,
     ) -> LocalBoxFuture<'a, Result<<Self as Component<G>>::Props>>;
+
+    fn meta(arg: &<Self as Component<G>>::Props) -> Result<Meta>;
 }
 
 #[component(Router<G>)]
@@ -114,6 +117,11 @@ impl<G: Html> Page<G> {
             _ => (),
         }
 
+        if let Ok(meta) = page.meta() {
+            // TODO: should we log here if something goes wrong?
+            ResponseContext::set_meta(meta);
+        }
+
         page
     }
 
@@ -168,7 +176,23 @@ impl<G: Html> Page<G> {
             })
         };
 
-        Self::resolve(page)
+        let page = Self::resolve(page);
+
+        if let Ok(meta) = page.meta() {
+            // TODO: maybe update other metadata
+            web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .head()
+                .unwrap()
+                .query_selector("title")
+                .unwrap()
+                .unwrap()
+                .set_text_content(Some(&meta.title));
+        }
+
+        page
     }
 
     fn resolve(r: Result<Self>) -> Self {
@@ -183,6 +207,15 @@ impl<G: Html> Page<G> {
         match err {
             Error::NotFound(_, _) => Self::NotFound,
             _ => Self::ServerError,
+        }
+    }
+
+    fn meta(&self) -> Result<Meta> {
+        match self {
+            Self::Index => Ok(Meta::index()),
+            Self::Paste(ref props) => pages::PastePage::<G>::meta(props),
+            Self::NotFound => Ok(Meta::not_found()),
+            Self::ServerError => Ok(Meta::server_error()),
         }
     }
 

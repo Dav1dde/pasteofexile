@@ -104,15 +104,15 @@ async fn try_main(req: &mut Request, env: &Env, _ctx: &Context) -> Result<Respon
     let route = app::Route::resolve(&req.path());
     let ctx = build_context(req, env, route).await?;
 
-    let head = app::render_head(ctx.clone());
     let (app, rctx) = app::render_to_string(ctx);
+    let head = app::render_head(rctx.meta.unwrap_or_default());
 
     let index = env.get_asset("index.html")?.text().await?.unwrap();
     let index = index.replace("<!-- %head% -->", &head);
     let index = index.replace("<!-- %app% -->", &app);
 
     let response = Response::from_html(index)?
-        .with_status(rctx.status_code())
+        .with_status(rctx.status_code)
         .cache_for(3_600)?;
     Ok(response)
 }

@@ -27,7 +27,7 @@ sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "
 
 # TODO: lot's of this stuff is only required in the client feature
 web-sys = { version = "0.3", features = [
-    "Window", "HtmlDocument", "HtmlTextAreaElement", "Selection"
+    "Window", "HtmlDocument", "HtmlHeadElement", "HtmlTextAreaElement", "Selection"
 ]}
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = { version = "0.4", optional = true }
