@@ -52,11 +52,11 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
         let pob: &SerdePathOfBuilding = &*arg.pob;
 
         let config = pob::TitleConfig { no_title: true };
-        let title = pob::title_with_config(pob, &config);
+        let title = pob::title_with_config(pob, &config).into();
 
-        let description = meta::get_paste_summary(pob).join("\n");
+        let description = meta::get_paste_summary(pob).join("\n").into();
 
-        let image = format!("/assets/asc/{}.png", pob.ascendancy_or_class_name());
+        let image = format!("/assets/asc/{}.png", pob.ascendancy_or_class_name()).into();
         let color = meta::get_color(pob.ascendancy_or_class_name());
 
         Ok(Meta {
