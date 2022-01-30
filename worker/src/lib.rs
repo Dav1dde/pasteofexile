@@ -65,7 +65,15 @@ pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Re
     }
 
     let err: ErrorResponse = match cached(&mut req, &env, &ctx, try_main).await {
-        Ok(response) => return Ok(response),
+        Ok(response) => {
+            worker::console_log!(
+                "{:?} {} {}",
+                req.method(),
+                req.path(),
+                response.status_code()
+            );
+            return Ok(response);
+        }
         Err(err) => {
             if let Some(sentry) = Sentry::from_env(&env) {
                 sentry.capture_err(&err, &req, &ctx);
@@ -81,6 +89,15 @@ pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Re
     let response = Response::ok(serde_json::to_string(&err)?)?
         .with_status(err.code)
         .with_headers(headers);
+
+    worker::console_warn!(
+        "{:?} {} {} {}",
+        req.method(),
+        req.path(),
+        response.status_code(),
+        err.message
+    );
+
     Ok(response)
 }
 
