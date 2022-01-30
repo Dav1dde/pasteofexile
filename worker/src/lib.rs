@@ -128,10 +128,9 @@ async fn try_main(req: &mut Request, env: &Env, _ctx: &Context) -> Result<Respon
     let index = index.replace("<!-- %head% -->", &head);
     let index = index.replace("<!-- %app% -->", &app);
 
-    let response = Response::from_html(index)?
+    Response::from_html(index)?
         .with_status(rctx.status_code)
-        .cache_for(3_600)?;
-    Ok(response)
+        .cache_for(3_600)
 }
 
 async fn cached<'a, F, Fut>(

@@ -75,6 +75,7 @@ impl ResponseExt for Response {
     }
 
     fn cloned(self) -> crate::Result<(Self, Self)> {
+        let status_code = self.status_code();
         let headers = self.headers().clone();
 
         let response1: worker_sys::Response = self.into();
@@ -83,8 +84,12 @@ impl ResponseExt for Response {
         let body1 = worker::ResponseBody::Stream(response1);
         let body2 = worker::ResponseBody::Stream(response2);
 
-        let response1 = worker::Response::from_body(body1)?.with_headers(headers.clone());
-        let response2 = worker::Response::from_body(body2)?.with_headers(headers);
+        let response1 = worker::Response::from_body(body1)?
+            .with_status(status_code)
+            .with_headers(headers.clone());
+        let response2 = worker::Response::from_body(body2)?
+            .with_status(status_code)
+            .with_headers(headers);
 
         Ok((response1, response2))
     }
