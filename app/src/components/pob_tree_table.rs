@@ -10,7 +10,7 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
         // TODO: reject pastes that do not go to this domain
         .filter(filter_valid_url)
         .map(|spec| {
-            let title = spec.title.unwrap_or("<Unnamed>").to_owned();
+            let title = spec.title.unwrap_or("<Default>").to_owned();
 
             let title = match spec.url {
                 Some(url) => {

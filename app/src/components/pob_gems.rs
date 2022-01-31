@@ -48,7 +48,7 @@ fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
             let name = gem.name.to_owned();
             let class = match (gem.is_selected, gem.is_active) {
                 (true, _) => "font-medium dark:text-amber-50 text-slate-800",
-                (_, true) => "text-stone-200",
+                (_, true) => "dark:text-stone-200 text-slate-800",
                 _ => "",
             };
 
