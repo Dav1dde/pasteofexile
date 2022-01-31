@@ -17,6 +17,9 @@ pub async fn try_handle(req: &mut Request, env: &Env) -> Result<Option<Response>
     if req.path() == "/api/v1/paste/" && req.method() == Method::Post {
         return handle_upload(req, env).await.map(Some);
     }
+    if req.path() == "/pob/" && req.method() == Method::Post {
+        return handle_upload(req, env).await.map(Some);
+    }
     if let Some(id) = is_download_url(&req.path(), req) {
         return handle_download(env, id).await.map(Some);
     }
