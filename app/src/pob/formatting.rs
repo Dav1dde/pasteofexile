@@ -61,7 +61,7 @@ impl<'a> Iterator for ColoredText<'a> {
                 break (index, index + offset, next_style);
             }
 
-            start_search = index + 1;
+            start_search = start_search + index + 1;
         };
 
         let style = std::mem::replace(&mut self.style, next_style);
