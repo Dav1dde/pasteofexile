@@ -195,7 +195,7 @@ pub fn config(pob: &SerdePathOfBuilding) -> Vec<Element> {
     }
 
     if pob.config(Config::EnemyShocked).is_true() {
-        let effect = pob.config(Config::ShockEffect).number().unwrap_or(50.0) as i32;
+        let effect = pob.config(Config::ShockEffect).number().unwrap_or(15.0) as i32;
         configs.push(format!("{}% Shock", effect));
     }
 
