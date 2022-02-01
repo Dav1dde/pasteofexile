@@ -1,3 +1,4 @@
+use crate::components::PobColoredText;
 use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec};
 use std::rc::Rc;
 use sycamore::prelude::*;
@@ -10,6 +11,11 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
         // TODO: reject pastes that do not go to this domain
         .filter(filter_valid_url)
         .map(|spec| {
+            if spec.nodes.len() == 2 {
+                // Empty tree: assume this is just a separator
+                return view! { div(dangerously_set_inner_html="&nbsp;") {} div() {} };
+            }
+
             let title = spec.title.unwrap_or("<Default>").to_owned();
 
             let title = match spec.url {
@@ -19,10 +25,10 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
                         href=url,
                         rel="external",
                         class="text-sky-500 dark:text-sky-400 hover:underline"
-                    ) { (title) } }
+                    ) { PobColoredText(title) } }
                 }
                 None => {
-                    view! { span(class="dark:text-amber-50 text-slate-800") { (title) } }
+                    view! { span(class="dark:text-amber-50 text-slate-800") { PobColoredText(title) } }
                 }
             };
 

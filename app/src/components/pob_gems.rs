@@ -1,4 +1,4 @@
-use crate::components::PobColoredText;
+use crate::{components::PobColoredText, pob::formatting::strip_colors};
 use itertools::Itertools;
 use pob::{PathOfBuilding, SerdePathOfBuilding, Skill};
 use std::rc::Rc;
@@ -8,14 +8,16 @@ use sycamore::prelude::*;
 pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     let mut skills = Vec::new();
 
-    // TODO: text escape for pob escape codes
     for (key, group) in &pob.skills().into_iter().group_by(|s| s.gems.is_empty()) {
         if key {
             // it's a bunched up group of labels
             let labels = group
                 .filter(|s| s.label.is_some())
                 .map(|s| s.label.unwrap().to_owned())
-                .map(|label| view! { div(class="truncate") { PobColoredText(label) } })
+                .map(|label| {
+                    let title = strip_colors(&label);
+                    view! { div(class="truncate", title=title) { PobColoredText(label) } }
+                })
                 .collect::<Vec<_>>();
 
             let class = if labels.len() == 1 {
@@ -34,7 +36,7 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
 
     let skills = View::new_fragment(skills);
     view! {
-        div(class="columns-[13rem] gap-5 sm:ml-3") {
+        div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
             (skills)
         }
     }
@@ -47,12 +49,13 @@ fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
         .map(|gem| {
             let name = gem.name.to_owned();
             let class = match (gem.is_selected, gem.is_active) {
-                (true, _) => "font-medium dark:text-amber-50 text-slate-800",
-                (_, true) => "dark:text-stone-200 text-slate-800",
-                _ => "",
+                (true, _) => "truncate font-bold dark:text-amber-50 text-slate-800",
+                (_, true) => "truncate dark:text-stone-100 text-slate-800",
+                (false, false) => "truncate before:content-['+_']",
             };
 
-            view! { div(class=class) { (name) } }
+            let title = name.clone();
+            view! { div(class=class, title=title) { (name) } }
         })
         .collect::<Vec<View<G>>>();
     let gems = View::new_fragment(gems);

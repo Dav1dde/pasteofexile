@@ -79,6 +79,10 @@ impl<'a> Iterator for ColoredText<'a> {
     }
 }
 
+pub fn strip_colors(text: &str) -> String {
+    ColoredText::new(text).map(|(_, text)| text).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -133,5 +137,11 @@ mod tests {
     fn test_multiple_empty() {
         let x = ColoredText::new("^1^2^3^4^5").collect::<Vec<_>>();
         assert_eq!(x, vec![]);
+    }
+
+    #[test]
+    fn test_strip_colors() {
+        let x = strip_colors("foo^1bar^x001122 baz^brokenx");
+        assert_eq!(x, "foobar baz^brokenx");
     }
 }
