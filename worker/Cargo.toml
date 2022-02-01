@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 debug = ["console_log", "console_error_panic_hook", "fern"]
+storage-kv = []
 
 [dependencies]
 app = { path = "../app", features = ["ssr"], default-features = false }

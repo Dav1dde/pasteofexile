@@ -4,12 +4,12 @@ use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
 mod api;
 mod assets;
-mod b2;
 mod consts;
 mod crypto;
 mod error;
 mod retry;
 mod sentry;
+mod storage;
 mod utils;
 
 pub use self::error::{Error, ErrorResponse, Result};
@@ -24,22 +24,17 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
     let ctx = match route {
         Index => Context::index(host),
         NotFound => Context::not_found(host),
-        Paste(name) => {
-            let b2 = b2::B2::from_env(env)?;
-
-            match utils::to_path(&name) {
-                Err(_) => Context::not_found(host),
-                Ok(path) => {
-                    let mut response = b2.download(&path).await?;
-                    if response.status_code() == 200 {
-                        let content = response.text().await?;
-                        Context::paste(host, name, content)
-                    } else {
-                        Context::not_found(host)
-                    }
+        Paste(name) => match utils::to_path(&name) {
+            Err(_) => Context::not_found(host),
+            Ok(path) => {
+                if let Some(mut response) = storage::get(env, &path).await? {
+                    let content = response.text().await?;
+                    Context::paste(host, name, content)
+                } else {
+                    Context::not_found(host)
                 }
             }
-        }
+        },
     };
 
     Ok(ctx)

@@ -22,6 +22,7 @@ Required dependencies:
 * Node 16.7+
 * Yarn
 * Rust 1.52+ (including wasm toolchain: `rustup target add wasm32-unknown-unknown`)
+* wrangler: `cargo install wrangler`
 * TrunkRS: `cargo install trunk`
 * worker-build: `cargo install worker-build`
 * wasm-pack: `cargo install wasm-pack`
@@ -31,7 +32,6 @@ The application can be started with:
 ```sh
 $ yarn start
 ```
-
 
 ### Docker
 

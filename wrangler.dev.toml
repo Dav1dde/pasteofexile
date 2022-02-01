@@ -7,6 +7,10 @@ compatibility_date = "2022-01-05"
 binding = "B2_CREDENTIALS"
 id = "<unset>"
 
+[[kv_namespaces]]
+binding = "PASTE_STORAGE"
+id = "<unset>"
+
 [build]
 command = "./build.sh --dev"
 
@@ -22,3 +26,7 @@ type  = "CompiledWasm"
 [site]
 bucket = "./app/dist"
 exclude = ["./app/dist/.stage"]
+
+[miniflare]
+cache = false
+kv_persist = true

@@ -3,7 +3,7 @@
 set -e -o pipefail
 
 TRUNK_ARGS=""
-WORKER_BUILD_ARGS="--dev -- --features debug"
+WORKER_BUILD_ARGS="--dev -- --features debug,storage-kv"
 if [[ "$1" == "--release" ]]; then
     echo "Building in --release mode"
     TRUNK_ARGS="--release"

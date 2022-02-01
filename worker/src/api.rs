@@ -1,5 +1,5 @@
 use crate::{
-    b2, consts, crypto,
+    consts, crypto, storage,
     utils::{self, ResponseExt},
     Error, Result,
 };
@@ -49,21 +49,16 @@ fn is_pob_download_url(path: &str) -> Option<&str> {
 }
 
 async fn handle_download(env: &Env, id: &str) -> Result<Response> {
-    let b2 = b2::B2::from_env(env)?;
-
     let path = utils::to_path(id)?;
-    let response = b2.download(&path).await?;
-    match response.status_code() {
-        200 => response
-            .with_headers(Headers::new())
-            .with_content_type("text/plain")?
-            .cache_for(31536000),
-        404 => Err(Error::NotFound("paste", id.to_owned())),
-        status => Err(Error::RemoteFailed(
-            status,
-            "failed to get paste".to_owned(),
-        )),
-    }
+
+    let response = storage::get(env, &path)
+        .await?
+        .ok_or_else(|| Error::NotFound("paste", id.to_owned()))?;
+
+    response
+        .with_headers(Headers::new())
+        .with_content_type("text/plain")?
+        .cache_for(31536000)
 }
 
 async fn handle_upload(req: &mut Request, env: &Env, return_json: bool) -> Result<Response> {
@@ -83,22 +78,12 @@ async fn handle_upload(req: &mut Request, env: &Env, return_json: bool) -> Resul
     let _ =
         SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e.to_string(), s))?;
 
-    let b2 = b2::B2::from_env(env)?;
-
     let sha1 = crypto::sha1(&mut data).await?;
     let id = utils::hash_to_short_id(&sha1, 9)?;
     let filename = utils::to_path(&id)?;
 
     log::debug!("--> uploading paste '{}' to '{}'", id, filename);
-    b2.upload(
-        &b2::UploadSettings {
-            filename: &filename,
-            content_type: "text/plain",
-            sha1: Some(&utils::hex(&sha1)),
-        },
-        &mut data,
-    )
-    .await?;
+    storage::put(env, &filename, &sha1, &mut data).await?;
     log::debug!("<-- paste uploaded");
 
     if !return_json {

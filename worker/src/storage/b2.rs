@@ -2,6 +2,7 @@ use crate::{
     consts,
     crypto::sha1,
     retry::{retry, Retry},
+    utils,
     utils::hex,
     Error, Result,
 };
@@ -12,9 +13,38 @@ use worker::{
     kv::KvStore, wasm_bindgen::JsValue, Env, Fetch, Headers, Method, Request, RequestInit,
 };
 
+#[allow(dead_code)]
+pub async fn get(env: &Env, path: &str) -> Result<Option<worker::Response>> {
+    let b2 = B2::from_env(env)?;
+    let response = b2.download(path).await?;
+
+    match response.status_code() {
+        200 => Ok(Some(response)),
+        404 => Ok(None),
+        status => Err(Error::RemoteFailed(
+            status,
+            "failed to get paste".to_owned(),
+        )),
+    }
+}
+
+#[allow(dead_code)]
+pub async fn put(env: &Env, filename: &str, sha1: &[u8], data: &mut [u8]) -> Result<()> {
+    let b2 = B2::from_env(env)?;
+
+    let hex = utils::hex(sha1);
+    let settings = UploadSettings {
+        filename,
+        content_type: "text/plain",
+        sha1: Some(&hex),
+    };
+
+    b2.upload(&settings, data).await.map(|_| ())
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AuthDetails {
+struct AuthDetails {
     pub account_id: String,
     pub allowed: Bucket,
     pub api_url: String,
@@ -24,14 +54,14 @@ pub struct AuthDetails {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Bucket {
+struct Bucket {
     pub bucket_id: String,
     pub bucket_name: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UploadDetails {
+struct UploadDetails {
     pub authorization_token: String,
     pub bucket_id: String,
     pub upload_url: String,
