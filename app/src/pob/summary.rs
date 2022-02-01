@@ -67,8 +67,10 @@ pub fn defense(pob: &SerdePathOfBuilding) -> Vec<Element> {
             .add_to(&mut elements);
     }
 
-    if pob.stat_at_least(Stat::PhysicalDamageReduction, 10.0) {
-        Element::new("Phys DR")
+    if pob.stat_at_least(Stat::PhysicalDamageReduction, 10.0)
+        && pob.config(Config::EnemeyHit).is_some()
+    {
+        Element::new("PDR")
             .color(AMBER_50)
             .stat_percent(pob.stat(Stat::PhysicalDamageReduction))
             .add_to(&mut elements);

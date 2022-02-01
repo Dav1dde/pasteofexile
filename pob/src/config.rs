@@ -1,6 +1,7 @@
 #[derive(Debug, Copy, Clone)]
 pub enum Config {
     Boss,
+    EnemeyHit,
     EnemyShocked,
     Focused,
     ShockEffect,
@@ -10,6 +11,7 @@ impl Config {
     fn name(&self) -> &'static str {
         match self {
             Self::Boss => "enemyIsBoss",
+            Self::EnemeyHit => "enemyHit",
             Self::EnemyShocked => "conditionEnemyShocked",
             Self::Focused => "conditionFocused",
             Self::ShockEffect => "conditionShockEffect",
@@ -74,5 +76,9 @@ impl<'a> ConfigValue<'a> {
             Self::Number(number) => Some(*number),
             _ => None,
         }
+    }
+
+    pub fn is_some(&self) -> bool {
+        !matches!(self, Self::None)
     }
 }
