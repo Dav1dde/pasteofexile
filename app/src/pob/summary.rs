@@ -43,7 +43,7 @@ pub fn defense(pob: &SerdePathOfBuilding) -> Vec<Element> {
 
     Element::new("Resistances")
         .push_percent(
-            "text-orange-400",
+            "text-orange-500 dark:text-orange-400",
             pob.stat(Stat::FireResistance).unwrap_or("-60"),
         )
         .push_percent(
@@ -51,7 +51,7 @@ pub fn defense(pob: &SerdePathOfBuilding) -> Vec<Element> {
             pob.stat(Stat::ColdResistance).unwrap_or("-60"),
         )
         .push_percent(
-            "text-yellow-300",
+            "text-yellow-600 dark:text-yellow-300",
             pob.stat(Stat::LightningResistance).unwrap_or("-60"),
         )
         .push_percent(
