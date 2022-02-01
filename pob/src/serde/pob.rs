@@ -151,6 +151,8 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                         };
                         crate::Gem {
                             name: &g.name,
+                            level: g.level,
+                            quality: g.quality,
                             is_active: g.is_active(),
                             is_support: g.is_support(),
                             is_selected,
@@ -163,6 +165,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                     label: s.label.as_deref(),
                     slot: s.slot.as_deref(),
                     is_selected,
+                    is_enabled: s.enabled,
                 }
             })
             .collect()

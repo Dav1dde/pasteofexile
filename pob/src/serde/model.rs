@@ -56,6 +56,8 @@ pub(crate) struct Skill {
     #[serde(default, deserialize_with = "u8_or_nil")]
     pub main_active_skill: u8,
     #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
     pub label: Option<String>,
     #[serde(default)]
     pub slot: Option<String>,
@@ -80,6 +82,10 @@ pub(crate) struct Gem {
     pub name: String,
     pub skill_id: Option<String>,
     pub gem_id: Option<String>,
+    #[serde(default)]
+    pub level: u8,
+    #[serde(default)]
+    pub quality: u8,
 }
 
 impl Gem {

@@ -44,12 +44,23 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
 }
 
 fn is_enabled(skill: &Skill) -> bool {
+    // still show selected skills even if they are disabled
+    if skill.is_selected {
+        return true;
+    }
+
+    // remove disabled gems
+    if !skill.is_enabled {
+        return false;
+    }
+
+    // remove offhand gems
     if let Some(slot) = skill.slot {
         // TODO: do we need to check here which weapon set is active?
-        slot != "Weapon 1 Swap" && slot != "Weapon 2 Swap"
-    } else {
-        false
+        return slot != "Weapon 1 Swap" && slot != "Weapon 2 Swap";
     }
+
+    true
 }
 
 fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
@@ -64,7 +75,7 @@ fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
                 (false, false) => "truncate before:content-['+_']",
             };
 
-            let title = name.clone();
+            let title = format!("{} ({}/{})", name, gem.level, gem.quality);
             view! { div(class=class, title=title) { (name) } }
         })
         .collect::<Vec<View<G>>>();

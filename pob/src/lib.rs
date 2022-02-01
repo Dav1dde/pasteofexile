@@ -34,6 +34,7 @@ pub trait PathOfBuilding {
     fn has_keystone(&self, keystone: Keystone) -> bool;
 }
 
+#[derive(Debug)]
 pub struct TreeSpec<'a> {
     pub title: Option<&'a str>,
     pub url: Option<&'a str>,
@@ -43,15 +44,20 @@ pub struct TreeSpec<'a> {
     pub active: bool,
 }
 
+#[derive(Debug)]
 pub struct Skill<'a> {
     pub is_selected: bool,
+    pub is_enabled: bool,
     pub label: Option<&'a str>,
     pub slot: Option<&'a str>,
     pub gems: Vec<Gem<'a>>,
 }
 
+#[derive(Debug)]
 pub struct Gem<'a> {
     pub name: &'a str,
+    pub level: u8,
+    pub quality: u8,
     pub is_active: bool,
     pub is_support: bool,
     pub is_selected: bool,
