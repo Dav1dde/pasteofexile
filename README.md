@@ -33,6 +33,13 @@ The application can be started with:
 $ yarn start
 ```
 
+To just build the application:
+
+```sh
+$ ./build.sh --dev
+$ ./build.sh --release
+```
+
 ### Docker
 
 Alternatively you can use docker to setup your build environment:
