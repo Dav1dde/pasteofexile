@@ -56,7 +56,9 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
 
         let description = meta::get_paste_summary(pob).join("\n").into();
 
-        let image = format!("/assets/asc/{}.png", pob.ascendancy_or_class_name()).into();
+        let image = crate::assets::ascendancy_image(pob.ascendancy_or_class_name())
+            .unwrap_or("")
+            .into();
         let color = meta::get_color(pob.ascendancy_or_class_name());
 
         Ok(Meta {
@@ -163,8 +165,8 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
 
     let src = pob
         .ascendancy_name()
-        .map(|name| format!("/assets/asc/{}.png", name))
-        .unwrap_or_else(String::new);
+        .and_then(crate::assets::ascendancy_image)
+        .unwrap_or("");
 
     view! {
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {

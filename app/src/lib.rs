@@ -1,6 +1,7 @@
 use sycamore::prelude::*;
 
 mod api;
+mod assets;
 mod components;
 mod context;
 mod error;
