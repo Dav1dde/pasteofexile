@@ -8,7 +8,8 @@ use sycamore::prelude::*;
 pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     let mut skills = Vec::new();
 
-    for (key, group) in &pob.skills().into_iter().group_by(|s| s.gems.is_empty()) {
+    let iter_skills = pob.skills().into_iter().filter(is_enabled);
+    for (key, group) in &iter_skills.group_by(|s| s.gems.is_empty()) {
         if key {
             // it's a bunched up group of labels
             let labels = group
@@ -39,6 +40,15 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
         div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
             (skills)
         }
+    }
+}
+
+fn is_enabled(skill: &Skill) -> bool {
+    if let Some(slot) = skill.slot {
+        // TODO: do we need to check here which weapon set is active?
+        slot != "Weapon 1 Swap" && slot != "Weapon 2 Swap"
+    } else {
+        false
     }
 }
 
