@@ -201,6 +201,32 @@ pub fn config(pob: &SerdePathOfBuilding) -> Vec<Element> {
         configs.push(format!("{}% Shock", effect));
     }
 
+    if pob.config(Config::CoveredInAsh).is_true() {
+        configs.push("Covered in Ash".into());
+    }
+
+    if pob.config(Config::FrenzyCharges).is_true() {
+        if let Some(amount) = pob.config(Config::FrenzyChargesAmount).number() {
+            configs.push(format!("{}x Frenzy", amount as i32));
+        } else {
+            configs.push("Frenzy".into());
+        }
+    }
+
+    if pob.config(Config::PowerCharges).is_true() {
+        if let Some(amount) = pob.config(Config::PowerChargesAmount).number() {
+            configs.push(format!("{}x Power", amount as i32));
+        } else {
+            configs.push("Power".into());
+        }
+    }
+
+    if let Some(amount) = pob.config(Config::WitherStacks).number() {
+        if amount > 0.0 {
+            configs.push(format!("{}x Wither", amount as i32));
+        }
+    }
+
     if configs.is_empty() {
         configs.push("None".to_owned());
     }

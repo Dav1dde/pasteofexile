@@ -1,9 +1,15 @@
 #[derive(Debug, Copy, Clone)]
 pub enum Config {
     Boss,
+    CoveredInAsh,
     EnemeyHit,
     EnemyShocked,
     Focused,
+    FrenzyCharges,
+    FrenzyChargesAmount,
+    PowerCharges,
+    PowerChargesAmount,
+    WitherStacks,
     ShockEffect,
 }
 
@@ -11,9 +17,15 @@ impl Config {
     fn name(&self) -> &'static str {
         match self {
             Self::Boss => "enemyIsBoss",
+            Self::CoveredInAsh => "conditionEnemyCoveredInAsh",
             Self::EnemeyHit => "enemyHit",
             Self::EnemyShocked => "conditionEnemyShocked",
             Self::Focused => "conditionFocused",
+            Self::FrenzyCharges => "useFrenzyCharges",
+            Self::FrenzyChargesAmount => "overrideFrenzyCharges",
+            Self::PowerCharges => "usePowerCharges",
+            Self::PowerChargesAmount => "overrideFrenzyCharges",
+            Self::WitherStacks => "multiplierWitheredStackCount",
             Self::ShockEffect => "conditionShockEffect",
         }
     }
