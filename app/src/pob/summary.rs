@@ -10,7 +10,10 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
     Element::new("Life")
         .color("text-rose-500")
         .stat_int(pob.stat_parse(Stat::LifeUnreserved))
-        .stat_percent(pob.stat(Stat::LifeInc))
+        .stat_percent_if(
+            !pob.has_keystone(Keystone::ChaosInoculation),
+            pob.stat(Stat::LifeInc),
+        )
         .add_to(&mut elements);
 
     if pob.stat_at_least(Stat::EnergyShield, 10.0) {
