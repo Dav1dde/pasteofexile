@@ -15,10 +15,10 @@ struct Upload {
 pub async fn try_handle(req: &mut Request, env: &Env) -> Result<Option<Response>> {
     // TODO: use a sycamore router for this?
     if req.path() == "/api/v1/paste/" && req.method() == Method::Post {
-        return handle_upload(req, env).await.map(Some);
+        return handle_upload(req, env, true).await.map(Some);
     }
     if req.path() == "/pob/" && req.method() == Method::Post {
-        return handle_upload(req, env).await.map(Some);
+        return handle_upload(req, env, false).await.map(Some);
     }
     if let Some(id) = is_download_url(&req.path(), req) {
         return handle_download(env, id).await.map(Some);
@@ -66,7 +66,7 @@ async fn handle_download(env: &Env, id: &str) -> Result<Response> {
     }
 }
 
-async fn handle_upload(req: &mut Request, env: &Env) -> Result<Response> {
+async fn handle_upload(req: &mut Request, env: &Env, return_json: bool) -> Result<Response> {
     let mut data = req.bytes().await?;
 
     if data.len() > consts::MAX_UPLOAD_SIZE {
@@ -100,6 +100,11 @@ async fn handle_upload(req: &mut Request, env: &Env) -> Result<Response> {
     )
     .await?;
     log::debug!("<-- paste uploaded");
+
+    if !return_json {
+        // for pob API
+        return Ok(Response::ok(id)?);
+    }
 
     // Weird garbage data bug, but this seems to make it better
     let response = serde_json::to_string(&Upload { id })?;
