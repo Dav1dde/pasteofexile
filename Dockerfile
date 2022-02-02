@@ -1,13 +1,23 @@
-FROM node:current
-
-WORKDIR /opt
-RUN wget --quiet https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init \
-	&& chmod +x rustup-init \
-	&& ./rustup-init --quiet -y --profile minimal --no-modify-path \
-	&& rm rustup-init
-ENV PATH /root/.cargo/bin:$PATH
-RUN rustup target add wasm32-unknown-unknown
-RUN cargo install trunk wasm-pack worker-build
+FROM rust:1.58
 
 WORKDIR /pasteofexile
-EXPOSE 8787
+RUN cargo install --root /usr/local -- trunk wasm-pack worker-build wrangler
+
+FROM rust:1.58
+COPY --from=0 /usr/local/bin/* /usr/local/bin/
+
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+
+RUN apt-get update -y && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor > /usr/share/keyrings/yarnkey.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" > /etc/apt/sources.list.d/yarn.list \
+    && apt-get update -y \
+    && apt-get install -y yarn \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rustup target add wasm32-unknown-unknown
+
+ENV HOME /tmp
+
+WORKDIR /pasteofexile
