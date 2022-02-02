@@ -153,7 +153,7 @@ pub fn offense(pob: &SerdePathOfBuilding) -> Vec<Element> {
 
     Element::new("DPS")
         .color(AMBER_50)
-        .stat_float(dps)
+        .stat_int(dps)
         .add_to(&mut elements);
 
     // TODO: this is cast rate for spells
