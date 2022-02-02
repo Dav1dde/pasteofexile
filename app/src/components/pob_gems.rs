@@ -8,7 +8,12 @@ use sycamore::prelude::*;
 pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     let mut skills = Vec::new();
 
-    let iter_skills = pob.skills().into_iter().filter(is_enabled);
+    let iter_skills = pob
+        .skills()
+        .into_iter()
+        .filter(is_enabled)
+        .filter(|s| !is_enchant(s));
+
     for (key, group) in &iter_skills.group_by(|s| s.gems.is_empty()) {
         if key {
             // it's a bunched up group of labels
@@ -31,7 +36,7 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
             skills.push(view! { div(class=class) { (labels) } });
         } else {
             // a bunch of skills with gems
-            skills.extend(group.map(render_skill));
+            skills.extend(group.filter(has_active_gem).map(render_skill));
         }
     }
 
@@ -61,6 +66,18 @@ fn is_enabled(skill: &Skill) -> bool {
     }
 
     true
+}
+
+fn is_enchant(skill: &Skill) -> bool {
+    skill.gems.len() == 1
+        && skill.gems[0]
+            .skill_id
+            .map(|id| id.starts_with("Enchant"))
+            .unwrap_or(false)
+}
+
+fn has_active_gem(skill: &Skill) -> bool {
+    skill.gems.iter().any(|g| g.is_active)
 }
 
 fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {

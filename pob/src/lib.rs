@@ -57,6 +57,7 @@ pub struct Skill<'a> {
 #[derive(Debug)]
 pub struct Gem<'a> {
     pub name: &'a str,
+    pub skill_id: Option<&'a str>,
     pub level: u8,
     pub quality: u8,
     pub is_active: bool,

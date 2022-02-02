@@ -151,6 +151,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                         };
                         crate::Gem {
                             name: &g.name,
+                            skill_id: g.skill_id.as_deref(),
                             level: g.level,
                             quality: g.quality,
                             is_active: g.is_active(),
