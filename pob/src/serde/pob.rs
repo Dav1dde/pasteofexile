@@ -180,6 +180,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .map(|(i, spec)| crate::TreeSpec {
                 title: spec.title.as_deref(),
                 url: spec.url.as_deref(),
+                version: spec.version.as_deref(),
                 nodes: &spec.nodes,
                 active: self.pob.tree.active_spec as usize == i + 1,
             })
@@ -224,6 +225,7 @@ mod tests {
         assert_eq!(Some("3"), pob.stat(Stat::EnduranceChargesMax));
         assert_eq!(Some(3), pob.stat_parse(Stat::EnduranceChargesMax));
         assert_eq!(None, pob.stat_parse::<u8>(Stat::AverageDamage));
+        assert_eq!(Some("3.16".to_owned()), pob.max_tree_version());
         // TODO: test configs
     }
 
@@ -250,6 +252,8 @@ mod tests {
         assert!(!pob.has_keystone(Keystone::EldritchBattery));
         // MoM is on an active item
         assert!(pob.has_keystone(Keystone::MindOverMatter));
+
+        assert_eq!(Some("3.19".to_owned()), pob.max_tree_version());
 
         // TODO: test configs
     }

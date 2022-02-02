@@ -38,6 +38,7 @@ pub trait PathOfBuilding {
 pub struct TreeSpec<'a> {
     pub title: Option<&'a str>,
     pub url: Option<&'a str>,
+    pub version: Option<&'a str>,
     pub nodes: &'a [u32],
 
     /// Whether the tree spec is active/selected
@@ -108,6 +109,14 @@ pub trait PathOfBuildingExt: PathOfBuilding {
         self.minion_stat_parse::<f32>(name)
             .map(|v| v <= value)
             .unwrap_or(false)
+    }
+
+    fn max_tree_version(&self) -> Option<String> {
+        self.tree_specs()
+            .into_iter()
+            .filter_map(|spec| spec.version.map(|v| (v.len(), v)))
+            .max()
+            .map(|(_, version)| version.replace('_', "."))
     }
 }
 

@@ -52,7 +52,10 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
         let pob: &SerdePathOfBuilding = &*arg.pob;
 
         let config = pob::TitleConfig { no_title: true };
-        let title = pob::title_with_config(pob, &config).into();
+        let mut title = pob::title_with_config(pob, &config).into();
+        if let Some(version) = pob.max_tree_version() {
+            title = format!("{} [{}]", title, version).into();
+        }
 
         let description = meta::get_paste_summary(pob).join("\n").into();
 
@@ -93,6 +96,8 @@ impl CopyState {
 #[component(PastePage<G>)]
 pub fn paste_page(Data { content, pob }: Data) -> View<G> {
     let title = pob::title(&*pob);
+
+    let version = pob.max_tree_version().unwrap_or_else(String::new);
 
     let notes = pob.notes().to_owned();
     let notes = if !notes.is_empty() {
@@ -177,6 +182,7 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
                         class="rounded-full mr-3 -ml-2",
                         onerror="this.style.display='none'") {}
                     span(class="pt-[3px]") { (title) }
+                    sup(class="ml-1") { (version) }
                 }
                 (summary)
             }

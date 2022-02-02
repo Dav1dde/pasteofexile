@@ -121,6 +121,8 @@ pub(crate) struct Spec {
     pub nodes: Vec<u32>,
     #[serde(default, rename = "URL")]
     pub url: Option<String>,
+    #[serde(default, rename = "treeVersion")]
+    pub version: Option<String>,
 }
 
 #[derive(Default, Debug, Deserialize)]
