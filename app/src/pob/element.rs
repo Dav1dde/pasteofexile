@@ -85,10 +85,10 @@ impl<'a> Element<'a> {
         self
     }
 
-    pub fn push_percent(mut self, color: &'static str, value: &'a str) -> Self {
+    pub fn push_percent(mut self, color: &'static str, value: f32) -> Self {
         self.values
             .get_or_insert_with(Vec::new)
-            .push((color, Cow::Owned(format!("{}%", value))));
+            .push((color, Cow::Owned(format!("{}%", value as i32))));
         self
     }
 
