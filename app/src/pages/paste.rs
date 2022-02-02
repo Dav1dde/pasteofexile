@@ -159,7 +159,7 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
     let summary = vec![core_stats, defense, offense, config]
         .into_iter()
         .map(render)
-        .map(|stat| view! { div(class="flex-row gap-x-5") { (stat) } })
+        .map(|stat| view! { div(class="flex flex-row gap-x-5") { (stat) } })
         .collect();
     let summary = View::new_fragment(summary);
 
@@ -170,7 +170,7 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
 
     view! {
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
-            div(class="flex-auto flex flex-col gap-y-2 -mt-[3px]") {
+            div(class="flex-auto flex flex-col gap-y-4 -mt-[3px]") {
                 h1(class="flex items-center text-xl mb-1 dark:text-slate-100 text-slate-900") {
                     img(src=src,
                         width=50, height=50,

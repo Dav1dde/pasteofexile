@@ -81,7 +81,7 @@ fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
         .collect::<Vec<View<G>>>();
     let gems = View::new_fragment(gems);
 
-    let class = "break-inside-avoid mt-5 first:mt-0";
+    let class = "break-inside-avoid mt-5 first:mt-0 border border-slate-600 bg-slate-700 p-2";
 
     view! {
         div(class=class) {
