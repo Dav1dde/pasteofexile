@@ -4,6 +4,7 @@ use thousands::Separable;
 
 pub struct Element<'a> {
     name: &'static str,
+    title: Option<&'static str>,
     color: Option<&'static str>,
     stat: Option<Cow<'a, str>>,
     percent: Option<Cow<'a, str>>,
@@ -14,11 +15,17 @@ impl<'a> Element<'a> {
     pub fn new(name: &'static str) -> Self {
         Self {
             name,
+            title: None,
             color: None,
             stat: None,
             percent: None,
             values: None,
         }
+    }
+
+    pub fn title(mut self, value: &'static str) -> Self {
+        self.title = Some(value);
+        self
     }
 
     pub fn color(mut self, value: &'static str) -> Self {
@@ -120,10 +127,17 @@ impl<'a> Element<'a> {
 
         let color = self.color.unwrap_or("");
 
-        renderer.push(self.name);
+        if let Some(title) = self.title {
+            renderer.push(Fragment::with_formatting(
+                Formatting::title(title),
+                self.name,
+            ));
+        } else {
+            renderer.push(self.name);
+        }
         renderer.push(": ");
 
-        let mut sub = renderer.sub(color);
+        let mut sub = renderer.sub(Formatting::class(color));
         sub.push(stat);
         if let Some(percent) = percent {
             sub.push(percent);
@@ -142,7 +156,10 @@ impl<'a> Element<'a> {
             let (color, value) = &values[i];
             let is_last = i == values.len() - 1;
 
-            renderer.push(Fragment::with_formatting(*color, value.to_owned()));
+            renderer.push(Fragment::with_formatting(
+                Formatting::class(*color),
+                value.to_owned(),
+            ));
 
             if !is_last {
                 renderer.push("/");
@@ -160,8 +177,30 @@ trait Renderer {
     where
         T: Into<Fragment>;
     fn push_sub(&mut self, element: Self);
-    fn sub(&mut self, formatting: &'static str) -> Self;
+    fn sub(&mut self, formatting: Formatting) -> Self;
     fn finish(self) -> Self::Output;
+}
+
+#[derive(Default)]
+struct Formatting {
+    class: Option<&'static str>,
+    title: Option<&'static str>,
+}
+
+impl Formatting {
+    fn class(class: &'static str) -> Self {
+        Self {
+            class: Some(class),
+            title: None,
+        }
+    }
+
+    fn title(title: &'static str) -> Self {
+        Self {
+            class: None,
+            title: Some(title),
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -171,13 +210,13 @@ enum FragmentType {
 }
 
 struct Fragment {
-    formatting: &'static str,
+    formatting: Formatting,
     value: String,
     typ: FragmentType,
 }
 
 impl Fragment {
-    fn with_formatting<T>(formatting: &'static str, value: T) -> Self
+    fn with_formatting<T>(formatting: Formatting, value: T) -> Self
     where
         T: Into<String>,
     {
@@ -193,7 +232,7 @@ impl Fragment {
         T: Into<String>,
     {
         Self {
-            formatting: "",
+            formatting: Formatting::default(),
             value: value.into(),
             typ,
         }
@@ -203,7 +242,7 @@ impl Fragment {
 impl From<&str> for Fragment {
     fn from(value: &str) -> Self {
         Self {
-            formatting: "",
+            formatting: Formatting::default(),
             value: value.to_owned(),
             typ: FragmentType::Text,
         }
@@ -213,7 +252,7 @@ impl From<&str> for Fragment {
 impl From<String> for Fragment {
     fn from(value: String) -> Self {
         Self {
-            formatting: "",
+            formatting: Formatting::default(),
             value,
             typ: FragmentType::Text,
         }
@@ -249,7 +288,7 @@ impl Renderer for StringRenderer {
         self.views.extend(element.views);
     }
 
-    fn sub(&mut self, _: &'static str) -> Self {
+    fn sub(&mut self, _: Formatting) -> Self {
         StringRenderer::new()
     }
 
@@ -259,7 +298,7 @@ impl Renderer for StringRenderer {
 }
 
 struct ViewRenderer<G: GenericNode> {
-    formatting: &'static str,
+    formatting: Formatting,
     views: Vec<View<G>>,
     _g: PhantomData<G>,
 }
@@ -267,13 +306,13 @@ struct ViewRenderer<G: GenericNode> {
 impl<G: GenericNode> ViewRenderer<G> {
     fn new() -> Self {
         Self {
-            formatting: "",
+            formatting: Formatting::default(),
             views: Vec::new(),
             _g: PhantomData,
         }
     }
 
-    fn with_formatting(formatting: &'static str) -> Self {
+    fn with_formatting(formatting: Formatting) -> Self {
         Self {
             formatting,
             views: Vec::new(),
@@ -290,33 +329,36 @@ impl<G: GenericNode> Renderer for ViewRenderer<G> {
         T: Into<Fragment>,
     {
         let fragment = fragment.into();
+
+        let class = fragment.formatting.class.unwrap_or("");
+        let title = fragment.formatting.title.unwrap_or("");
+
         let view = match fragment.typ {
-            FragmentType::Text => view! { span(class=fragment.formatting) { (fragment.value) } },
-            FragmentType::Super => view! { sup(class=fragment.formatting) { (fragment.value) } },
+            FragmentType::Text => view! { span(class=class, title=title) { (fragment.value) } },
+            FragmentType::Super => view! { sup(class=class, title=title) { (fragment.value) } },
         };
         self.views.push(view);
     }
 
     fn push_sub(&mut self, element: Self) {
         let inner = View::new_fragment(element.views);
+        let class = element.formatting.class.unwrap_or("");
+        let title = element.formatting.title.unwrap_or("");
         let element = view! {
-            span(class=element.formatting) {
+            span(class=class, title=title) {
                 (inner)
             }
         };
         self.views.push(element);
     }
 
-    fn sub(&mut self, formatting: &'static str) -> Self {
+    fn sub(&mut self, formatting: Formatting) -> Self {
         ViewRenderer::with_formatting(formatting)
     }
 
     fn finish(self) -> Self::Output {
         let inner = View::new_fragment(self.views);
-        view! {
-            div(class="inline-block ml-3") {
-                (inner)
-            }
-        }
+
+        view! { div(class="inline-block ml-3") { (inner) } }
     }
 }

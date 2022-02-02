@@ -18,6 +18,7 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
 
     if pob.stat_at_least(Stat::EnergyShield, 10.0) {
         Element::new("ES")
+            .title("Energy Shield")
             .color("text-cyan-200")
             .stat_int(pob.stat_parse(Stat::EnergyShield))
             .stat_percent_if(pob::is_hybrid(pob), pob.stat(Stat::EnergyShieldInc))
@@ -34,6 +35,7 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
         .add_to(&mut elements);
 
     Element::new("Pool")
+        .title("Total Health Pool")
         .color(AMBER_50)
         .stat_int(Some(pob::hp_pool(pob) as f32))
         .add_to(&mut elements);
@@ -74,6 +76,7 @@ pub fn defense(pob: &SerdePathOfBuilding) -> Vec<Element> {
         && pob.config(Config::EnemeyHit).is_some()
     {
         Element::new("PDR")
+            .title("Physical Damage Reduction")
             .color(AMBER_50)
             .stat_percent(pob.stat(Stat::PhysicalDamageReduction))
             .add_to(&mut elements);
@@ -81,6 +84,7 @@ pub fn defense(pob: &SerdePathOfBuilding) -> Vec<Element> {
 
     if pob.stat_at_least(Stat::SpellSuppressionChance, 30.0) {
         Element::new("Supp")
+            .title("Spell Suppression")
             .color(AMBER_50)
             .stat_percent(pob.stat(Stat::SpellSuppressionChance))
             .add_to(&mut elements);
