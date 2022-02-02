@@ -54,10 +54,9 @@ fn is_enabled(skill: &Skill) -> bool {
         return true;
     }
 
-    // remove disabled gems
-    if !skill.is_enabled {
-        return false;
-    }
+    // Keep disabled gems, people have multiple setups
+    // for trade, ssf, etc. and some of these are disabled
+    // if !skill.is_enabled { return false; }
 
     // remove offhand gems
     if let Some(slot) = skill.slot {
