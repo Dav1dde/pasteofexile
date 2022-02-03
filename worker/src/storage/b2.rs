@@ -1,12 +1,11 @@
 use crate::{
-    consts,
-    crypto::sha1,
+    consts, crypto,
     retry::{retry, Retry},
     utils,
     utils::hex,
     Error, Result,
 };
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::borrow::Cow;
 use worker::{
@@ -87,6 +86,48 @@ pub struct UploadSettings<'a> {
     pub sha1: Option<&'a str>,
 }
 
+struct Cache<T>
+where
+    T: DeserializeOwned,
+    T: Serialize,
+{
+    kv: KvStore,
+    size: usize,
+    _type: std::marker::PhantomData<T>,
+}
+
+impl<T> Cache<T>
+where
+    T: DeserializeOwned,
+    T: Serialize,
+{
+    fn new(kv: KvStore, size: usize) -> Self {
+        Self {
+            kv,
+            size,
+            _type: std::marker::PhantomData::default(),
+        }
+    }
+
+    fn random_key(&self) -> String {
+        let rand = worker::Date::now().as_millis() as usize % self.size;
+        rand.to_string()
+    }
+
+    async fn get(&self, key: &str) -> Result<Option<T>> {
+        Ok(self.kv.get(key).json().await?)
+    }
+
+    async fn put(&self, key: &str, value: T) -> Result<()> {
+        Ok(self
+            .kv
+            .put(key, value)?
+            .expiration_ttl(12 * 3600)
+            .execute()
+            .await?)
+    }
+}
+
 const AUTH_DETAILS_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
 macro_rules! retry_if {
@@ -107,6 +148,7 @@ macro_rules! retry_if {
 pub struct B2 {
     credentials: Credentials,
     public_file_url: String,
+    upload_url_cache: Cache<UploadDetails>,
 }
 
 impl B2 {
@@ -114,6 +156,7 @@ impl B2 {
         Ok(Self {
             credentials: Credentials::from_env(env)?,
             public_file_url: env.var(consts::ENV_B2_PUBLIC_FILE_URL)?.to_string(),
+            upload_url_cache: Cache::new(env.kv(consts::KV_B2_UPLOAD_URLS)?, 20),
         })
     }
 
@@ -124,32 +167,77 @@ impl B2 {
     ) -> Result<UploadResponse> {
         let sha1 = match settings.sha1 {
             Some(sha1) => Cow::Borrowed(sha1),
-            None => Cow::Owned(hex(&sha1(content).await?)),
+            None => Cow::Owned(hex(&crypto::sha1(content).await?)),
         };
 
+        // TODO: refactor this into a better cache api
         retry(5, |_| async {
-            let upload = self.get_upload_url().await?;
+            let key = self.upload_url_cache.random_key();
+            let cached = self.upload_url_cache.get(&key).await?;
 
-            let mut headers = Headers::new();
-            headers.set("Authorization", &upload.authorization_token)?;
-            headers.set("X-Bz-File-Name", settings.filename)?;
-            headers.set("Content-Type", settings.content_type)?;
-            headers.set("X-Bz-Content-Sha1", &sha1)?;
+            let mut is_using_cached = cached.is_some();
+            let mut upload = Some(match cached {
+                Some(upload) => {
+                    log::debug!("using cached upload url for key {}", key);
+                    upload
+                }
+                None => {
+                    log::debug!("no upload url cached for key {}", key);
+                    self.get_upload_url().await?
+                }
+            });
 
-            let request = Request::new_with_init(
-                &upload.upload_url,
-                &RequestInit {
-                    method: Method::Post,
-                    headers,
-                    body: Some(unsafe { js_sys::Uint8Array::view(content) }.into()),
-                    ..Default::default()
-                },
-            )?;
+            let mut r = loop {
+                let r =
+                    Self::do_upload(settings, upload.as_ref().unwrap(), &content, &sha1).await?;
 
-            let mut r = Fetch::Request(request).send().await?;
+                if !is_using_cached && r.status_code() == 200 {
+                    log::info!("new upload url key {}", key);
+                    let _ = self
+                        .upload_url_cache
+                        .put(&key, upload.take().unwrap())
+                        .await;
+                    break r;
+                } else if is_using_cached && r.status_code() == 400 {
+                    log::info!("key in use {}", key);
+                    upload = Some(self.get_upload_url().await?);
+                } else if is_using_cached && r.status_code() != 200 {
+                    log::info!("key is broken {}", key);
+                    is_using_cached = false;
+                    upload = Some(self.get_upload_url().await?);
+                } else {
+                    break r;
+                }
+            };
+
             retry_if!(r, "upload", 401 | 503, r.json().await?)
         })
         .await
+    }
+
+    async fn do_upload(
+        settings: &UploadSettings<'_>,
+        upload: &UploadDetails,
+        content: &&mut [u8],
+        sha1: &str,
+    ) -> Result<worker::Response> {
+        let mut headers = Headers::new();
+        headers.set("Authorization", &upload.authorization_token)?;
+        headers.set("X-Bz-File-Name", settings.filename)?;
+        headers.set("Content-Type", settings.content_type)?;
+        headers.set("X-Bz-Content-Sha1", sha1)?;
+
+        let request = Request::new_with_init(
+            &upload.upload_url,
+            &RequestInit {
+                method: Method::Post,
+                headers,
+                body: Some(unsafe { js_sys::Uint8Array::view(content) }.into()),
+                ..Default::default()
+            },
+        )?;
+
+        Ok(Fetch::Request(request).send().await?)
     }
 
     pub async fn download(&self, path: &str) -> Result<worker::Response> {

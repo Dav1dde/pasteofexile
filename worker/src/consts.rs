@@ -6,6 +6,7 @@ pub const MAX_UPLOAD_SIZE: usize = 50 * ONE_KB;
 
 pub const KV_STATIC_CONTENT: &str = "__STATIC_CONTENT";
 pub const KV_B2_CREDENTIALS: &str = "B2_CREDENTIALS";
+pub const KV_B2_UPLOAD_URLS: &str = "B2_UPLOAD_URLS";
 pub const KV_PASTE_STORAGE: &str = "PASTE_STORAGE";
 
 pub const ENV_B2_KEY_ID: &str = "B2_KEY_ID";

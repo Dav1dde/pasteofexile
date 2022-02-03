@@ -8,6 +8,10 @@ binding = "B2_CREDENTIALS"
 id = "<unset>"
 
 [[kv_namespaces]]
+binding = "B2_UPLOAD_URLS"
+id = "<unset>"
+
+[[kv_namespaces]]
 binding = "PASTE_STORAGE"
 id = "<unset>"
 

@@ -33,13 +33,4 @@ export function get_asset(name) {
 }
 EOF
 
-cat <<EOF > build/worker/export_wasm.mjs
-import * as index_bg from "./index_bg.mjs";
-import _wasm from "./index_bg.wasm";
-let importsObject = {
-    "./index_bg.js": index_bg
-};
-export default new WebAssembly.Instance(_wasm, importsObject).exports;
-EOF
-
 cd ..
