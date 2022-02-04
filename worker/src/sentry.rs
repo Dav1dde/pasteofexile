@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use git_version::git_version;
 use serde::Serialize;
 use wasm_bindgen::JsValue;
-use worker::{Context, Env, Fetch, Headers, Method, RequestInit};
+use worker::{
+    worker_sys::Request as EdgeRequest, Context, Env, Fetch, Headers, Method, RequestInit,
+};
 
 use crate::{consts, Error, Result};
 
@@ -48,27 +50,37 @@ struct User<'a> {
 }
 
 pub struct Sentry {
+    ctx: Context,
+    req: EdgeRequest,
     token: String,
     store_url: String,
 }
 
 impl Sentry {
-    pub fn from_env(env: &Env) -> Option<Self> {
+    pub fn from_env(env: &Env, ctx: Context, req: &EdgeRequest) -> Option<Self> {
         let project = env.var(consts::ENV_SENTRY_PROJECT).ok()?.to_string();
         let store_url = format!("https://sentry.io/api/{}/store/", project);
         Some(Self {
+            ctx,
+            req: Clone::clone(req),
             token: env.var(consts::ENV_SENTRY_TOKEN).ok()?.to_string(),
             store_url,
         })
     }
 
-    pub fn capture_err(&self, err: &Error, req: &worker::Request, ctx: &Context) {
-        if let Err(err) = self.do_capture_err(err, req, ctx) {
+    pub fn capture_err(&self, err: &Error) {
+        if let Err(err) = self.do_capture_err(err, err.level()) {
             log::warn!("failed to caputre error with sentry: {:?}", err);
         }
     }
 
-    fn do_capture_err(&self, err: &Error, req: &worker::Request, ctx: &Context) -> Result<()> {
+    pub fn capture_err_level(&self, err: &Error, level: &'static str) {
+        if let Err(err) = self.do_capture_err(err, level) {
+            log::warn!("failed to caputre error with sentry: {:?}", err);
+        }
+    }
+
+    fn do_capture_err(&self, err: &Error, level: &'static str) -> Result<()> {
         let mut headers = Headers::new();
         headers.set("Content-Type", "application/json")?;
         headers.set("User-Agent", "pobb.bin/1.0")?;
@@ -80,12 +92,13 @@ impl Sentry {
             ),
         )?;
 
+        let req: worker::Request = Clone::clone(&self.req).into();
         let url = req.url()?;
 
         let body = JsValue::from_str(&serde_json::to_string(&Store {
             logger: "worker",
             platform: "other",
-            level: err.level(),
+            level,
             exception: &Exception {
                 values: &[ExceptionValue {
                     r#type: err.name(),
@@ -124,7 +137,7 @@ impl Sentry {
             },
         )?;
 
-        ctx.wait_until(async move {
+        self.ctx.wait_until(async move {
             let r = Fetch::Request(request).send().await;
             if let Err(err) = r {
                 log::warn!("failed to caputre error with sentry: {:?}", err);

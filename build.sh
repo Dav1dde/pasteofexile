@@ -13,7 +13,7 @@ elif [[ "$1" == "--dev" ]]; then
         echo "Using b2 storage"
         WORKER_BUILD_ARGS="--dev -- --features debug"
     else
-        WORKER_BUILD_ARGS="--dev -- --features debug,storage-kv"
+        WORKER_BUILD_ARGS="--dev -- --features debug,use-kv-storage"
     fi
 else
     echo "expected --release or --dev"

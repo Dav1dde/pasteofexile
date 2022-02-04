@@ -2,7 +2,6 @@ use crate::{
     consts,
     crypto::sha1,
     retry::{retry, Retry},
-    utils,
     utils::hex,
     Error, Result,
 };
@@ -12,35 +11,6 @@ use std::borrow::Cow;
 use worker::{
     kv::KvStore, wasm_bindgen::JsValue, Env, Fetch, Headers, Method, Request, RequestInit,
 };
-
-#[allow(dead_code)]
-pub async fn get(env: &Env, path: &str) -> Result<Option<worker::Response>> {
-    let b2 = B2::from_env(env)?;
-    let response = b2.download(path).await?;
-
-    match response.status_code() {
-        200 => Ok(Some(response)),
-        404 => Ok(None),
-        status => Err(Error::RemoteFailed(
-            status,
-            "failed to get paste".to_owned(),
-        )),
-    }
-}
-
-#[allow(dead_code)]
-pub async fn put(env: &Env, filename: &str, sha1: &[u8], data: &mut [u8]) -> Result<()> {
-    let b2 = B2::from_env(env)?;
-
-    let hex = utils::hex(sha1);
-    let settings = UploadSettings {
-        filename,
-        content_type: "text/plain",
-        sha1: Some(&hex),
-    };
-
-    b2.upload(&settings, data).await.map(|_| ())
-}
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -61,7 +31,7 @@ struct Bucket {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct UploadDetails {
+pub struct UploadDetails {
     pub authorization_token: String,
     pub bucket_id: String,
     pub upload_url: String,
@@ -121,6 +91,7 @@ impl B2 {
         &self,
         settings: &UploadSettings<'_>,
         content: &mut [u8],
+        upload: UploadDetails,
     ) -> Result<UploadResponse> {
         let sha1 = match settings.sha1 {
             Some(sha1) => Cow::Borrowed(sha1),
@@ -128,8 +99,6 @@ impl B2 {
         };
 
         retry(5, |_| async {
-            let upload = self.get_upload_url().await?;
-
             let mut headers = Headers::new();
             headers.set("Authorization", &upload.authorization_token)?;
             headers.set("X-Bz-File-Name", settings.filename)?;
@@ -171,11 +140,10 @@ impl B2 {
         .await
     }
 
-    async fn get_upload_url(&self) -> Result<UploadDetails> {
-        // Retry once just in case the credentials expired and on the 2nd attempt force new
-        // credentials.
-        retry(2, |attempt| async move {
-            let auth = self.credentials.get_auth_details(attempt > 1).await?;
+    pub async fn get_upload_url(&self) -> Result<UploadDetails> {
+        // Retry in case the credentials expired and on the 2nd attempt force new credentials.
+        retry(5, |attempt| async move {
+            let auth = self.credentials.get_auth_details(attempt > 2).await?;
 
             let mut url = auth.api_url.to_owned();
             url.push_str("/b2api/v2/b2_get_upload_url");

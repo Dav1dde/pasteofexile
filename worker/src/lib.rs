@@ -27,7 +27,8 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
         Paste(name) => match utils::to_path(&name) {
             Err(_) => Context::not_found(host),
             Ok(path) => {
-                if let Some(mut response) = storage::get(env, &path).await? {
+                let storage = storage::DefaultStorage::from_env(env)?;
+                if let Some(mut response) = storage.get(&path).await? {
                     let content = response.text().await?;
                     Context::paste(host, name, content)
                 } else {
@@ -46,10 +47,22 @@ struct Oembed<'a> {
     provider_url: &'a str,
 }
 
+thread_local!(static SENTRY: std::cell::RefCell<Option<Sentry>> = std::cell::RefCell::new(None));
 #[cfg(feature = "debug")]
 thread_local!(static LAST_LOG_MSG: std::cell::Cell<u64> = std::cell::Cell::new(0));
 #[cfg(feature = "debug")]
 static LOG_INIT: std::sync::Once = std::sync::Once::new();
+
+#[macro_export]
+macro_rules! sentry {
+    ($sentry:ident, $block:expr) => {{
+        crate::SENTRY.with(|ctx| {
+            if let Some($sentry) = ctx.borrow_mut().as_mut() {
+                $block
+            }
+        })
+    }};
+}
 
 #[event(fetch)]
 pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Response> {
@@ -57,6 +70,12 @@ pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Re
     {
         LAST_LOG_MSG.with(|last| last.set(worker::Date::now().as_millis()));
         LOG_INIT.call_once(setup_logging);
+    }
+
+    if let Some(sentry) = Sentry::from_env(&env, ctx.clone(), req.inner()) {
+        SENTRY.with(|ctx| {
+            *ctx.borrow_mut() = Some(sentry);
+        });
     }
 
     let err: ErrorResponse = match cached(&mut req, &env, &ctx, try_main).await {
@@ -70,9 +89,7 @@ pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Re
             return Ok(response);
         }
         Err(err) => {
-            if let Some(sentry) = Sentry::from_env(&env) {
-                sentry.capture_err(&err, &req, &ctx);
-            }
+            sentry!(sentry, sentry.capture_err(&err));
 
             err.into()
         }
@@ -96,8 +113,8 @@ pub async fn main(mut req: Request, env: Env, ctx: Context) -> worker::Result<Re
     Ok(response)
 }
 
-async fn try_main(req: &mut Request, env: &Env, _ctx: &Context) -> Result<Response> {
-    if let Some(response) = api::try_handle(req, env).await? {
+async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Response> {
+    if let Some(response) = api::try_handle(ctx, req, env).await? {
         return Ok(response);
     }
 
