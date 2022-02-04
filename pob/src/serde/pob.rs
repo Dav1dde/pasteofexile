@@ -72,8 +72,9 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     fn stat(&self, stat: Stat) -> Option<&str> {
         self.pob
             .build
-            .player_stats
+            .stats
             .iter()
+            .filter_map(|stat| stat.player())
             .find(|x| stat == x.name)
             .map(|stat| stat.value.as_str())
     }
@@ -81,8 +82,9 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     fn minion_stat(&self, stat: Stat) -> Option<&str> {
         self.pob
             .build
-            .minion_stats
+            .stats
             .iter()
+            .filter_map(|stat| stat.minion())
             .find(|x| stat == x.name)
             .map(|stat| stat.value.as_str())
     }

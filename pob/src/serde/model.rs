@@ -30,11 +30,35 @@ pub(crate) struct Build {
     pub level: u8,
     pub class_name: String,
     pub ascend_class_name: String,
-    #[serde(default, rename = "PlayerStat")]
-    pub player_stats: Vec<BuildStat>,
-    #[serde(default, rename = "MinionStat")]
-    pub minion_stats: Vec<BuildStat>,
+    #[serde(rename = "$value")]
+    pub stats: Vec<StatType>,
     pub main_socket_group: u8,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) enum StatType {
+    PlayerStat(BuildStat),
+    #[serde(rename = "FullDPSSkill")]
+    FullDpsSkill(BuildStat),
+    MinionStat(BuildStat),
+    #[serde(other)]
+    Unknown,
+}
+
+impl StatType {
+    pub(crate) fn player(&self) -> Option<&BuildStat> {
+        match self {
+            Self::PlayerStat(stat) => Some(stat),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn minion(&self) -> Option<&BuildStat> {
+        match self {
+            Self::MinionStat(stat) => Some(stat),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

@@ -79,10 +79,14 @@
 		<PlayerStat stat="PowerChargesMax" value="3"/>
 		<PlayerStat stat="FrenzyCharges" value="0"/>
 		<PlayerStat stat="FrenzyChargesMax" value="3"/>
+		<!-- Mixed in Stats -->
+		<MinionStat stat="EnduranceChargesMax" value="1"/>
 		<PlayerStat stat="EnduranceCharges" value="0"/>
+		<FullDPSSkill stat="Test" value="0"/>
+		<!-- Unknown should not crash -->
+		<Unknown stat="Test" value="0"/>
 		<PlayerStat stat="EnduranceChargesMax" value="3"/>
 		<PlayerStat stat="ActiveTotemLimit" value="1"/>
-		<MinionStat stat="EnduranceChargesMax" value="1"/>
 	</Build>
 	<Import/>
 	<Calcs>
