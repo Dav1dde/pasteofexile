@@ -80,15 +80,25 @@ fn has_active_gem(skill: &Skill) -> bool {
 }
 
 fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
+    let num_gems = skill.gems.len();
     let gems = skill
         .gems
         .into_iter()
-        .map(|gem| {
+        .enumerate()
+        .map(|(i, gem)| {
             let name = gem.name.to_owned();
             let class = match (gem.is_selected, gem.is_active) {
                 (true, _) => "truncate font-bold dark:text-amber-50 text-slate-800",
                 (_, true) => "truncate dark:text-stone-100 text-slate-800",
-                (false, false) => "truncate before:content-['+_']",
+                (false, false) => {
+                    if i == 0 {
+                        "truncate gem-first"
+                    } else if i == num_gems - 1 {
+                        "truncate gem-last"
+                    } else {
+                        "truncate gem-middle"
+                    }
+                }
             };
 
             let title = format!("{} ({}/{})", name, gem.level, gem.quality);
