@@ -28,12 +28,12 @@ pub async fn create_paste(content: Rc<String>) -> Result<PasteResponse> {
     Ok(resp.json::<PasteResponse>().await?)
 }
 
-pub async fn get_paste(id: String) -> Result<String> {
+pub async fn get_paste(id: &str) -> Result<String> {
     let path = format!("/{}/raw", id);
     let resp = Request::get(&path).send().await?;
 
     if resp.status() == 404 {
-        return Err(Error::NotFound("paste", id));
+        return Err(Error::NotFound("paste", id.to_owned()));
     }
 
     if !resp.ok() {

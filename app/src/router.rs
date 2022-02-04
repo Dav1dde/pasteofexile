@@ -31,8 +31,11 @@ impl Route {
 pub trait RoutedComponent<G: Html>: Component<G> {
     type RouteArg: Clone;
 
-    fn from_context(ctx: Context) -> Result<<Self as Component<G>>::Props>;
-    fn from_hydration(element: Element) -> Result<<Self as Component<G>>::Props>;
+    fn from_context(args: Self::RouteArg, ctx: Context) -> Result<<Self as Component<G>>::Props>;
+    fn from_hydration(
+        args: Self::RouteArg,
+        element: Element,
+    ) -> Result<<Self as Component<G>>::Props>;
     fn from_dynamic<'a>(
         args: Self::RouteArg,
     ) -> LocalBoxFuture<'a, Result<<Self as Component<G>>::Props>>;
@@ -104,7 +107,7 @@ impl<G: Html> Page<G> {
         let page = try_block! {
             Ok::<_, Error>(match ctx.route().unwrap() {
                 Route::Index => Self::Index,
-                Route::Paste(_) => Self::Paste(pages::PastePage::<G>::from_context(ctx)?),
+                Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_context(arg.clone(), ctx)?),
                 Route::NotFound => Self::NotFound,
             })
         };
@@ -154,7 +157,7 @@ impl<G: Html> Page<G> {
         let page = try_block! {
             Ok::<_, Error>(match route {
                 Route::Index => Self::Index,
-                Route::Paste(_) => Self::Paste(pages::PastePage::<G>::from_hydration(element)?),
+                Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_hydration(arg.clone(), element)?),
                 Route::NotFound => Self::NotFound,
             })
         };

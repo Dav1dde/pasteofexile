@@ -14,6 +14,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlTextAreaElement;
 
 pub struct Data {
+    id: String,
     content: String,
     pob: Rc<SerdePathOfBuilding>,
 }
@@ -21,15 +22,16 @@ pub struct Data {
 impl<G: Html> RoutedComponent<G> for PastePage<G> {
     type RouteArg = String;
 
-    fn from_context(ctx: crate::Context) -> Result<Data> {
+    fn from_context(id: Self::RouteArg, ctx: crate::Context) -> Result<Data> {
         let paste = ctx.get_paste().unwrap();
         Ok(Data {
+            id,
             content: paste.content().to_owned(),
             pob: paste.path_of_building()?,
         })
     }
 
-    fn from_hydration(element: web_sys::Element) -> Result<Data> {
+    fn from_hydration(id: Self::RouteArg, element: web_sys::Element) -> Result<Data> {
         let content = element
             .query_selector("textarea")
             .unwrap()
@@ -37,14 +39,14 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
             .inner_html();
 
         let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
-        Ok(Data { content, pob })
+        Ok(Data { id, content, pob })
     }
 
     fn from_dynamic<'a>(id: Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
         Box::pin(async move {
-            let content = crate::api::get_paste(id).await?;
+            let content = crate::api::get_paste(&id).await?;
             let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
-            Ok(Data { content, pob })
+            Ok(Data { id, content, pob })
         })
     }
 
@@ -94,10 +96,12 @@ impl CopyState {
 }
 
 #[component(PastePage<G>)]
-pub fn paste_page(Data { content, pob }: Data) -> View<G> {
+pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
     let title = pob::title(&*pob);
 
     let version = pob.max_tree_version().unwrap_or_else(String::new);
+
+    let open_in_pob_url = format!("pob://pobbin/{}", id);
 
     let notes = pob.notes().to_owned();
     let notes = if !notes.is_empty() {
@@ -199,8 +203,14 @@ pub fn paste_page(Data { content, pob }: Data) -> View<G> {
                     button(
                         on:click=copy_to_clipboard,
                         disabled=*btn_copy_disabled.get(),
-                        class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex"
+                        title="Copy to Clipboard",
+                        class="hover:underline hover:cursor-pointer px-6 py-2 text-sm disabled:cursor-not-allowed inline-flex"
                     ) { (btn_copy_name.get()) }
+                    a(
+                        href=open_in_pob_url,
+                        title="Open build in Path of Building, requires up to date PoB",
+                        class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex"
+                    ) { "Open" }
                 }
             }
         }
