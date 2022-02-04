@@ -25,6 +25,13 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
             .add_to(&mut elements);
     }
 
+    if pob.stat_at_least(Stat::Ward, 100.0) {
+        Element::new("Ward")
+            .color("text-amber-500")
+            .stat_int(pob.stat_parse(Stat::Ward))
+            .add_to(&mut elements);
+    }
+
     Element::new("Mana")
         .color("text-blue-400")
         .stat_int(pob.stat_parse(Stat::ManaUnreserved))
@@ -35,7 +42,7 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
         .add_to(&mut elements);
 
     Element::new("Pool")
-        .title("Total Health Pool")
+        .title("Total Health Pool includes Life, ES, Ward, Mana")
         .color(AMBER_50)
         .stat_int(Some(pob::hp_pool(pob) as f32))
         .add_to(&mut elements);

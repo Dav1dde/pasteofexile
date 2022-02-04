@@ -63,6 +63,11 @@ pub fn hp_pool<T: PathOfBuilding>(pob: &T) -> u32 {
         ehp += mana.min(max_mana_soak);
     }
 
+    let ward = pob.stat_parse(Stat::Ward).unwrap_or(0);
+    if ward > 100 {
+        ehp += ward;
+    }
+
     ehp
 }
 
