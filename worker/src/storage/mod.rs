@@ -129,7 +129,7 @@ impl B2Storage {
 
             if let Err(err) = self.b2.upload(&settings, &mut data, upload).await {
                 log::error!("<-- failed to upload paste: {:?}", err);
-                sentry!(sentry, sentry.capture_err_level(&err, "error"));
+                sentry::with_sentry(|sentry| sentry.capture_err_level(&err, "error"));
             } else {
                 log::debug!("<-- paste uploaded");
             }
@@ -255,7 +255,7 @@ impl KvStorage {
 
             if let Err(err) = r {
                 log::error!("<-- failed to upload paste: {:?}", err);
-                sentry!(sentry, sentry.capture_err(&err.into()));
+                sentry::with_sentry(|sentry| sentry.capture_err(&err.into()));
             } else {
                 log::debug!("<-- paste uploaded");
             }

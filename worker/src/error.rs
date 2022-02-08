@@ -38,6 +38,9 @@ pub enum Error {
     Base64(#[from] base64::DecodeError),
 
     #[error("{0}")]
+    IOError(#[from] std::io::Error),
+
+    #[error("{0}")]
     Error(String),
 }
 
@@ -54,6 +57,7 @@ impl Error {
             Self::InvalidPoB(..) => "InvalidPoB",
             Self::Dangerous(..) => "DangerousError",
             Self::Base64(..) => "Base64",
+            Self::IOError(..) => "IOError",
             Self::Error(..) => "Error",
         }
     }
@@ -70,6 +74,7 @@ impl Error {
             Self::InvalidPoB(..) => "error",
             Self::Dangerous(..) => "error",
             Self::Base64(..) => "error",
+            Self::IOError(..) => "error",
             Self::Error(..) => "error",
         }
     }

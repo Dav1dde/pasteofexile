@@ -31,6 +31,10 @@ pub fn hex(data: &[u8]) -> String {
     data.iter().map(|x| format!("{:02X}", x)).collect()
 }
 
+pub fn hex_lower(data: &[u8]) -> String {
+    data.iter().map(|x| format!("{:02x}", x)).collect()
+}
+
 pub fn btoa(s: &str) -> Result<String> {
     let worker: WorkerGlobalScope = js_sys::global().unchecked_into();
     Ok(worker.btoa(s)?)
