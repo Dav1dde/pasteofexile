@@ -218,10 +218,38 @@ pub fn config(pob: &SerdePathOfBuilding) -> Vec<Element> {
         configs.push("Focused".to_owned());
     }
 
-    if pob.config(Config::EnemyShocked).is_true() {
-        let effect = pob.config(Config::ShockEffect).number().unwrap_or(15.0) as i32;
-        configs.push(format!("{}% Shock", effect));
+    macro_rules! effect {
+        ($enable:expr, $effect:expr, $format:expr, $def:expr) => {
+            if pob.config($enable).is_true() {
+                let v = pob
+                    .config($effect)
+                    .number()
+                    .map(|effect| format!($format, effect))
+                    .unwrap_or($def.to_owned());
+                configs.push(v);
+            }
+        };
     }
+
+    effect!(
+        Config::EnemyShocked,
+        Config::ShockEffect,
+        "{}% Shock",
+        "Shocked"
+    );
+    effect!(
+        Config::EnemyScorched,
+        Config::ScorchedEffect,
+        "{}% Scorch",
+        "Scorched"
+    );
+    effect!(
+        Config::EnemyBrittled,
+        Config::BrittleEffect,
+        "{}% Brittle",
+        "Brittled"
+    );
+    effect!(Config::EnemySapped, Config::SapEffect, "{}% Sap", "Sapped");
 
     if pob.config(Config::CoveredInAsh).is_true() {
         configs.push("Covered in Ash".into());
