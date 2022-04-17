@@ -31,6 +31,7 @@ pub enum Stat {
     SpellBlockChance,
     SpellDodgeChance,
     SpellSuppressionChance,
+    TotalEhp,
     Ward,
     Custom(&'static str),
 }
@@ -68,6 +69,7 @@ impl Stat {
             Self::SpellBlockChance => "SpellBlockChance",
             Self::SpellDodgeChance => "SpellDodgeChance",
             Self::SpellSuppressionChance => "SpellSuppressionChance",
+            Self::TotalEhp => "TotalEHP",
             Self::Ward => "Ward",
             Self::Custom(s) => s,
         }

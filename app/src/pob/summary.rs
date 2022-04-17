@@ -41,11 +41,19 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
         )
         .add_to(&mut elements);
 
-    Element::new("Pool")
-        .title("Total Health Pool includes Life, ES, Ward, Mana")
-        .color(AMBER_50)
-        .stat_int(Some(pob::hp_pool(pob) as f32))
-        .add_to(&mut elements);
+    if let Some(ehp) = pob.stat_parse(Stat::TotalEhp) {
+        Element::new("eHP")
+            .title("Total effective Health Pool")
+            .color(AMBER_50)
+            .stat_int(Some(ehp))
+            .add_to(&mut elements);
+    } else {
+        Element::new("Pool")
+            .title("Total Health Pool includes Life, ES, Ward, Mana")
+            .color(AMBER_50)
+            .stat_int(Some(pob::hp_pool(pob) as f32))
+            .add_to(&mut elements);
+    }
 
     elements
 }
