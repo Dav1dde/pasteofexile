@@ -35,7 +35,7 @@ pub async fn try_handle(req: &mut Request, env: &Env) -> Result<Option<Response>
     // does the last segment contain a '.'
     let is_asset_path = req
         .path()
-        .rsplit_once("/")
+        .rsplit_once('/')
         .map(|x| x.1)
         .unwrap_or(&req.path())
         .contains('.');
@@ -75,7 +75,7 @@ fn resolve(name: &str) -> Cow<'_, str> {
 }
 
 fn get_mime(path: &str) -> Option<&'static str> {
-    let ext = if let Some((_, ext)) = path.rsplit_once(".") {
+    let ext = if let Some((_, ext)) = path.rsplit_once('.') {
         ext
     } else {
         return None;

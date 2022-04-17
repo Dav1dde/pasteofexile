@@ -56,7 +56,7 @@ static LOG_INIT: std::sync::Once = std::sync::Once::new();
 #[macro_export]
 macro_rules! sentry {
     ($sentry:ident, $block:expr) => {{
-        crate::SENTRY.with(|ctx| {
+        $crate::SENTRY.with(|ctx| {
             if let Some($sentry) = ctx.borrow_mut().as_mut() {
                 $block
             }
@@ -202,7 +202,7 @@ fn setup_logging() {
             out.finish(format_args!(
                 "[+ {:>5}] <{:<25}> {:>5}: {}",
                 now - last,
-                format!(
+                format_args!(
                     "{}:{}",
                     record.file().unwrap_or_else(|| record.target()),
                     record.line().unwrap_or(0)

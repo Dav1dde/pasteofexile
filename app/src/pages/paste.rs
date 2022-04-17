@@ -99,7 +99,7 @@ impl CopyState {
 pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
     let title = pob::title(&*pob);
 
-    let version = pob.max_tree_version().unwrap_or_else(String::new);
+    let version = pob.max_tree_version().unwrap_or_default();
 
     let open_in_pob_url = format!("pob://pobbin/{}", id);
 

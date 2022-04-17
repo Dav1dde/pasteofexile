@@ -191,7 +191,7 @@ impl<'de> de::Deserialize<'de> for ItemContent {
                 A: de::SeqAccess<'de>,
             {
                 // first element is the item content
-                let content = seq.next_element::<String>()?.unwrap_or_else(String::new);
+                let content = seq.next_element::<String>()?.unwrap_or_default();
                 // following elements are mod ranges, ignore them for now
                 while seq.next_element::<()>()?.is_some() {}
 

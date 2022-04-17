@@ -112,14 +112,8 @@ impl Sentry {
                 data: err.payload(),
             },
             user: &User {
-                ip_address: &req
-                    .headers()
-                    .get("cf-connecting-ip")?
-                    .unwrap_or_else(String::new),
-                country: &req
-                    .headers()
-                    .get("cf-ipcountry")?
-                    .unwrap_or_else(String::new),
+                ip_address: &req.headers().get("cf-connecting-ip")?.unwrap_or_default(),
+                country: &req.headers().get("cf-ipcountry")?.unwrap_or_default(),
             },
             release: git_version!(),
             server_name: url.host_str().unwrap_or(""),
