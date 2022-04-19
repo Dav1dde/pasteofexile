@@ -219,37 +219,28 @@ pub fn config(pob: &SerdePathOfBuilding) -> Vec<Element> {
     }
 
     macro_rules! effect {
-        ($enable:expr, $effect:expr, $format:expr, $def:expr) => {
+        ($enable:expr, $effect:expr, $def:expr, $format:expr) => {
             if pob.config($enable).is_true() {
-                let v = pob
-                    .config($effect)
-                    .number()
-                    .map(|effect| format!($format, effect))
-                    .unwrap_or($def.to_owned());
-                configs.push(v);
+                let effect = pob.config($effect).number().unwrap_or($def);
+                configs.push(format!($format, effect));
             }
         };
     }
 
-    effect!(
-        Config::EnemyShocked,
-        Config::ShockEffect,
-        "{}% Shock",
-        "Shocked"
-    );
+    effect!(Config::EnemyShocked, Config::ShockEffect, 15.0, "{}% Shock");
     effect!(
         Config::EnemyScorched,
         Config::ScorchedEffect,
-        "{}% Scorch",
-        "Scorched"
+        10.0,
+        "{}% Scorch"
     );
     effect!(
         Config::EnemyBrittled,
         Config::BrittleEffect,
-        "{}% Brittle",
-        "Brittled"
+        5.0,
+        "{}% Brittle"
     );
-    effect!(Config::EnemySapped, Config::SapEffect, "{}% Sap", "Sapped");
+    effect!(Config::EnemySapped, Config::SapEffect, 6.0, "{}% Sap");
 
     if pob.config(Config::CoveredInAsh).is_true() {
         configs.push("Covered in Ash".into());
