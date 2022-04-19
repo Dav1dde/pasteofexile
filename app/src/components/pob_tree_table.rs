@@ -18,12 +18,12 @@ pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
 
             let title = spec.title.unwrap_or("<Default>").to_owned();
 
-            let title = match spec.url {
+            let title = match get_tree_url(&spec) {
                 Some(url) => {
-                    let url = url.to_owned();
                     view! { a(
                         href=url,
                         rel="external",
+                        target="_blank",
                         class="text-sky-500 dark:text-sky-400 hover:underline"
                     ) { PobColoredText(title) } }
                 }
@@ -56,6 +56,14 @@ fn filter_valid_url(spec: &TreeSpec) -> bool {
         .url
         .map(|url| url.starts_with("https://pathofexile.com/"))
         .unwrap_or(false)
+}
+
+fn get_tree_url(spec: &TreeSpec) -> Option<String> {
+    // "https://poeskilltree.com/?v={version}#{data}"
+    spec.url
+        .and_then(|url| url.rsplit_once('/'))
+        .and_then(|(_, data)| spec.version.map(|ver| (data, ver)))
+        .map(|(data, ver)| format!("https://poeskilltree.com/?v={}#{}", ver, data))
 }
 
 // TODO: needs auto-generated node information for ascendancies
