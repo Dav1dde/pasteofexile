@@ -134,7 +134,7 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
     let ctx = build_context(req, env, route).await?;
 
     let (app, rctx) = app::render_to_string(ctx);
-    let head = app::render_head(rctx.meta.unwrap_or_default());
+    let head = app::render_head(rctx.meta.unwrap_or_default(), rctx.preload);
 
     let index = env.get_asset("index.html")?.text().await?.unwrap();
     let index = index.replace("<!-- %head% -->", &head);

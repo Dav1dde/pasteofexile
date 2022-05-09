@@ -1,6 +1,6 @@
 use crate::{
     async_callback,
-    components::{PobColoredText, PobGems, PobTreeTable},
+    components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
     future::LocalBoxFuture,
     memo, meta,
     pob::{self, Element},
@@ -108,7 +108,7 @@ pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
         view! {
             div(class="flex-auto") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
-                pre(class="text-xs break-words whitespace-pre-line font-mono sm:ml-3 mb-10") {
+                pre(class="text-xs break-words whitespace-pre-line font-mono sm:ml-3") {
                     PobColoredText(notes)
                 }
             }
@@ -135,7 +135,7 @@ pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
 
             copy_state.set(CopyState::Progress);
 
-            from_ref::<_, web_sys::HtmlTextAreaElement>(content_ref).select();
+            from_ref::<_, web_sys::HtmlTextAreaElement>(&content_ref).select();
 
             let document: web_sys::HtmlDocument = document();
             let state = if document.exec_command("copy").is_ok() {
@@ -221,10 +221,15 @@ pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
             }
             div(class="flex-1") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
-                PobTreeTable(pob)
+                PobTreeTable(pob.clone())
             }
         }
+        div(class="basis-full") {
+            h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
+            PobTreePreview(pob)
+        }
         (notes)
+        div(class="h-[200px]") {}
     }
 }
 

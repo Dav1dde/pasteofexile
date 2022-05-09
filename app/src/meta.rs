@@ -8,6 +8,30 @@ const TITLE_SERVER_ERROR: &str = "POB B.in - Server Error";
 const DESCRIPTION: &str = "POB B.in is a website to share your Path of Building builds online";
 const DEFAULT_COLOR: &str = "#0ea5e9";
 
+pub enum Prefetch {
+    Image(String),
+}
+
+impl Prefetch {
+    pub fn url(&self) -> &str {
+        match self {
+            Self::Image(url) => url,
+        }
+    }
+
+    pub fn into_url(self) -> String {
+        match self {
+            Self::Image(url) => url,
+        }
+    }
+
+    pub fn typ(&self) -> &'static str {
+        match self {
+            Self::Image(_) => "image",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Meta {
     pub(crate) title: Cow<'static, str>,

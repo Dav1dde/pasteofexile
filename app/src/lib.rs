@@ -18,7 +18,7 @@ mod head;
 
 pub use context::Context;
 pub use error::{Error, Result};
-pub use meta::Meta;
+pub use meta::{Meta, Prefetch};
 pub use response_context::ResponseContext;
 pub use router::Route;
 
@@ -30,8 +30,9 @@ pub fn render_to_string(context: Context) -> (String, ResponseContext) {
 }
 
 #[cfg(feature = "ssr")]
-pub fn render_head(meta: Meta) -> String {
-    let mut result = sycamore::render_to_string(|| view! { head::Head(meta) });
+pub fn render_head(meta: Meta, prefetch: Vec<Prefetch>) -> String {
+    let args = head::HeadArgs { meta, prefetch };
+    let mut result = sycamore::render_to_string(|| view! { head::Head(args) });
 
     // workaround to replace data-hk with data-xx to not interfer with hydration
     let bytes = unsafe { result.as_bytes_mut() };
