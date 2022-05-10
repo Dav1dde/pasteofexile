@@ -162,25 +162,31 @@ pub fn pob_tree_preview(pob: Rc<SerdePathOfBuilding>) -> View<G> {
 fn get_tree_url(spec: &TreeSpec) -> Option<String> {
     spec.url
         .and_then(|url| url.rsplit_once('/'))
-        .and_then(|(_, data)| spec.version.map(|ver| (data, ver)))
-        .map(|(data, ver)| format!("https://tree.pobb.in/{}/{}", ver.replace('_', "."), data))
+        .map(|(_, data)| data)
+        .zip(spec.version)
+        .map(|(data, ver)| format!("https://tree.pobb.in/{ver}/{data}"))
 }
 
 fn get_event_pos(event: &Event) -> Option<(i32, i32)> {
-    let mouse = event
+    event
         .dyn_ref::<MouseEvent>()
-        .map(|event| (event.client_x(), event.client_y()));
-
-    let touch = event
-        .dyn_ref::<TouchEvent>()
-        .filter(|event| event.changed_touches().length() == 1)
-        .and_then(|event| event.changed_touches().get(0))
-        .map(|touch| (touch.client_x(), touch.client_y()));
-
-    mouse.or(touch)
+        .map(|event| (event.client_x(), event.client_y()))
+        .or_else(|| {
+            event
+                .dyn_ref::<TouchEvent>()
+                .filter(|event| event.changed_touches().length() == 1)
+                .and_then(|event| event.changed_touches().get(0))
+                .map(|touch| (touch.client_x(), touch.client_y()))
+        })
 }
 
 fn get_pinch(event: &Event) -> Option<f32> {
+    // Can only be a TouchEvent or a MouseEvent at this point,
+    // Firefox does not have a TouchEvent so leave when it's a MouseEvent
+    // to avoid accessing `window.TouchEvent` which does not exist.
+    if event.dyn_ref::<MouseEvent>().is_some() {
+        return None;
+    }
     event
         .dyn_ref::<TouchEvent>()
         .filter(|event| event.touches().length() == 2)

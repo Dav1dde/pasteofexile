@@ -116,6 +116,16 @@ pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
     } else {
         View::empty()
     };
+    let tree_preview = if !pob.tree_specs().is_empty() {
+        view! {
+            div(class="basis-full") {
+                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
+                PobTreePreview(Rc::clone(&pob))
+            }
+        }
+    } else {
+        View::empty()
+    };
 
     let select_all = |event: web_sys::Event| {
         let s: HtmlTextAreaElement = event.target().unwrap().unchecked_into();
@@ -224,10 +234,7 @@ pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
                 PobTreeTable(pob.clone())
             }
         }
-        div(class="basis-full") {
-            h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
-            PobTreePreview(pob)
-        }
+        (tree_preview)
         (notes)
         div(class="h-[200px]") {}
     }
