@@ -1,4 +1,6 @@
+#[cfg(not(feature = "ssr"))]
 use sycamore::prelude::*;
+#[cfg(not(feature = "ssr"))]
 use wasm_bindgen::JsCast;
 
 #[macro_export]
@@ -88,6 +90,7 @@ pub fn document<T: JsCast>() -> T {
         .unchecked_into()
 }
 
+#[cfg(not(feature = "ssr"))]
 pub fn from_ref<G: GenericNode, T: JsCast>(node_ref: &NodeRef<G>) -> T {
     if let Some(node) = node_ref.try_get::<HydrateNode>() {
         node.unchecked_into()
