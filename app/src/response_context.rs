@@ -16,6 +16,7 @@ macro_rules! with_ctx {
 pub struct ResponseContext {
     pub status_code: u16,
     pub meta: Option<Meta>,
+    pub prefetch: Vec<Prefetch>,
     pub preload: Vec<Prefetch>,
 }
 
@@ -24,6 +25,7 @@ impl ResponseContext {
         Self {
             status_code: 200,
             meta: None,
+            prefetch: Vec::new(),
             preload: Vec::new(),
         }
     }
@@ -53,6 +55,14 @@ impl ResponseContext {
         RESPONSE_CONTEXT.with(|ctx| {
             with_ctx!(ctx, {
                 ctx.meta = Some(meta);
+            })
+        });
+    }
+
+    pub(crate) fn prefetch(prefetch: Prefetch) {
+        RESPONSE_CONTEXT.with(|ctx| {
+            with_ctx!(ctx, {
+                ctx.prefetch.push(prefetch);
             })
         });
     }

@@ -4,6 +4,7 @@ use sycamore::prelude::*;
 pub struct HeadArgs {
     pub meta: Meta,
     pub prefetch: Vec<Prefetch>,
+    pub preload: Vec<Prefetch>,
 }
 
 #[component(Head<G>)]
@@ -12,15 +13,27 @@ pub fn head(args: HeadArgs) -> View<G> {
     let title = meta.title.clone();
 
     let preload = args
-        .prefetch
+        .preload
         .into_iter()
         .map(|preload| {
             let typ = preload.typ();
             let href = preload.into_url();
-            view! { link(rel="prefetch", href=href, as=typ) }
+            view! { link(rel="preload", href=href, as=typ) }
         })
         .collect::<Vec<_>>();
     let preload = View::new_fragment(preload);
+
+    let prefetch = args
+        .prefetch
+        .into_iter()
+        .map(|prefetch| {
+            let href = prefetch.into_url();
+            view! {
+                link(rel="prefetch", href=href)
+            }
+        })
+        .collect::<Vec<_>>();
+    let prefetch = View::new_fragment(prefetch);
 
     view! {
         title { (title) }
@@ -30,5 +43,6 @@ pub fn head(args: HeadArgs) -> View<G> {
         meta(name="theme-color", content=meta.color)
         link(type="application/json+oembed", href="/oembed.json")
         (preload)
+        (prefetch)
     }
 }

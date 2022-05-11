@@ -30,8 +30,10 @@ pub fn render_to_string(context: Context) -> (String, ResponseContext) {
 }
 
 #[cfg(feature = "ssr")]
-pub fn render_head(meta: Meta, prefetch: Vec<Prefetch>) -> String {
-    let args = head::HeadArgs { meta, prefetch };
+pub type Head = head::HeadArgs;
+
+#[cfg(feature = "ssr")]
+pub fn render_head(args: Head) -> String {
     let mut result = sycamore::render_to_string(|| view! { head::Head(args) });
 
     // workaround to replace data-hk with data-xx to not interfer with hydration
