@@ -21,10 +21,10 @@ pub fn basic_auth(username: &str, password: &str) -> Result<String> {
     Ok(result)
 }
 
-// pub fn random_id<const N: usize>() -> Result<String> {
-//     let random = crate::crypto::get_random_values::<N>()?;
-//     Ok(base64::encode_config(random, base64::URL_SAFE_NO_PAD))
-// }
+pub fn random_string<const N: usize>() -> Result<String> {
+    let random = crate::crypto::get_random_values::<N>()?;
+    Ok(base64::encode_config(random, base64::URL_SAFE_NO_PAD))
+}
 
 pub fn hash_to_short_id(hash: &[u8], bytes: usize) -> Result<String> {
     hash.get(0..bytes)
@@ -70,7 +70,7 @@ impl ResponseExt for Response {
     }
 
     fn with_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
-        self.headers_mut().set(name, value)?;
+        self.headers_mut().append(name, value)?;
         Ok(self)
     }
 

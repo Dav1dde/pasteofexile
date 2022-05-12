@@ -59,6 +59,16 @@ impl Context {
         }
     }
 
+    pub fn user(host: String, name: String) -> Self {
+        Self {
+            inner: Rc::new(ContextInner {
+                route: Some(Route::User(name)),
+                host,
+                inner: Inner::None,
+            }),
+        }
+    }
+
     pub fn route(&self) -> Option<&Route> {
         self.inner.route.as_ref()
     }

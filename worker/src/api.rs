@@ -1,5 +1,5 @@
 use crate::{
-    consts, crypto, storage,
+    consts, crypto, dangerous, storage,
     utils::{self, ResponseExt},
     Error, Result,
 };
@@ -22,6 +22,12 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     }
     if let Some(id) = is_download_url(&req.path(), req) {
         return handle_download(env, id).await.map(Some);
+    }
+    if req.path() == "/login" && req.method() == Method::Get {
+        return handle_login(req).await.map(Some);
+    }
+    if req.path() == "/oauth2/authorization/poe" && req.method() == Method::Get {
+        return handle_oauth2_poe(env, req).await.map(Some);
     }
 
     Ok(None)
@@ -112,4 +118,111 @@ async fn handle_upload(
         .headers_mut()
         .set("Content-Type", "application/json")?;
     Ok(response)
+}
+
+async fn handle_login(req: &Request) -> Result<Response> {
+    let url = req.url()?;
+    let host = url.host_str().unwrap();
+    let state = utils::random_string::<16>()?;
+    let redirect = format!("https://www.pathofexile.com/oauth/authorize?client_id=pobbin&response_type=code&scope=account:profile&state={state}&redirect_uri=https://{host}/oauth2/authorization/poe&prompt=consent");
+
+    Response::empty()?
+        .with_status(307)
+        .with_header("Location", &redirect)?
+        .with_header(
+            "Set-Cookie",
+            &format!("state={state}; Max-Age=600; Secure; Same-Site=Lax; Path=/"),
+        )
+}
+
+async fn handle_oauth2_poe(env: &Env, req: &Request) -> Result<Response> {
+    let mut code = None;
+    let mut state = None;
+    let url = req.url()?;
+    for (k, v) in url.query_pairs() {
+        match &*k {
+            "code" => code = Some(v),
+            "state" => state = Some(v),
+            _ => {}
+        }
+    }
+
+    let (code, state) = match (code, state) {
+        (Some(code), Some(state)) => (code, state),
+        _ => return Ok(Response::error("lol", 403)?),
+    };
+
+    if !req
+        .headers()
+        .get("Cookie")?
+        .unwrap_or_default()
+        .contains(&*state)
+    {
+        return Ok(Response::error("missing stuff", 403)?);
+    }
+
+    let mut headers = Headers::new();
+    headers.set("Content-Type", "application/x-www-form-urlencoded")?;
+
+    let secret = env.var(consts::ENV_OAUTH_SECRET_POE)?.to_string();
+
+    let body = wasm_bindgen::JsValue::from_str(&format!(
+        "client_id=pobbin&client_secret={secret}&grant_type=authorization_code&code={code}&scope=account:profile"
+    ));
+
+    let request = Request::new_with_init(
+        "https://www.pathofexile.com/oauth/token",
+        &worker::RequestInit {
+            method: Method::Post,
+            headers,
+            body: Some(body),
+            ..Default::default()
+        },
+    )?;
+
+    #[derive(serde::Deserialize)]
+    struct OauthTokenResponse {
+        access_token: String,
+    }
+
+    let r: OauthTokenResponse = worker::Fetch::Request(request).send().await?.json().await?;
+
+    let mut headers = Headers::new();
+    headers.set("Authorization", &format!("Bearer {}", r.access_token))?;
+    headers.set("User-Agent", "User-Agent: OAuth pobbin/1.0 (contact: TODO)")?; // TODO
+
+    #[derive(serde::Deserialize, serde::Serialize, Debug)]
+    struct Profile {
+        name: String,
+    }
+
+    let profile = worker::Fetch::Request(Request::new_with_init(
+        "https://api.pathofexile.com/profile",
+        &worker::RequestInit {
+            method: Method::Get,
+            headers,
+            ..Default::default()
+        },
+    )?)
+    .send()
+    .await?
+    .json::<Profile>()
+    .await?;
+
+    let secret = env.var(consts::ENV_SECRET_KEY)?.to_string();
+    let session = dangerous::Dangerous::new(secret.into_bytes())
+        .sign(&profile)
+        .await?;
+
+    Response::empty()?
+        .with_status(307)
+        .with_header(
+            "Set-Cookie",
+            "state=none; Max-Age=0; Secure; Same-Site=Lax; Path=/",
+        )?
+        .with_header(
+            "Set-Cookie",
+            &format!("session={session}; Max-Age=1209600; Secure; SameSite=Lax; Path=/"),
+        )?
+        .with_header("Location", &format!("/u/{}", profile.name))
 }

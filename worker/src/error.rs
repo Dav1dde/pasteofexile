@@ -1,3 +1,4 @@
+use crate::dangerous::DangerousError;
 use serde::Serialize;
 use thiserror::Error;
 
@@ -27,6 +28,9 @@ pub enum Error {
     // error, XML
     InvalidPoB(String, String),
 
+    #[error(transparent)]
+    Dangerous(#[from] DangerousError),
+
     #[error("{0}")]
     Error(String),
 }
@@ -41,6 +45,7 @@ impl Error {
             Self::Worker(..) => "Worker",
             Self::BadRequest(..) => "BadRequest",
             Self::InvalidPoB(..) => "InvalidPoB",
+            Self::Dangerous(..) => "DangerousError",
             Self::Error(..) => "Error",
         }
     }
@@ -54,6 +59,7 @@ impl Error {
             Self::Worker(..) => "error",
             Self::BadRequest(..) => "info",
             Self::InvalidPoB(..) => "error",
+            Self::Dangerous(..) => "error",
             Self::Error(..) => "error",
         }
     }

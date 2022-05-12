@@ -6,6 +6,7 @@ mod api;
 mod assets;
 mod consts;
 mod crypto;
+mod dangerous;
 mod error;
 mod retry;
 mod sentry;
@@ -36,6 +37,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                 }
             }
         },
+        User(name) => Context::user(host, name),
     };
 
     Ok(ctx)
