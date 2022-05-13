@@ -1,6 +1,10 @@
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
-use worker::{js_sys, worker_sys, Response, Result};
+use worker::{js_sys, worker_sys, Env, Request, Response, Result};
+
+pub fn b64_encode<T: AsRef<[u8]>>(input: T) -> String {
+    base64::encode_config(input, base64::URL_SAFE_NO_PAD)
+}
 
 pub fn hex(data: &[u8]) -> String {
     data.iter().map(|x| format!("{:02X}", x)).collect()
@@ -23,12 +27,12 @@ pub fn basic_auth(username: &str, password: &str) -> Result<String> {
 
 pub fn random_string<const N: usize>() -> Result<String> {
     let random = crate::crypto::get_random_values::<N>()?;
-    Ok(base64::encode_config(random, base64::URL_SAFE_NO_PAD))
+    Ok(b64_encode(random))
 }
 
 pub fn hash_to_short_id(hash: &[u8], bytes: usize) -> Result<String> {
     hash.get(0..bytes)
-        .map(|data| base64::encode_config(data, base64::URL_SAFE_NO_PAD))
+        .map(b64_encode)
         .ok_or_else(|| "Hash too small for id".into())
 }
 
@@ -46,6 +50,8 @@ pub fn to_path(id: &str) -> Result<String> {
 }
 
 pub trait ResponseExt: Sized {
+    fn redirect2(target: &str) -> crate::Result<Self>;
+
     fn cache_for(self, ttl: u32) -> crate::Result<Self> {
         self.with_header("Cache-Control", &format!("max-age={}", ttl))
     }
@@ -56,21 +62,51 @@ pub trait ResponseExt: Sized {
         let entity_id = format!("\"{}\"", entity_id.trim_matches('"'));
         self.with_header("Etag", &entity_id)
     }
+    fn with_state_cookie(self, state: &str) -> crate::Result<Self> {
+        self.append_header(
+            "Set-Cookie",
+            &format!("state={state}; Max-Age=600; Secure; Same-Site=Lax; Path=/"),
+        )
+    }
+    fn with_delete_state_cookie(self) -> crate::Result<Self> {
+        self.append_header(
+            "Set-Cookie",
+            "state=none; Max-Age=0; Secure; Same-Site=Lax; Path=/",
+        )
+    }
+    fn with_new_session(self, session: &str) -> crate::Result<Self> {
+        self.append_header(
+            "Set-Cookie",
+            &format!("session={session}; Max-Age=1209600; Secure; SameSite=Lax; Path=/"),
+        )
+    }
 
     fn dup_headers(self) -> Self;
+    fn append_header(self, name: &str, value: &str) -> crate::Result<Self>;
     fn with_header(self, name: &str, value: &str) -> crate::Result<Self>;
 
     fn cloned(self) -> crate::Result<(Self, Self)>;
 }
 
 impl ResponseExt for Response {
+    fn redirect2(target: &str) -> crate::Result<Self> {
+        Self::empty()?
+            .with_status(307)
+            .with_header("Location", target)
+    }
+
     fn dup_headers(self) -> Self {
         let headers = self.headers().clone();
         self.with_headers(headers)
     }
 
-    fn with_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
+    fn append_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
         self.headers_mut().append(name, value)?;
+        Ok(self)
+    }
+
+    fn with_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
+        self.headers_mut().set(name, value)?;
         Ok(self)
     }
 
@@ -92,5 +128,41 @@ impl ResponseExt for Response {
             .with_headers(headers);
 
         Ok((response1, response2))
+    }
+}
+
+pub trait RequestExt: Sized {
+    fn cookie(&self, name: &str) -> Option<String>;
+}
+
+impl RequestExt for Request {
+    fn cookie(&self, name: &str) -> Option<String> {
+        let cookie = self.headers().get("Cookie").unwrap()?;
+
+        cookie
+            .split(';')
+            .filter_map(|part| part.split_once('='))
+            .find(|(k, _)| name == k.trim())
+            .map(|(_, v)| v.trim().to_owned())
+    }
+}
+
+pub trait EnvExt: Sized {
+    fn oauth(&self) -> Result<crate::poe_api::Oauth>;
+    fn dangerous(&self) -> Result<crate::dangerous::Dangerous>;
+}
+
+impl EnvExt for Env {
+    fn oauth(&self) -> Result<crate::poe_api::Oauth> {
+        Ok(crate::poe_api::Oauth::new(
+            self.var(crate::consts::ENV_OAUTH_CLIENT_ID)?.to_string(),
+            self.var(crate::consts::ENV_OAUTH_CLIENT_SECRET)?
+                .to_string(),
+        ))
+    }
+
+    fn dangerous(&self) -> Result<crate::dangerous::Dangerous> {
+        let secret = self.var(crate::consts::ENV_SECRET_KEY)?.to_string();
+        Ok(crate::dangerous::Dangerous::new(secret.into_bytes()))
     }
 }

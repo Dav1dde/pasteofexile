@@ -8,6 +8,7 @@ mod consts;
 mod crypto;
 mod dangerous;
 mod error;
+mod poe_api;
 mod retry;
 mod sentry;
 mod storage;
@@ -182,7 +183,7 @@ where
     let response = f(req, env, ctx).await?;
     let req = request_for_cache;
 
-    if use_cache {
+    if use_cache && should_cache(&response) {
         let (response, response_for_cache) = response.cloned()?;
 
         ctx.wait_until(async move {
@@ -195,6 +196,10 @@ where
     } else {
         Ok(response)
     }
+}
+
+fn should_cache(response: &Response) -> bool {
+    response.headers().has("Cache-Control").unwrap()
 }
 
 #[cfg(feature = "debug")]

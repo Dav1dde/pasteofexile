@@ -1,6 +1,6 @@
 use crate::{
-    consts, crypto, dangerous, storage,
-    utils::{self, ResponseExt},
+    consts, crypto, poe_api, storage,
+    utils::{self, EnvExt, RequestExt, ResponseExt},
     Error, Result,
 };
 use pob::SerdePathOfBuilding;
@@ -24,10 +24,10 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
         return handle_download(env, id).await.map(Some);
     }
     if req.path() == "/login" && req.method() == Method::Get {
-        return handle_login(req).await.map(Some);
+        return handle_login(req, env).await.map(Some);
     }
     if req.path() == "/oauth2/authorization/poe" && req.method() == Method::Get {
-        return handle_oauth2_poe(env, req).await.map(Some);
+        return handle_oauth2_poe(req, env).await.map(Some);
     }
 
     Ok(None)
@@ -120,109 +120,53 @@ async fn handle_upload(
     Ok(response)
 }
 
-async fn handle_login(req: &Request) -> Result<Response> {
+async fn handle_login(req: &Request, env: &Env) -> Result<Response> {
     let url = req.url()?;
     let host = url.host_str().unwrap();
-    let state = utils::random_string::<16>()?;
-    let redirect = format!("https://www.pathofexile.com/oauth/authorize?client_id=pobbin&response_type=code&scope=account:profile&state={state}&redirect_uri=https://{host}/oauth2/authorization/poe&prompt=consent");
+    #[cfg(feature = "debug")]
+    let host = "preview.pobb.in";
 
-    Response::empty()?
-        .with_status(307)
-        .with_header("Location", &redirect)?
-        .with_header(
-            "Set-Cookie",
-            &format!("state={state}; Max-Age=600; Secure; Same-Site=Lax; Path=/"),
-        )
+    let state = utils::random_string::<16>()?;
+
+    let redirect_uri = format!("https://{host}/oauth2/authorization/poe");
+    let login_uri = env
+        .oauth()?
+        .get_login_url(&redirect_uri, &state, consts::OAUTH_SCOPE);
+
+    Response::redirect2(&login_uri)?.with_state_cookie(&state)
 }
 
-async fn handle_oauth2_poe(env: &Env, req: &Request) -> Result<Response> {
-    let mut code = None;
-    let mut state = None;
+async fn handle_oauth2_poe(req: &Request, env: &Env) -> Result<Response> {
     let url = req.url()?;
-    for (k, v) in url.query_pairs() {
-        match &*k {
-            "code" => code = Some(v),
-            "state" => state = Some(v),
-            _ => {}
-        }
-    }
 
-    let (code, state) = match (code, state) {
-        (Some(code), Some(state)) => (code, state),
-        _ => return Ok(Response::error("lol", 403)?),
+    let grant = match poe_api::AuthorizationGrant::try_from(&url) {
+        Ok(grant) => grant,
+        // TODO: render error page
+        _ => return Ok(Response::error("no authorization grant", 403)?),
     };
 
-    if !req
-        .headers()
-        .get("Cookie")?
-        .unwrap_or_default()
-        .contains(&*state)
-    {
-        return Ok(Response::error("missing stuff", 403)?);
+    log::info!("==> {:?}", req.headers().get("Cookie"));
+    log::info!("==> {:?} {:?}", req.cookie("state"), grant.state);
+
+    #[cfg(not(feature = "debug"))]
+    if req.cookie("state").unwrap_or_default() != grant.state {
+        // TODO: render error page
+        return Ok(Response::error("invalid session state", 403)?);
     }
 
-    let mut headers = Headers::new();
-    headers.set("Content-Type", "application/x-www-form-urlencoded")?;
+    // TODO: error handling -> show error page
+    let token = env.oauth()?.fetch_token(&grant.code).await?;
 
-    let secret = env.var(consts::ENV_OAUTH_SECRET_POE)?.to_string();
-
-    let body = wasm_bindgen::JsValue::from_str(&format!(
-        "client_id=pobbin&client_secret={secret}&grant_type=authorization_code&code={code}&scope=account:profile"
-    ));
-
-    let request = Request::new_with_init(
-        "https://www.pathofexile.com/oauth/token",
-        &worker::RequestInit {
-            method: Method::Post,
-            headers,
-            body: Some(body),
-            ..Default::default()
-        },
-    )?;
-
-    #[derive(serde::Deserialize)]
-    struct OauthTokenResponse {
-        access_token: String,
-    }
-
-    let r: OauthTokenResponse = worker::Fetch::Request(request).send().await?.json().await?;
-
-    let mut headers = Headers::new();
-    headers.set("Authorization", &format!("Bearer {}", r.access_token))?;
-    headers.set("User-Agent", "User-Agent: OAuth pobbin/1.0 (contact: TODO)")?; // TODO
-
-    #[derive(serde::Deserialize, serde::Serialize, Debug)]
-    struct Profile {
-        name: String,
-    }
-
-    let profile = worker::Fetch::Request(Request::new_with_init(
-        "https://api.pathofexile.com/profile",
-        &worker::RequestInit {
-            method: Method::Get,
-            headers,
-            ..Default::default()
-        },
-    )?)
-    .send()
-    .await?
-    .json::<Profile>()
-    .await?;
-
-    let secret = env.var(consts::ENV_SECRET_KEY)?.to_string();
-    let session = dangerous::Dangerous::new(secret.into_bytes())
-        .sign(&profile)
+    log::info!("pre profile");
+    let profile = poe_api::PoeApi::new(token.access_token)
+        .fetch_profile()
         .await?;
+    log::info!("post profile");
 
-    Response::empty()?
-        .with_status(307)
-        .with_header(
-            "Set-Cookie",
-            "state=none; Max-Age=0; Secure; Same-Site=Lax; Path=/",
-        )?
-        .with_header(
-            "Set-Cookie",
-            &format!("session={session}; Max-Age=1209600; Secure; SameSite=Lax; Path=/"),
-        )?
-        .with_header("Location", &format!("/u/{}", profile.name))
+    let session = env.dangerous()?.sign(&profile.name).await?;
+
+    // TODO: redirect back to where the user actually came from
+    Response::redirect2(&format!("/u/{}", profile.name))?
+        .with_delete_state_cookie()?
+        .with_new_session(&session)
 }

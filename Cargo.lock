@@ -1201,6 +1201,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "url",
  "wasm-bindgen",
  "web-sys",
  "worker",
