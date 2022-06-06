@@ -14,11 +14,11 @@ pub enum DangerousError {
 impl fmt::Display for DangerousError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::BadEncoding => write!(f, "lol"),
-            Self::BadSignature => write!(f, "lol2"),
-            Self::Serialize => write!(f, "lol3"),
-            Self::Deserialize => write!(f, "lolxx"),
-            Self::Crypto => write!(f, "lol3"),
+            Self::BadEncoding => write!(f, "Encoding Error"),
+            Self::BadSignature => write!(f, "Bad Signature"),
+            Self::Serialize => write!(f, "Serialization Error"),
+            Self::Deserialize => write!(f, "Deserialization Error"),
+            Self::Crypto => write!(f, "Crypto Error"),
         }
     }
 }
@@ -36,7 +36,10 @@ impl Dangerous {
         Self { secret }
     }
 
-    pub async fn sign<T: Serialize>(&self, data: &T) -> Result<String> {
+    pub async fn sign<T: Serialize>(&self, data: &T) -> Result<String>
+    where
+        T: std::fmt::Debug,
+    {
         let mut payload = serde_json::to_vec(data).map_err(|_| DangerousError::Serialize)?;
 
         let signature = crypto::sign_hmac_256(&self.secret, &mut payload)

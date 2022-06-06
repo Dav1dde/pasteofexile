@@ -1,6 +1,6 @@
 use crate::{
     consts, crypto, poe_api, storage,
-    utils::{self, EnvExt, RequestExt, ResponseExt},
+    utils::{self, EnvExt, ResponseExt},
     Error, Result,
 };
 use pob::SerdePathOfBuilding;
@@ -121,10 +121,8 @@ async fn handle_upload(
 }
 
 async fn handle_login(req: &Request, env: &Env) -> Result<Response> {
-    let url = req.url()?;
-    let host = url.host_str().unwrap();
-    #[cfg(feature = "debug")]
-    let host = "preview.pobb.in";
+    let _url = req.url()?;
+    let host = crate::utils::if_debug!("preview.pobb.in", _url.host_str().unwrap());
 
     let state = utils::random_string::<16>()?;
 
@@ -145,28 +143,26 @@ async fn handle_oauth2_poe(req: &Request, env: &Env) -> Result<Response> {
         _ => return Ok(Response::error("no authorization grant", 403)?),
     };
 
-    log::info!("==> {:?}", req.headers().get("Cookie"));
-    log::info!("==> {:?} {:?}", req.cookie("state"), grant.state);
-
-    #[cfg(not(feature = "debug"))]
-    if req.cookie("state").unwrap_or_default() != grant.state {
-        // TODO: render error page
-        return Ok(Response::error("invalid session state", 403)?);
-    }
+    crate::utils::if_debug!({}, {
+        use crate::utils::RequestExt;
+        if req.cookie("state").unwrap_or_default() != grant.state {
+            // TODO: render error page
+            return Ok(Response::error("invalid session state", 403)?);
+        }
+    });
 
     // TODO: error handling -> show error page
     let token = env.oauth()?.fetch_token(&grant.code).await?;
 
-    log::info!("pre profile");
     let profile = poe_api::PoeApi::new(token.access_token)
         .fetch_profile()
         .await?;
-    log::info!("post profile");
 
-    let session = env.dangerous()?.sign(&profile.name).await?;
+    let user = app::User { name: profile.name };
+    let session = env.dangerous()?.sign(&user).await?;
 
     // TODO: redirect back to where the user actually came from
-    Response::redirect2(&format!("/u/{}", profile.name))?
+    Response::redirect2(&format!("/u/{}", user.name))?
         .with_delete_state_cookie()?
         .with_new_session(&session)
 }

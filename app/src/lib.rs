@@ -11,6 +11,8 @@ mod pages;
 mod pob;
 mod response_context;
 mod router;
+mod session;
+mod svg;
 mod utils;
 
 #[cfg(feature = "ssr")]
@@ -21,8 +23,7 @@ pub use error::{Error, Result};
 pub use meta::{Meta, Prefetch};
 pub use response_context::ResponseContext;
 pub use router::Route;
-
-use components::ThemeToggle;
+pub use session::User;
 
 #[cfg(feature = "ssr")]
 pub fn render_to_string(context: Context) -> (String, ResponseContext) {
@@ -58,14 +59,19 @@ pub fn app(ctx: Option<Context>) -> View<G> {
     };
 
     view! {
-        div {
-            nav(class="flex p-4 lg:px-8 mb-10 bg-slate-200 dark:bg-slate-900 dark:drop-shadow-lg") {
-                a(class="flex-auto", href="/", on:click=navigate_index) { "POB B.in" }
-                ThemeToggle()
+        session::SessionWrapper(|| view! {
+            div {
+                nav(class="flex justify-between	p-4 lg:px-8 mb-10 bg-slate-200 dark:bg-slate-900 dark:drop-shadow-lg") {
+                    a(href="/", on:click=navigate_index) {
+                        span() { "POB" }
+                        span(class="text-sky-500 dark:text-sky-400") { "b.in" }
+                    }
+                    components::LoginStatus()
+                }
+                div(class="max-w-screen-xl mx-auto px-5 xl:px-0") {
+                    router::Router(ctx)
+                }
             }
-            div(class="max-w-screen-xl mx-auto px-5 xl:px-0") {
-                router::Router(ctx)
-            }
-        }
+        })
     }
 }

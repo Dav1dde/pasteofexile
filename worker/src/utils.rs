@@ -2,6 +2,21 @@ use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
 use worker::{js_sys, worker_sys, Env, Request, Response, Result};
 
+macro_rules! if_debug {
+    ($debug:expr, $otherwise:expr) => {{
+        #[cfg(feature = "debug")] { $debug }
+        #[cfg(not(feature = "debug"))] { $otherwise }
+    }};
+    ({ $($debug:tt)* }, { $($otherwise:expr)* }) => {{
+        #[cfg(feature = "debug")] { $(debug)* }
+        #[cfg(not(feature = "debug"))] { $(otherwise)* }
+    }};
+    { $debug:expr } => {{
+        #[cfg(feature = "debug")] { $debug }
+    }};
+}
+pub(crate) use if_debug;
+
 pub fn b64_encode<T: AsRef<[u8]>>(input: T) -> String {
     base64::encode_config(input, base64::URL_SAFE_NO_PAD)
 }
@@ -133,6 +148,9 @@ impl ResponseExt for Response {
 
 pub trait RequestExt: Sized {
     fn cookie(&self, name: &str) -> Option<String>;
+    fn session(&self) -> Option<String> {
+        self.cookie("session")
+    }
 }
 
 impl RequestExt for Request {

@@ -1,6 +1,8 @@
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 
+// TODO: move these `macro_export`'s to `use`
+
 #[macro_export]
 macro_rules! memo {
     ($signal:ident, $x:expr) => {
@@ -56,6 +58,17 @@ macro_rules! try_block_async {
     }
 }
 
+#[allow(unused)]
+macro_rules! spawn_local {
+    ($($id:ident),+, { $($token:tt)* }) => {
+        wasm_bindgen_futures::spawn_local(cloned!($($id),+ => async move {
+            $($token)*
+        }))
+    };
+}
+#[allow(unused)]
+pub(crate) use spawn_local;
+
 #[macro_export]
 macro_rules! async_callback {
     ($($id:ident),+, { $($token:tt)* }, $filter:expr) => {{
@@ -74,6 +87,17 @@ macro_rules! async_callback {
         ret
     }};
 }
+
+macro_rules! if_browser {
+    ({ $($browser:tt)* }, { $($server:tt)* }) => {{
+        #[cfg(not(feature = "ssr"))] { $($browser)* }
+        #[cfg(feature = "ssr")] { $($server)* }
+    }};
+    { $($browser:tt)* } => {{
+        #[cfg(not(feature = "ssr"))] { $($browser)* }
+    }};
+}
+pub(crate) use if_browser;
 
 pub fn is_hydrating() -> bool {
     sycamore::utils::hydrate::get_current_id().is_some()

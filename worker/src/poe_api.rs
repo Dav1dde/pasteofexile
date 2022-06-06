@@ -81,7 +81,8 @@ impl Oauth {
             },
         )?;
 
-        Ok(worker::Fetch::Request(request).send().await?.json().await?)
+        let mut response = worker::Fetch::Request(request).send().await?;
+        Ok(response.json().await?)
     }
 }
 
