@@ -17,7 +17,7 @@ mod utils;
 pub use self::error::{Error, ErrorResponse, Result};
 use assets::EnvAssetExt;
 use sentry::Sentry;
-use utils::ResponseExt;
+use utils::{EnvExt, ResponseExt};
 
 async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<app::Context> {
     // TODO: refactor this context garbage, maybe make it into a trait?
@@ -26,19 +26,36 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
     let ctx = match route {
         Index => Context::index(host),
         NotFound => Context::not_found(host),
-        Paste(name) => match utils::to_path(&name) {
-            Err(_) => Context::not_found(host),
-            Ok(path) => {
-                let storage = storage::DefaultStorage::from_env(env)?;
-                if let Some(mut response) = storage.get(&path).await? {
-                    let content = response.text().await?;
-                    Context::paste(host, name, content)
-                } else {
-                    Context::not_found(host)
-                }
+        Paste(id) => {
+            let id = api::PasteId::Paste(id);
+            let path = match id.to_path() {
+                Err(_) => return Ok(Context::not_found(host)),
+                Ok(path) => path,
+            };
+
+            if let Some(mut response) = env.storage()?.get(&path).await? {
+                let content = response.text().await?;
+                Context::paste(host, id.unwrap_paste(), content)
+            } else {
+                Context::not_found(host)
             }
-        },
+        }
         User(name) => Context::user(host, name),
+        UserPaste(user, id) => {
+            let id = api::PasteId::UserPaste(user, id);
+            let path = match id.to_path() {
+                Err(_) => return Ok(Context::not_found(host)),
+                Ok(path) => path,
+            };
+
+            if let Some(mut response) = env.storage()?.get(&path).await? {
+                let content = response.text().await?;
+                let (user, id) = id.unwrap_user_paste();
+                Context::user_paste(host, user, id, content)
+            } else {
+                Context::not_found(host)
+            }
+        }
     };
 
     Ok(ctx)
@@ -123,7 +140,7 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
 
     if req.path() == "/oembed.json" && req.method() == Method::Get {
         let oembed = Oembed {
-            provider_name: "Paste of Exile - POB B.in",
+            provider_name: "Paste of Exile - POBb.in",
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
         };
         return Response::from_json(&oembed)?.cache_for(12 * 3_600);

@@ -1,6 +1,6 @@
-use crate::{memo, memo_cond};
+use crate::{memo, memo_cond, session::SessionValue};
 use pob::SerdePathOfBuilding;
-use sycamore::prelude::*;
+use sycamore::{context::use_context, prelude::*};
 
 const SPINNER: &str = r#"
 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -14,7 +14,11 @@ Creating ...
 pub fn index_page() -> View<G> {
     let value = Signal::new(String::new());
     let loading = Signal::new(false);
-    let error = Signal::new("".to_owned());
+    let error = Signal::new(String::new());
+    let as_user = Signal::new(false);
+    let custom_title = Signal::new(String::new());
+
+    let session = use_context::<SessionValue>();
 
     let pob = memo!(value, error, {
         let _ = error.get(); // register signal
@@ -45,6 +49,7 @@ pub fn index_page() -> View<G> {
     #[cfg(not(feature = "ssr"))]
     let btn_submit = cloned!((loading, value, error) => move |_| {
         use wasm_bindgen_futures::spawn_local;
+        use crate::api;
 
         if *loading.get() {
             log::info!("can't submit, already loading");
@@ -55,13 +60,23 @@ pub fn index_page() -> View<G> {
 
         let value = value.get();
         let future = cloned!((loading, error) => async move {
-            match crate::api::create_paste(value).await {
+            let params = api::CreatePaste {
+                as_user: false,
+                content: &*value,
+            };
+            match api::create_paste(params).await {
                 Err(err) => {
                     loading.set(false);
                     error.set(err.to_string());
                     log::info!("{:?}", err);
                 }
-                Ok(response) => sycamore_router::navigate(&response.id),
+                Ok(response) => {
+                    if let Some(user) = response.user {
+                        sycamore_router::navigate(&format!("/u/{}/{}", user, response.id))
+                    } else {
+                        sycamore_router::navigate(&response.id)
+                    }
+                }
             };
         });
 
@@ -71,12 +86,18 @@ pub fn index_page() -> View<G> {
     #[cfg(feature = "ssr")]
     let btn_submit = |_| {};
 
+    let slug = memo!(custom_title, {
+        // TODO: think about this and/or make it better
+        slug::slugify(&*custom_title.get())
+    });
+
     // TODO: allow pasting of PoBs that cannot be properly parsed but appear to be valid
     let btn_submit_disabled = memo!(loading, pob, *loading.get() || pob.get().is_none());
     let btn_content = memo_cond!(loading, SPINNER, "Create");
 
     let on_input = cloned!(error => move |_| error.set("".to_owned()));
 
+    let as_user2 = as_user.clone();
     view! {
         div(class="flex flex-col gap-y-3") {
             h1(class="dark:text-slate-100 text-slate-900") { (title.get()) }
@@ -87,8 +108,37 @@ pub fn index_page() -> View<G> {
                 class="dark:bg-slate-500 bg-slate-200 block w-full mt-1 py-2 px-3 rounded-sm shadow-sm focus:outline-none dark:text-slate-300 text-slate-700 resize-none text-sm break-all",
                 style="min-height: 60vh"
             )
-            div(class="flex") {
+            div(class="grid grid-cols-[min-content_1fr] gap-3 items-center empty:hidden") {
+                (if *as_user2.get() {
+                    let slug = slug.clone();
+                    view! {
+                        div(class="") { "Title" }
+                        input(
+                            class="dark:bg-slate-500 bg-slate-200 w-full px-2 py-1 rounded-sm outline-none",
+                            bind:value=custom_title.clone()) {}
+                        div(class="") { "Id" }
+                        input(
+                            class="dark:bg-slate-700 bg-slate-400 w-full outline-none cursor-default px-2 py-1 rounded-sm",
+                            placeholder=*slug.get(),
+                            readonly=true) {}
+                    }
+                } else { view! {} }
+                )
+            }
+            div(class="flex items-center gap-x-5") {
                 div(class="flex-auto flex items-center text-red-500") { (*error.get()) }
+                div() { // need the div for hydration to not break
+                    (if session.get().is_logged_in() {
+                        view! {
+                            label() {
+                                input(type="checkbox", class="mx-2", bind:checked=as_user.clone()) {}
+                                "Share on Profile"
+                            }
+                        }
+                    } else {
+                        view! {}
+                    })
+                }
                 button(
                     on:click=btn_submit,
                     disabled=*btn_submit_disabled.get(),

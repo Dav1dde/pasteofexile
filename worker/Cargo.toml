@@ -21,6 +21,9 @@ worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "5a24cc5d", 
 serde_json = "1"
 serde = "1"
 
+sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures"] }
+sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore-router" }
+
 web-sys = { version = "0.3", features = ["Crypto", "SubtleCrypto", "CryptoKey", "HmacImportParams", "WorkerGlobalScope"] }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
