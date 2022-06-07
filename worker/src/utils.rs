@@ -166,11 +166,16 @@ impl RequestExt for Request {
 }
 
 pub trait EnvExt: Sized {
+    fn storage(&self) -> crate::Result<crate::storage::DefaultStorage>;
     fn oauth(&self) -> Result<crate::poe_api::Oauth>;
     fn dangerous(&self) -> Result<crate::dangerous::Dangerous>;
 }
 
 impl EnvExt for Env {
+    fn storage(&self) -> crate::Result<crate::storage::DefaultStorage> {
+        crate::storage::DefaultStorage::from_env(self)
+    }
+
     fn oauth(&self) -> Result<crate::poe_api::Oauth> {
         Ok(crate::poe_api::Oauth::new(
             self.var(crate::consts::ENV_OAUTH_CLIENT_ID)?.to_string(),

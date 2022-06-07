@@ -1,11 +1,12 @@
 use crate::{Error, Result};
 use reqwasm::http::{Request, Response};
-use serde::Deserialize;
-use std::rc::Rc;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, Deserialize)]
 pub struct PasteResponse {
     pub id: String,
+    pub user: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,10 +15,17 @@ pub struct ErrorResponse {
     pub message: String,
 }
 
+#[derive(Serialize)]
+pub struct CreatePaste<'a> {
+    pub as_user: bool,
+    pub content: &'a str,
+    pub title: &'a str,
+}
+
 #[allow(dead_code)] // Only used in !SSR
-pub async fn create_paste(content: Rc<String>) -> Result<PasteResponse> {
-    let resp = Request::post("/api/v1/paste/")
-        .body(&*content)
+pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
+    let resp = Request::post("/api/internal/paste/")
+        .body(serde_json::to_string(&content)?)
         .send()
         .await?;
 
@@ -28,12 +36,29 @@ pub async fn create_paste(content: Rc<String>) -> Result<PasteResponse> {
     Ok(resp.json::<PasteResponse>().await?)
 }
 
-pub async fn get_paste(id: &str) -> Result<String> {
-    let path = format!("/{}/raw", id);
+pub enum PasteId<'a> {
+    Paste(&'a str),
+    UserPaste(&'a str, &'a str),
+}
+
+impl fmt::Display for PasteId<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Paste(id) => write!(f, "{id}"),
+            Self::UserPaste(user, id) => write!(f, "{user}:{id}"),
+        }
+    }
+}
+
+pub async fn get_paste(id: PasteId<'_>) -> Result<String> {
+    let path = match id {
+        PasteId::Paste(id) => format!("/{id}/raw"),
+        PasteId::UserPaste(user, id) => format!("/u/{user}/{id}/raw"),
+    };
     let resp = Request::get(&path).send().await?;
 
     if resp.status() == 404 {
-        return Err(Error::NotFound("paste", id.to_owned()));
+        return Err(Error::NotFound("paste", id.to_string()));
     }
 
     if !resp.ok() {

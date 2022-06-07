@@ -19,6 +19,8 @@ pub enum Route {
     Paste(<pages::PastePage<DomNode> as RoutedComponent<DomNode>>::RouteArg),
     #[to("/u/<name>")]
     User(<pages::UserPage<DomNode> as RoutedComponent<DomNode>>::RouteArg),
+    #[to("/u/<name>/<id>")]
+    UserPaste(String, String),
     #[not_found]
     NotFound,
 }
@@ -101,6 +103,7 @@ enum Page<G: Html> {
     Index,
     Paste(<pages::PastePage<G> as Component<G>>::Props),
     User(<pages::UserPage<G> as Component<G>>::Props),
+    UserPaste(<pages::UserPastePage<G> as Component<G>>::Props),
     NotFound,
     ServerError,
 }
@@ -112,6 +115,8 @@ impl<G: Html> Page<G> {
                 Route::Index => Self::Index,
                 Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_context(arg.clone(), ctx)?),
                 Route::User(arg) => Self::User(pages::UserPage::<G>::from_context(arg.clone(), ctx)?),
+                Route::UserPaste(user, id) =>
+                    Self::UserPaste(pages::UserPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
                 Route::NotFound => Self::NotFound,
             })
         };
@@ -163,6 +168,7 @@ impl<G: Html> Page<G> {
                 Route::Index => Self::Index,
                 Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_hydration(arg.clone(), element)?),
                 Route::User(arg) => Self::User(pages::UserPage::<G>::from_hydration(arg.clone(), element)?),
+                Route::UserPaste(user, id) => Self::UserPaste(pages::UserPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?),
                 Route::NotFound => Self::NotFound,
             })
         };
@@ -182,6 +188,9 @@ impl<G: Html> Page<G> {
                 },
                 Route::User(arg) => {
                     Self::User(pages::UserPage::<G>::from_dynamic(arg.clone()).await?)
+                },
+                Route::UserPaste(user, id) => {
+                    Self::UserPaste(pages::UserPastePage::<G>::from_dynamic((user.clone(), id.clone())).await?)
                 },
                 Route::NotFound => Self::NotFound,
             })
@@ -226,6 +235,7 @@ impl<G: Html> Page<G> {
             Self::Index => Ok(Meta::index()),
             Self::Paste(ref props) => pages::PastePage::<G>::meta(props),
             Self::User(ref props) => pages::UserPage::<G>::meta(props),
+            Self::UserPaste(ref props) => pages::UserPastePage::<G>::meta(props),
             Self::NotFound => Ok(Meta::not_found()),
             Self::ServerError => Ok(Meta::server_error()),
         }
@@ -258,6 +268,9 @@ fn render<G: Html>(page: Page<G>) -> View<G> {
         },
         Page::User(props) => view! {
             pages::UserPage(props)
+        },
+        Page::UserPaste(props) => view! {
+            pages::UserPastePage(props)
         },
         Page::NotFound => view! {
             "404 Not Found"

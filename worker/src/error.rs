@@ -24,6 +24,9 @@ pub enum Error {
     #[error("{0}")]
     BadRequest(String),
 
+    #[error("Access Denied")]
+    AccessDenied,
+
     #[error("{0}")]
     // error, XML
     InvalidPoB(String, String),
@@ -44,6 +47,7 @@ impl Error {
             Self::Kv(..) => "Kv",
             Self::Worker(..) => "Worker",
             Self::BadRequest(..) => "BadRequest",
+            Self::AccessDenied => "AccessDenied",
             Self::InvalidPoB(..) => "InvalidPoB",
             Self::Dangerous(..) => "DangerousError",
             Self::Error(..) => "Error",
@@ -58,6 +62,7 @@ impl Error {
             Self::Kv(..) => "error",
             Self::Worker(..) => "error",
             Self::BadRequest(..) => "info",
+            Self::AccessDenied => "info",
             Self::InvalidPoB(..) => "error",
             Self::Dangerous(..) => "error",
             Self::Error(..) => "error",
@@ -105,6 +110,10 @@ impl From<Error> for ErrorResponse {
             },
             err @ Error::BadRequest(..) | err @ Error::InvalidPoB(..) => ErrorResponse {
                 code: 400,
+                message: err.to_string(),
+            },
+            err @ Error::AccessDenied => ErrorResponse {
+                code: 403,
                 message: err.to_string(),
             },
             err => ErrorResponse {

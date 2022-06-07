@@ -1,4 +1,5 @@
 use crate::{sentry, utils, Error, Result};
+use std::{borrow::Cow, collections::HashMap};
 
 pub mod b2;
 
@@ -6,6 +7,17 @@ pub mod b2;
 pub type DefaultStorage = B2Storage;
 #[cfg(feature = "use-kv-storage")]
 pub type DefaultStorage = KvStorage;
+
+#[derive(Debug)]
+pub struct ListItem<T> {
+    pub name: String,
+    pub metadata: Option<T>,
+}
+
+pub trait Metadata: Sized {
+    fn as_key_value(&self) -> HashMap<&str, Cow<'_, str>>;
+    fn from_key_value(kv: HashMap<String, String>) -> Option<Self>;
+}
 
 #[allow(dead_code)]
 pub struct B2Storage {
@@ -92,20 +104,46 @@ impl KvStorage {
         Ok(data.map(|data| worker::Response::ok(data).unwrap()))
     }
 
-    pub async fn put(&self, filename: &str, _sha1: &[u8], data: &mut [u8]) -> Result<()> {
-        self.kv.put_bytes(filename, data)?.execute().await?;
+    pub async fn put<T: Metadata>(
+        &self,
+        filename: &str,
+        _sha1: &[u8],
+        data: &mut [u8],
+        metadata: Option<T>,
+    ) -> Result<()> {
+        let metadata = metadata
+            .as_ref()
+            .map(|m| m.as_key_value())
+            .unwrap_or_default();
+        self.kv
+            .put_bytes(filename, data)?
+            .metadata(metadata)?
+            .execute()
+            .await?;
         Ok(())
     }
 
-    pub async fn put_async(
+    pub async fn put_async<T: Metadata + 'static>(
         self,
         ctx: &worker::Context,
         filename: String,
         _sha1: &[u8],
         data: Vec<u8>,
+        metadata: Option<T>,
     ) -> Result<()> {
         let future = async move {
-            let r = self.kv.put_bytes(&filename, &data).unwrap().execute().await;
+            let metadata = metadata
+                .as_ref()
+                .map(|m| m.as_key_value())
+                .unwrap_or_default();
+            let r = self
+                .kv
+                .put_bytes(&filename, &data)
+                .unwrap()
+                .metadata(metadata)
+                .unwrap()
+                .execute()
+                .await;
 
             if let Err(err) = r {
                 log::error!("<-- failed to upload paste: {:?}", err);
@@ -117,4 +155,27 @@ impl KvStorage {
         ctx.wait_until(future);
         Ok(())
     }
+
+    pub async fn list<T: Metadata>(&self, path: impl Into<String>) -> Result<Vec<ListItem<T>>> {
+        let response = self.kv.list().prefix(path.into()).execute().await?;
+
+        response
+            .keys
+            .into_iter()
+            .map(|key| {
+                Ok(ListItem {
+                    name: key.name,
+                    metadata: key.metadata.and_then(|m| from_value(m)),
+                })
+            })
+            .collect::<Result<_>>()
+    }
+}
+
+fn from_value<T: Metadata>(value: serde_json::Value) -> Option<T> {
+    let mut map = HashMap::new();
+    for (k, v) in value.as_object()?.into_iter() {
+        map.insert(k.to_owned(), v.as_str()?.to_owned());
+    }
+    T::from_key_value(map)
 }

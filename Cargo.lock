@@ -1202,6 +1202,8 @@ dependencies = [
  "pob",
  "serde",
  "serde_json",
+ "sycamore",
+ "sycamore-router",
  "thiserror",
  "url",
  "wasm-bindgen",

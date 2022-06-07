@@ -2,7 +2,7 @@ use lazycell::LazyCell;
 use pob::SerdePathOfBuilding;
 use std::rc::Rc;
 
-use crate::Route;
+use crate::{model::PasteSummary, Route};
 
 struct ContextInner {
     route: Option<Route>,
@@ -59,12 +59,25 @@ impl Context {
         }
     }
 
-    pub fn user(host: String, name: String) -> Self {
+    pub fn user(host: String, name: String, pastes: Vec<PasteSummary>) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::User(name)),
                 host,
-                inner: Inner::None,
+                inner: Inner::User(pastes),
+            }),
+        }
+    }
+
+    pub fn user_paste(host: String, user: String, name: String, content: String) -> Self {
+        Self {
+            inner: Rc::new(ContextInner {
+                route: Some(Route::UserPaste(user, name)),
+                host,
+                inner: Inner::Paste(Paste {
+                    content,
+                    pob: LazyCell::new(),
+                }),
             }),
         }
     }
@@ -81,6 +94,13 @@ impl Context {
     pub fn get_paste(&self) -> Option<&Paste> {
         match self.inner.inner {
             Inner::Paste(ref paste) => Some(paste),
+            _ => None,
+        }
+    }
+
+    pub fn get_user(&self) -> Option<&Vec<PasteSummary>> {
+        match self.inner.inner {
+            Inner::User(ref pastes) => Some(pastes),
             _ => None,
         }
     }
@@ -106,4 +126,5 @@ impl Paste {
 enum Inner {
     None,
     Paste(Paste),
+    User(Vec<PasteSummary>),
 }

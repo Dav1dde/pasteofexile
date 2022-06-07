@@ -19,6 +19,9 @@ pub enum Error {
     Reqwasm(#[from] reqwasm::Error),
 
     #[error(transparent)]
+    Serde(#[from] serde_json::Error),
+
+    #[error(transparent)]
     PobError(#[from] pob::Error),
 
     #[error(transparent)]

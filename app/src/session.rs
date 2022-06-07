@@ -17,6 +17,12 @@ pub enum Session {
     LoggedIn(User),
 }
 
+impl Session {
+    pub fn is_logged_in(&self) -> bool {
+        matches!(self, Self::LoggedIn(_))
+    }
+}
+
 #[derive(Clone)]
 pub struct SessionValue(Signal<Session>);
 
@@ -86,7 +92,6 @@ where
             // This prevents hydration from breaking because the markup does not match the markup
             // rendered on the server side.
             crate::utils::spawn_local!(signal, {
-                gloo_timers::future::TimeoutFuture::new(1).await;
                 signal.set(session);
             });
 
