@@ -1,3 +1,4 @@
+use app::model::PasteSummary;
 use serde::Serialize;
 use std::future::Future;
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
@@ -13,6 +14,8 @@ mod retry;
 mod sentry;
 mod storage;
 mod utils;
+
+use crate::api::PasteMetadata;
 
 pub use self::error::{Error, ErrorResponse, Result};
 use assets::EnvAssetExt;
@@ -40,7 +43,27 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                 Context::not_found(host)
             }
         }
-        User(name) => Context::user(host, name),
+        User(name) => {
+            let pastes = env
+                .storage()?
+                .list(format!("user/{name}/pastes/"))
+                .await?
+                .into_iter()
+                .map(|item: storage::ListItem<PasteMetadata>| {
+                    let metadata = item.metadata.unwrap();
+                    let id = item.name.rsplit_once('/').unwrap().1.to_owned();
+
+                    PasteSummary {
+                        id,
+                        user: Some(name.clone()),
+                        title: metadata.title,
+                        ascendancy: metadata.ascendancy.unwrap_or_default(),
+                        last_modified: metadata.last_modified,
+                    }
+                })
+                .collect();
+            Context::user(host, name, pastes)
+        }
         UserPaste(user, id) => {
             let id = api::PasteId::UserPaste(user, id);
             let path = match id.to_path() {

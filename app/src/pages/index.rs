@@ -47,7 +47,7 @@ pub fn index_page() -> View<G> {
     );
 
     #[cfg(not(feature = "ssr"))]
-    let btn_submit = cloned!((loading, value, error) => move |_| {
+    let btn_submit = cloned!((loading, value, error, as_user, title, custom_title) => move |_| {
         use wasm_bindgen_futures::spawn_local;
         use crate::api;
 
@@ -59,10 +59,15 @@ pub fn index_page() -> View<G> {
         error.set("".to_owned());
 
         let value = value.get();
+        let as_user = *as_user.get();
+        let title = title.get();
+        let custom_title = custom_title.get();
         let future = cloned!((loading, error) => async move {
+            let title = if custom_title.is_empty() { &*title } else { &*custom_title };
             let params = api::CreatePaste {
-                as_user: false,
+                as_user,
                 content: &*value,
+                title,
             };
             match api::create_paste(params).await {
                 Err(err) => {
@@ -86,11 +91,6 @@ pub fn index_page() -> View<G> {
     #[cfg(feature = "ssr")]
     let btn_submit = |_| {};
 
-    let slug = memo!(custom_title, {
-        // TODO: think about this and/or make it better
-        slug::slugify(&*custom_title.get())
-    });
-
     // TODO: allow pasting of PoBs that cannot be properly parsed but appear to be valid
     let btn_submit_disabled = memo!(loading, pob, *loading.get() || pob.get().is_none());
     let btn_content = memo_cond!(loading, SPINNER, "Create");
@@ -110,17 +110,13 @@ pub fn index_page() -> View<G> {
             )
             div(class="grid grid-cols-[min-content_1fr] gap-3 items-center empty:hidden") {
                 (if *as_user2.get() {
-                    let slug = slug.clone();
                     view! {
                         div(class="") { "Title" }
                         input(
                             class="dark:bg-slate-500 bg-slate-200 w-full px-2 py-1 rounded-sm outline-none",
+                            maxlength=90,
+                            minlength=3,
                             bind:value=custom_title.clone()) {}
-                        div(class="") { "Id" }
-                        input(
-                            class="dark:bg-slate-700 bg-slate-400 w-full outline-none cursor-default px-2 py-1 rounded-sm",
-                            placeholder=*slug.get(),
-                            readonly=true) {}
                     }
                 } else { view! {} }
                 )

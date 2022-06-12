@@ -19,6 +19,7 @@ pub struct ErrorResponse {
 pub struct CreatePaste<'a> {
     pub as_user: bool,
     pub content: &'a str,
+    pub title: &'a str,
 }
 
 #[allow(dead_code)] // Only used in !SSR

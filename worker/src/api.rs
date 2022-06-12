@@ -1,11 +1,12 @@
 use crate::{
     consts, crypto, poe_api,
+    storage::Metadata,
     utils::{self, EnvExt, RequestExt, ResponseExt},
     Error, Result,
 };
-use pob::SerdePathOfBuilding;
+use pob::{PathOfBuilding, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{borrow::Cow, collections::HashMap, fmt};
 use sycamore_router::Route;
 use worker::{Context, Env, Headers, Method, Request, Response};
 
@@ -78,7 +79,7 @@ impl PasteId {
     pub fn to_path(&self) -> Result<String> {
         match self {
             Self::Paste(id) => Ok(utils::to_path(id)?),
-            Self::UserPaste(user, id) => Ok(format!("user/{user}/{id}")),
+            Self::UserPaste(user, id) => Ok(format!("user/{user}/pastes/{id}")),
         }
     }
 
@@ -121,6 +122,49 @@ async fn handle_download(env: &Env, id: PasteId) -> Result<Response> {
         .cache_for(31536000)
 }
 
+#[derive(Debug)]
+pub struct PasteMetadata {
+    pub title: String,
+    pub ascendancy: Option<String>,
+    pub last_modified: u64,
+}
+
+impl PasteMetadata {
+    fn new(pob: &SerdePathOfBuilding) -> Self {
+        Self {
+            title: app::pob::title(pob),
+            ascendancy: pob.ascendancy_name().map(String::from),
+            last_modified: worker::Date::now().as_millis(),
+        }
+    }
+}
+
+impl Metadata for PasteMetadata {
+    fn from_key_value(mut kv: HashMap<String, String>) -> Option<Self> {
+        let title = kv.remove("title")?;
+        let ascendancy = kv.remove("ascendancy");
+        let last_modified = kv
+            .remove("last_modified")
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(0);
+        Some(Self {
+            title,
+            ascendancy,
+            last_modified,
+        })
+    }
+
+    fn as_key_value(&self) -> HashMap<&str, Cow<'_, str>> {
+        let mut kv = HashMap::new();
+        kv.insert("title", self.title.as_str().into());
+        if let Some(ref ascendancy) = self.ascendancy {
+            kv.insert("ascendancy", ascendancy.into());
+        }
+        kv.insert("last_modified", self.last_modified.to_string().into());
+        kv
+    }
+}
+
 #[derive(Serialize)]
 struct UploadResponse {
     id: String,
@@ -154,7 +198,9 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
     let data = req.json::<UploadRequest>().await?;
     let mut content = data.content.into_bytes();
 
-    validate_pob(&content)?;
+    let pob = validate_pob(&content)?;
+    let mut metadata = PasteMetadata::new(&pob);
+
     let sha1 = crypto::sha1(&mut content).await?;
 
     let id = if data.as_user {
@@ -162,13 +208,20 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
         let session = env.dangerous()?.verify::<app::User>(&session).await?;
 
         // TODO slug (or id) should be required
-        validate!(data.title.is_none(), "Not implemented");
         validate!(data.slug.is_none(), "Not implemented");
 
-        PasteId::UserPaste(session.name, utils::hash_to_short_id(&sha1, 9)?)
+        validate!(data.title.is_some(), "Title is required");
+        let title = data.title.unwrap();
+        validate!(title.len() < 50, "Title too long");
+        validate!(title.len() > 3, "Title too short");
+
+        metadata.title = title;
+
+        PasteId::UserPaste(session.name, utils::random_string::<9>()?)
     } else {
-        validate!(data.title.is_none(), "Cannot set title");
-        validate!(data.slug.is_none(), "Cannot set slug");
+        // TODO: validate here or just ignore?
+        // validate!(data.title.is_none(), "Cannot set title");
+        // validate!(data.slug.is_none(), "Cannot set slug");
 
         PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
     };
@@ -176,7 +229,9 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
     let filename = id.to_path()?;
 
     log::debug!("--> uploading paste '{}' to '{}'", id, filename);
-    env.storage()?.put(&filename, &sha1, &mut content).await?;
+    env.storage()?
+        .put(&filename, &sha1, &mut content, Some(metadata))
+        .await?;
     log::debug!("<-- paste uploaded");
 
     let response = serde_json::to_vec(&UploadResponse::new(id))?;
@@ -190,20 +245,23 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
 async fn handle_pob_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Response> {
     let mut data = req.bytes().await?;
 
-    validate_pob(&data)?;
+    let pob = validate_pob(&data)?;
+    let metadata = PasteMetadata::new(&pob);
 
     let sha1 = crypto::sha1(&mut data).await?;
     let id = utils::hash_to_short_id(&sha1, 9)?;
     let filename = utils::to_path(&id)?;
 
     log::debug!("--> uploading paste '{}' to '{}'", id, filename);
-    env.storage()?.put_async(ctx, filename, &sha1, data).await?;
+    env.storage()?
+        .put_async(ctx, filename, &sha1, data, Some(metadata))
+        .await?;
     log::debug!("<-- paste uploaing ...");
 
     Ok(Response::ok(id)?)
 }
 
-fn validate_pob(data: &[u8]) -> Result<()> {
+fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
     if data.len() > consts::MAX_UPLOAD_SIZE {
         return Err(Error::BadRequest("Paste too large".to_owned()));
     }
@@ -215,10 +273,7 @@ fn validate_pob(data: &[u8]) -> Result<()> {
     // Generic 401, probably just actually bad data
     let s = pob::decompress(s).map_err(|e| Error::BadRequest(e.to_string()))?;
     // More specific error for a separate Sentry categoy
-    let _ =
-        SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e.to_string(), s))?;
-
-    Ok(())
+    SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e.to_string(), s))
 }
 
 async fn handle_login(req: &Request, env: &Env) -> Result<Response> {
