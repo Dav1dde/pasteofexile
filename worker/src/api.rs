@@ -20,6 +20,8 @@ macro_rules! validate {
 
 #[derive(Clone, Debug, PartialEq, Eq, sycamore_router::Route)]
 enum GetEndpoints {
+    #[to("/api/internal/user/<user>")]
+    User(String),
     #[to("/<id>/raw")]
     Paste(String),
     #[to("/u/<name>/<id>/raw")]
@@ -55,6 +57,7 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
         }
     } else if req.method() == Method::Get {
         match GetEndpoints::match_path(&req.path()) {
+            GetEndpoints::User(user) => handle_user(env, user).await.map(Some),
             GetEndpoints::Paste(id) | GetEndpoints::PobPaste(id) => {
                 handle_download(env, PasteId::Paste(id)).await.map(Some)
             }
@@ -274,6 +277,32 @@ fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
     let s = pob::decompress(s).map_err(|e| Error::BadRequest(e.to_string()))?;
     // More specific error for a separate Sentry categoy
     SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e.to_string(), s))
+}
+
+async fn handle_user(env: &Env, user: String) -> Result<Response> {
+    let pastes = env
+        .storage()?
+        .list(format!("user/{user}/pastes/"))
+        .await?
+        .into_iter()
+        .map(|item: crate::storage::ListItem<PasteMetadata>| {
+            let metadata = item.metadata.unwrap();
+            let id = item.name.rsplit_once('/').unwrap().1.to_owned();
+
+            // TODO: properly do this
+            // TODO: code duplication with lib.rs
+            app::model::PasteSummary {
+                id,
+                user: Some(user.clone()),
+                title: metadata.title,
+                ascendancy: metadata.ascendancy.unwrap_or_default(),
+                last_modified: metadata.last_modified,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    // TODO: caching
+    Ok(Response::from_json(&pastes)?)
 }
 
 async fn handle_login(req: &Request, env: &Env) -> Result<Response> {
