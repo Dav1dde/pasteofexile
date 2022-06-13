@@ -44,6 +44,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
             }
         }
         User(name) => {
+            // TODO: code duplication with api.rs
             let pastes = env
                 .storage()?
                 .list(format!("user/{name}/pastes/"))

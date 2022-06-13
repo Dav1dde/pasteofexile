@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::{Error, Result, model::PasteSummary};
 use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -66,6 +66,20 @@ pub async fn get_paste(id: PasteId<'_>) -> Result<String> {
     }
 
     Ok(resp.text().await?)
+}
+
+pub async fn get_user(user: &str) -> Result<Vec<PasteSummary>> {
+    let resp = Request::get(&format!("/api/internal/user/{user}")).send().await?;
+
+    if resp.status() == 404 {
+        return Err(Error::NotFound("user", user.to_string()));
+    }
+
+    if !resp.ok() {
+        return Err(handle_error_response(resp).await);
+    }
+
+    Ok(resp.json().await?)
 }
 
 async fn handle_error_response(resp: Response) -> Error {
