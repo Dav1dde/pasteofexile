@@ -45,7 +45,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
         }
         User(name) => {
             // TODO: code duplication with api.rs
-            let pastes = env
+            let mut pastes = env
                 .storage()?
                 .list(format!("user/{name}/pastes/"))
                 .await?
@@ -62,7 +62,9 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                         last_modified: metadata.last_modified,
                     }
                 })
-                .collect();
+                .collect::<Vec<_>>();
+            pastes.sort_unstable_by(|a, b| b.last_modified.cmp(&a.last_modified));
+
             Context::user(host, name, pastes)
         }
         UserPaste(user, id) => {

@@ -45,6 +45,7 @@ dependencies = [
  "console_log",
  "gloo-timers",
  "itertools",
+ "js-sys",
  "lazycell",
  "log",
  "pob",
