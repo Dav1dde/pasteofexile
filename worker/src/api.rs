@@ -280,7 +280,7 @@ fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
 }
 
 async fn handle_user(env: &Env, user: String) -> Result<Response> {
-    let pastes = env
+    let mut pastes = env
         .storage()?
         .list(format!("user/{user}/pastes/"))
         .await?
@@ -300,6 +300,7 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
             }
         })
         .collect::<Vec<_>>();
+    pastes.sort_unstable_by(|a, b| b.last_modified.cmp(&a.last_modified));
 
     // TODO: caching
     Ok(Response::from_json(&pastes)?)
