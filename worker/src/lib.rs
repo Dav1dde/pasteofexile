@@ -59,6 +59,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                         user: Some(name.clone()),
                         title: metadata.title,
                         ascendancy: metadata.ascendancy.unwrap_or_default(),
+                        version: metadata.version.unwrap_or_default(),
                         last_modified: metadata.last_modified,
                     }
                 })

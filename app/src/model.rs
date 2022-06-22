@@ -6,6 +6,7 @@ pub struct PasteSummary {
     pub user: Option<String>,
     pub title: String,
     pub ascendancy: String,
+    pub version: String,
     pub last_modified: u64,
 }
 

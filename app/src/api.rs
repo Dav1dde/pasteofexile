@@ -68,6 +68,18 @@ pub async fn get_paste(id: PasteId<'_>) -> Result<String> {
     Ok(resp.text().await?)
 }
 
+pub async fn delete_paste(id: PasteId<'_>) -> Result<()> {
+    let resp = Request::delete(&format!("/api/internal/paste/{id}"))
+        .send()
+        .await?;
+
+    if !resp.ok() {
+        return Err(handle_error_response(resp).await);
+    }
+
+    Ok(())
+}
+
 pub async fn get_user(user: &str) -> Result<Vec<PasteSummary>> {
     let resp = Request::get(&format!("/api/internal/user/{user}"))
         .send()
