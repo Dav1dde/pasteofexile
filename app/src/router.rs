@@ -19,6 +19,8 @@ pub enum Route {
     Paste(<pages::paste::PastePage<DomNode> as RoutedComponent<DomNode>>::RouteArg),
     #[not_found]
     NotFound,
+    #[to("#server_error")]
+    ServerError,
 }
 
 impl Route {
@@ -109,6 +111,7 @@ impl<G: Html> Page<G> {
                 Route::Index => Self::Index,
                 Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_context(arg.clone(), ctx)?),
                 Route::NotFound => Self::NotFound,
+                Route::ServerError => Self::ServerError,
             })
         };
 
@@ -159,6 +162,7 @@ impl<G: Html> Page<G> {
                 Route::Index => Self::Index,
                 Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_hydration(arg.clone(), element)?),
                 Route::NotFound => Self::NotFound,
+                Route::ServerError => Self::ServerError,
             })
         };
 
@@ -176,6 +180,7 @@ impl<G: Html> Page<G> {
                     Self::Paste(pages::PastePage::<G>::from_dynamic(arg.clone()).await?)
                 }
                 Route::NotFound => Self::NotFound,
+                Route::ServerError => Self::ServerError,
             })
         };
 

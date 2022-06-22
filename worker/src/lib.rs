@@ -7,6 +7,7 @@ mod assets;
 mod consts;
 mod crypto;
 mod error;
+mod pastebin;
 mod retry;
 mod sentry;
 mod storage;
@@ -17,6 +18,33 @@ use assets::EnvAssetExt;
 use sentry::Sentry;
 use utils::ResponseExt;
 
+async fn paste_context_from_pastebin(host: String, name: String) -> Result<app::Context> {
+    let mut response = pastebin::fetch_raw(&name).await?;
+    Ok(match response.status_code() {
+        200 => {
+            let content = response.text().await?;
+            app::Context::paste(host, name, content)
+        }
+        404 => app::Context::not_found(host),
+        _ => app::Context::server_error(host),
+    })
+}
+
+async fn paste_context_from_storage(env: &Env, host: String, name: String) -> Result<app::Context> {
+    Ok(match utils::to_path(&name) {
+        Err(_) => app::Context::not_found(host),
+        Ok(path) => {
+            let storage = storage::DefaultStorage::from_env(env)?;
+            if let Some(mut response) = storage.get(&path).await? {
+                let content = response.text().await?;
+                app::Context::paste(host, name, content)
+            } else {
+                app::Context::not_found(host)
+            }
+        }
+    })
+}
+
 async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<app::Context> {
     // TODO: refactor this context garbage, maybe make it into a trait?
     let host = req.url()?.host_str().unwrap().to_owned();
@@ -24,18 +52,14 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
     let ctx = match route {
         Index => Context::index(host),
         NotFound => Context::not_found(host),
-        Paste(name) => match utils::to_path(&name) {
-            Err(_) => Context::not_found(host),
-            Ok(path) => {
-                let storage = storage::DefaultStorage::from_env(env)?;
-                if let Some(mut response) = storage.get(&path).await? {
-                    let content = response.text().await?;
-                    Context::paste(host, name, content)
-                } else {
-                    Context::not_found(host)
-                }
+        ServerError => Context::server_error(host),
+        Paste(name) => {
+            if pastebin::could_be_pastebin_id(&name) {
+                paste_context_from_pastebin(host, name).await?
+            } else {
+                paste_context_from_storage(env, host, name).await?
             }
-        },
+        }
     };
 
     Ok(ctx)

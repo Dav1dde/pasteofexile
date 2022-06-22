@@ -46,6 +46,16 @@ impl Context {
         }
     }
 
+    pub fn server_error(host: String) -> Self {
+        Self {
+            inner: Rc::new(ContextInner {
+                route: Some(Route::ServerError),
+                host,
+                inner: Inner::None,
+            }),
+        }
+    }
+
     pub fn paste(host: String, name: String, content: String) -> Self {
         Self {
             inner: Rc::new(ContextInner {

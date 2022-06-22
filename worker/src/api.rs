@@ -51,14 +51,18 @@ fn is_pob_download_url(path: &str) -> Option<&str> {
 }
 
 async fn handle_download(env: &Env, id: &str) -> Result<Response> {
-    let path = utils::to_path(id)?;
+    let response = if crate::pastebin::could_be_pastebin_id(id) {
+        crate::pastebin::fetch_raw(id).await?
+    } else {
+        let path = utils::to_path(id)?;
 
-    let storage = storage::DefaultStorage::from_env(env)?;
+        let storage = storage::DefaultStorage::from_env(env)?;
 
-    let response = storage
-        .get(&path)
-        .await?
-        .ok_or_else(|| Error::NotFound("paste", id.to_owned()))?;
+        storage
+            .get(&path)
+            .await?
+            .ok_or_else(|| Error::NotFound("paste", id.to_owned()))?
+    };
 
     response
         .with_headers(Headers::new())
