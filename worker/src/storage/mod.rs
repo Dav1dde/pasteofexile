@@ -104,6 +104,11 @@ impl KvStorage {
         Ok(data.map(|data| worker::Response::ok(data).unwrap()))
     }
 
+    pub async fn delete(&self, path: &str) -> Result<()> {
+        self.kv.delete(path).await?;
+        Ok(())
+    }
+
     pub async fn put<T: Metadata>(
         &self,
         filename: &str,

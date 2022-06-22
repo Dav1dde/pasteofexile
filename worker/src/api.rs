@@ -4,9 +4,9 @@ use crate::{
     utils::{self, EnvExt, RequestExt, ResponseExt},
     Error, Result,
 };
-use pob::{PathOfBuilding, SerdePathOfBuilding};
+use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, collections::HashMap, fmt};
+use std::{borrow::Cow, collections::HashMap, fmt, str::FromStr};
 use sycamore_router::Route;
 use worker::{Context, Env, Headers, Method, Request, Response};
 
@@ -18,7 +18,7 @@ macro_rules! validate {
     };
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, sycamore_router::Route)]
+#[derive(sycamore_router::Route)]
 enum GetEndpoints {
     #[to("/api/internal/user/<user>")]
     User(String),
@@ -36,12 +36,20 @@ enum GetEndpoints {
     NotFound,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, sycamore_router::Route)]
+#[derive(sycamore_router::Route)]
 enum PostEndpoints {
     #[to("/api/internal/paste/")]
     Upload(),
     #[to("/pob/")]
     PobUpload(),
+    #[not_found]
+    NotFound,
+}
+
+#[derive(sycamore_router::Route)]
+enum DeleteEndpoints {
+    #[to("/api/internal/paste/<id>")]
+    DeletePaste(PasteId),
     #[not_found]
     NotFound,
 }
@@ -67,6 +75,11 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
             GetEndpoints::Login() => handle_login(req, env).await.map(Some),
             GetEndpoints::Oauht2Poe() => handle_oauth2_poe(req, env).await.map(Some),
             GetEndpoints::NotFound => Ok(None),
+        }
+    } else if req.method() == Method::Delete {
+        match DeleteEndpoints::match_path(&req.path()) {
+            DeleteEndpoints::DeletePaste(id) => handle_delete_paste(env, id).await.map(Some),
+            DeleteEndpoints::NotFound => Ok(None),
         }
     } else {
         Ok(None)
@@ -110,6 +123,17 @@ impl fmt::Display for PasteId {
     }
 }
 
+impl FromStr for PasteId {
+    type Err = crate::Error;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let r = s
+            .split_once(':')
+            .map(|(user, id)| Self::UserPaste(user.to_owned(), id.to_owned()))
+            .unwrap_or_else(|| Self::Paste(s.to_owned()));
+        Ok(r)
+    }
+}
+
 async fn handle_download(env: &Env, id: PasteId) -> Result<Response> {
     let path = id.to_path()?;
 
@@ -125,10 +149,16 @@ async fn handle_download(env: &Env, id: PasteId) -> Result<Response> {
         .cache_for(31536000)
 }
 
+async fn handle_delete_paste(env: &Env, id: PasteId) -> Result<Response> {
+    env.storage()?.delete(&id.to_path()?).await?;
+    Ok(Response::empty()?)
+}
+
 #[derive(Debug)]
 pub struct PasteMetadata {
     pub title: String,
     pub ascendancy: Option<String>,
+    pub version: Option<String>,
     pub last_modified: u64,
 }
 
@@ -137,6 +167,7 @@ impl PasteMetadata {
         Self {
             title: app::pob::title(pob),
             ascendancy: pob.ascendancy_name().map(String::from),
+            version: pob.max_tree_version(),
             last_modified: worker::Date::now().as_millis(),
         }
     }
@@ -146,6 +177,7 @@ impl Metadata for PasteMetadata {
     fn from_key_value(mut kv: HashMap<String, String>) -> Option<Self> {
         let title = kv.remove("title")?;
         let ascendancy = kv.remove("ascendancy");
+        let version = kv.remove("version");
         let last_modified = kv
             .remove("last_modified")
             .and_then(|x| x.parse().ok())
@@ -153,6 +185,7 @@ impl Metadata for PasteMetadata {
         Some(Self {
             title,
             ascendancy,
+            version,
             last_modified,
         })
     }
@@ -162,6 +195,9 @@ impl Metadata for PasteMetadata {
         kv.insert("title", self.title.as_str().into());
         if let Some(ref ascendancy) = self.ascendancy {
             kv.insert("ascendancy", ascendancy.into());
+        }
+        if let Some(ref version) = self.version {
+            kv.insert("version", version.into());
         }
         kv.insert("last_modified", self.last_modified.to_string().into());
         kv
@@ -296,6 +332,7 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
                 user: Some(user.clone()),
                 title: metadata.title,
                 ascendancy: metadata.ascendancy.unwrap_or_default(),
+                version: metadata.version.unwrap_or_default(),
                 last_modified: metadata.last_modified,
             }
         })
