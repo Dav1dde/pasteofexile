@@ -21,6 +21,8 @@ pub enum Route {
     User(<pages::UserPage<DomNode> as RoutedComponent<DomNode>>::RouteArg),
     #[to("/u/<name>/<id>")]
     UserPaste(String, String),
+    #[to("/u/<name>/<id>/edit")]
+    UserEditPaste(String, String),
     #[not_found]
     NotFound,
 }
@@ -104,6 +106,7 @@ enum Page<G: Html> {
     Paste(<pages::PastePage<G> as Component<G>>::Props),
     User(<pages::UserPage<G> as Component<G>>::Props),
     UserPaste(<pages::UserPastePage<G> as Component<G>>::Props),
+    UserEditPaste(<pages::UserEditPastePage<G> as Component<G>>::Props),
     NotFound,
     ServerError,
 }
@@ -117,6 +120,8 @@ impl<G: Html> Page<G> {
                 Route::User(arg) => Self::User(pages::UserPage::<G>::from_context(arg.clone(), ctx)?),
                 Route::UserPaste(user, id) =>
                     Self::UserPaste(pages::UserPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
+                Route::UserEditPaste(user, id) =>
+                    Self::UserEditPaste(pages::UserEditPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
                 Route::NotFound => Self::NotFound,
             })
         };
@@ -169,6 +174,7 @@ impl<G: Html> Page<G> {
                 Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_hydration(arg.clone(), element)?),
                 Route::User(arg) => Self::User(pages::UserPage::<G>::from_hydration(arg.clone(), element)?),
                 Route::UserPaste(user, id) => Self::UserPaste(pages::UserPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?),
+                Route::UserEditPaste(user, id) => Self::UserEditPaste(pages::UserEditPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?),
                 Route::NotFound => Self::NotFound,
             })
         };
@@ -191,6 +197,9 @@ impl<G: Html> Page<G> {
                 },
                 Route::UserPaste(user, id) => {
                     Self::UserPaste(pages::UserPastePage::<G>::from_dynamic((user.clone(), id.clone())).await?)
+                },
+                Route::UserEditPaste(user, id) => {
+                    Self::UserEditPaste(pages::UserEditPastePage::<G>::from_dynamic((user.clone(), id.clone())).await?)
                 },
                 Route::NotFound => Self::NotFound,
             })
@@ -236,6 +245,7 @@ impl<G: Html> Page<G> {
             Self::Paste(ref props) => pages::PastePage::<G>::meta(props),
             Self::User(ref props) => pages::UserPage::<G>::meta(props),
             Self::UserPaste(ref props) => pages::UserPastePage::<G>::meta(props),
+            Self::UserEditPaste(ref props) => pages::UserEditPastePage::<G>::meta(props),
             Self::NotFound => Ok(Meta::not_found()),
             Self::ServerError => Ok(Meta::server_error()),
         }
@@ -271,6 +281,9 @@ fn render<G: Html>(page: Page<G>) -> View<G> {
         },
         Page::UserPaste(props) => view! {
             pages::UserPastePage(props)
+        },
+        Page::UserEditPaste(props) => view! {
+            pages::UserEditPastePage(props)
         },
         Page::NotFound => view! {
             "404 Not Found"

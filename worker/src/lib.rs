@@ -83,6 +83,21 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                 Context::not_found(host)
             }
         }
+        UserEditPaste(user, id) => {
+            let id = api::PasteId::UserPaste(user, id);
+            let path = match id.to_path() {
+                Err(_) => return Ok(Context::not_found(host)),
+                Ok(path) => path,
+            };
+
+            if let Some(mut response) = env.storage()?.get(&path).await? {
+                let content = response.text().await?;
+                let (user, id) = id.unwrap_user_paste();
+                Context::user_paste_edit(host, user, id, content)
+            } else {
+                Context::not_found(host)
+            }
+        }
     };
 
     Ok(ctx)

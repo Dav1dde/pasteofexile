@@ -82,6 +82,19 @@ impl Context {
         }
     }
 
+    pub fn user_paste_edit(host: String, user: String, name: String, content: String) -> Self {
+        Self {
+            inner: Rc::new(ContextInner {
+                route: Some(Route::UserEditPaste(user, name)),
+                host,
+                inner: Inner::Paste(Paste {
+                    content,
+                    pob: LazyCell::new(),
+                }),
+            }),
+        }
+    }
+
     pub fn route(&self) -> Option<&Route> {
         self.inner.route.as_ref()
     }
