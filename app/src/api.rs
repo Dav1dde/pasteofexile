@@ -20,6 +20,7 @@ pub struct CreatePaste<'a> {
     pub as_user: bool,
     pub content: &'a str,
     pub title: &'a str,
+    pub id: Option<PasteId<'a>>,
 }
 
 #[allow(dead_code)] // Only used in !SSR
@@ -36,6 +37,8 @@ pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
     Ok(resp.json::<PasteResponse>().await?)
 }
 
+#[derive(Serialize)]
+#[serde(untagged)]
 pub enum PasteId<'a> {
     Paste(&'a str),
     UserPaste(&'a str, &'a str),
@@ -68,6 +71,7 @@ pub async fn get_paste(id: PasteId<'_>) -> Result<String> {
     Ok(resp.text().await?)
 }
 
+#[cfg(not(feature = "ssr"))]
 pub async fn delete_paste(id: PasteId<'_>) -> Result<()> {
     let resp = Request::delete(&format!("/api/internal/paste/{id}"))
         .send()

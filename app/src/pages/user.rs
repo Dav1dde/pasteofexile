@@ -82,7 +82,7 @@ pub fn user_page(Data { pastes, .. }: Data) -> View<G> {
 
     view! {
         div(data-ssr=data_ssr,
-            class="flex flex-col gap-5") {
+            class="flex flex-col gap-2") {
             (p)
         }
     }
@@ -130,7 +130,7 @@ fn summary_to_view<G: GenericNode>(summary: Rc<PasteSummary>) -> View<G> {
     );
 
     let summary2 = summary.clone();
-    let css = memo_cond!(deleted, "hidden", "p-3 border rounded-md border-slate-300");
+    let css = memo_cond!(deleted, "hidden", "p-3 even:bg-slate-700");
     view! {
         div(class=*css.get()) {
             div(class="flex flex-wrap gap-3") {

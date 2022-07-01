@@ -1,7 +1,7 @@
 use crate::{
     consts, crypto, poe_api,
     storage::Metadata,
-    utils::{self, EnvExt, RequestExt, ResponseExt},
+    utils::{self, is_valid_id, EnvExt, RequestExt, ResponseExt},
     Error, Result,
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
@@ -14,6 +14,14 @@ macro_rules! validate {
     ($e:expr, $msg:expr) => {
         if !$e {
             return Err(Error::BadRequest($msg.into()));
+        }
+    };
+}
+
+macro_rules! validate_access {
+    ($e:expr) => {
+        if !$e {
+            return Err(Error::AccessDenied);
         }
     };
 }
@@ -86,6 +94,8 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     }
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
 pub enum PasteId {
     Paste(String),
     UserPaste(String, String),
@@ -110,6 +120,20 @@ impl PasteId {
         match self {
             Self::UserPaste(user, id) => (user, id),
             _ => panic!("unwrap_paste"),
+        }
+    }
+
+    pub fn user(&self) -> Option<&str> {
+        match self {
+            Self::UserPaste(user, _) => Some(user),
+            _ => None,
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        match self {
+            Self::UserPaste(_, id) => id,
+            Self::Paste(id) => id,
         }
     }
 }
@@ -225,11 +249,11 @@ impl UploadResponse {
 #[derive(Deserialize)]
 struct UploadRequest {
     #[serde(default)]
+    id: Option<PasteId>,
+    #[serde(default)]
     as_user: bool,
     #[serde(default)]
     title: Option<String>,
-    #[serde(default)]
-    slug: Option<String>, // TODO: maybe rename this to id
     content: String,
 }
 
@@ -246,21 +270,24 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
         let session = req.session().ok_or(Error::AccessDenied)?;
         let session = env.dangerous()?.verify::<app::User>(&session).await?;
 
-        // TODO slug (or id) should be required
-        validate!(data.slug.is_none(), "Not implemented");
-
         validate!(data.title.is_some(), "Title is required");
         let title = data.title.unwrap();
-        validate!(title.len() < 50, "Title too long");
-        validate!(title.len() > 3, "Title too short");
+        validate!(title.len() < 90, "Title too long");
+        validate!(title.len() > 5, "Title too short");
 
         metadata.title = title;
 
-        PasteId::UserPaste(session.name, utils::random_string::<9>()?)
+        if let Some(id) = data.id {
+            validate_access!(Some(session.name.as_str()) == id.user());
+            validate!(is_valid_id(id.id()), "Invalid id");
+
+            id
+        } else {
+            PasteId::UserPaste(session.name, utils::random_string::<9>()?)
+        }
     } else {
-        // TODO: validate here or just ignore?
-        // validate!(data.title.is_none(), "Cannot set title");
-        // validate!(data.slug.is_none(), "Cannot set slug");
+        validate_access!(data.id.is_none());
+        validate!(data.title.is_none(), "Cannot set title");
 
         PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
     };

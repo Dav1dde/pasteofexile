@@ -51,8 +51,16 @@ pub fn hash_to_short_id(hash: &[u8], bytes: usize) -> Result<String> {
         .ok_or_else(|| "Hash too small for id".into())
 }
 
+pub fn is_valid_id(id: &str) -> bool {
+    id.len() >= 5
+        && id.len() < 90
+        && id
+            .bytes()
+            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'-'))
+}
+
 pub fn to_path(id: &str) -> Result<String> {
-    if !id.is_ascii() || id.len() < 3 {
+    if !is_valid_id(id) {
         return Err("invalid id".into());
     }
     let mut result = String::with_capacity(4 + id.len());
@@ -187,5 +195,24 @@ impl EnvExt for Env {
     fn dangerous(&self) -> Result<crate::dangerous::Dangerous> {
         let secret = self.var(crate::consts::ENV_SECRET_KEY)?.to_string();
         Ok(crate::dangerous::Dangerous::new(secret.into_bytes()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_valid_id() {
+        assert!(!is_valid_id(""));
+        assert!(!is_valid_id("a"));
+        assert!(!is_valid_id("abcd"));
+        assert!(!is_valid_id(
+            "abcdefghijklmnopqrstuvwxyz123456789012345678901234567890\
+            abcdefghijklmnopqrstuvwxyz123456789012345678901234567890"
+        ));
+        assert!(is_valid_id("abcde"));
+        assert!(is_valid_id("AZ09az-_"));
+        assert!(is_valid_id("-AZ09az-_"));
     }
 }
