@@ -154,6 +154,14 @@ impl Gem {
     pub fn is_active(&self) -> bool {
         !self.is_support()
     }
+
+    pub fn is_vaal(&self) -> bool {
+        self.name.starts_with("Vaal ")
+    }
+
+    pub fn non_vaal_name(&self) -> &str {
+        self.name.strip_prefix("Vaal ").unwrap_or(&self.name)
+    }
 }
 
 #[derive(Debug, Deserialize)]

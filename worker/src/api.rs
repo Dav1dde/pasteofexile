@@ -94,6 +94,7 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     }
 }
 
+// TODO: use app::model::PasteId
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum PasteId {
@@ -183,6 +184,7 @@ pub struct PasteMetadata {
     pub title: String,
     pub ascendancy: Option<String>,
     pub version: Option<String>,
+    pub main_skill_name: Option<String>,
     pub last_modified: u64,
 }
 
@@ -192,6 +194,7 @@ impl PasteMetadata {
             title: app::pob::title(pob),
             ascendancy: pob.ascendancy_name().map(String::from),
             version: pob.max_tree_version(),
+            main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),
             last_modified: worker::Date::now().as_millis(),
         }
     }
@@ -202,6 +205,7 @@ impl Metadata for PasteMetadata {
         let title = kv.remove("title")?;
         let ascendancy = kv.remove("ascendancy");
         let version = kv.remove("version");
+        let main_skill_name = kv.remove("main_skill_name");
         let last_modified = kv
             .remove("last_modified")
             .and_then(|x| x.parse().ok())
@@ -210,6 +214,7 @@ impl Metadata for PasteMetadata {
             title,
             ascendancy,
             version,
+            main_skill_name,
             last_modified,
         })
     }
@@ -222,6 +227,9 @@ impl Metadata for PasteMetadata {
         }
         if let Some(ref version) = self.version {
             kv.insert("version", version.into());
+        }
+        if let Some(ref main_skill_name) = self.main_skill_name {
+            kv.insert("main_skill_name", main_skill_name.into());
         }
         kv.insert("last_modified", self.last_modified.to_string().into());
         kv
@@ -360,6 +368,7 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
                 title: metadata.title,
                 ascendancy: metadata.ascendancy.unwrap_or_default(),
                 version: metadata.version.unwrap_or_default(),
+                main_skill_name: metadata.main_skill_name.unwrap_or_default(),
                 last_modified: metadata.last_modified,
             }
         })

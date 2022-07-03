@@ -1,14 +1,10 @@
-use crate::{memo, memo_cond, session::SessionValue, svg::SPINNER};
+use crate::{memo, memo_cond, model::UserPasteId, session::SessionValue, svg::SPINNER};
 use pob::SerdePathOfBuilding;
 use sycamore::{context::use_context, prelude::*};
 
 pub enum CreatePasteProps {
     None,
-    Update {
-        id: String,
-        user: String,
-        content: String,
-    },
+    Update { id: UserPasteId, content: String },
 }
 
 impl CreatePasteProps {
@@ -25,10 +21,9 @@ impl CreatePasteProps {
     }
 
     #[cfg(not(feature = "ssr"))]
-    fn paste_id(&self) -> Option<(String, String)> {
-        // TODO: this is more than ugly
+    fn paste_id(&self) -> Option<&UserPasteId> {
         match self {
-            Self::Update { id, user, .. } => Some((user.clone(), id.clone())),
+            Self::Update { id, .. } => Some(id),
             _ => None,
         }
     }
@@ -83,7 +78,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
     );
 
     #[cfg(not(feature = "ssr"))]
-    let paste_id = props.paste_id();
+    let paste_id = props.paste_id().cloned();
     #[cfg(not(feature = "ssr"))]
     let btn_submit = cloned!((loading, value, error, as_user, title, custom_title, paste_id) => move |_| {
         use wasm_bindgen_futures::spawn_local;
@@ -102,12 +97,13 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         let custom_title = custom_title.get();
         let future = cloned!((loading, error, paste_id) => async move {
             let title = if custom_title.is_empty() { &*title } else { &*custom_title };
+            let id = paste_id.map(|e| e.clone().into());
             // TODO: include PasteId here, for updates
             let params = api::CreatePaste {
                 as_user,
                 content: &*value,
                 title,
-                id: paste_id.as_ref().map(|(user, id)| api::PasteId::UserPaste(user, id)),
+                id: id.as_ref(),
             };
             match api::create_paste(params).await {
                 Err(err) => {

@@ -2,6 +2,7 @@ use crate::{
     async_callback,
     components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
     memo,
+    model::PasteId,
     pob::{self, Element},
 };
 use ::pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
@@ -11,7 +12,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlTextAreaElement;
 
 pub struct ViewPasteProps {
-    pub id: String,
+    pub id: PasteId,
     pub content: String,
     pub pob: Rc<SerdePathOfBuilding>,
 }
@@ -42,7 +43,7 @@ pub fn view_paste(ViewPasteProps { id, content, pob }: ViewPasteProps) -> View<G
 
     let version = pob.max_tree_version().unwrap_or_default();
 
-    let open_in_pob_url = format!("pob://pobbin/{}", id);
+    let open_in_pob_url = id.to_pob_open_url();
 
     let notes = pob.notes().to_owned();
     let notes = if !notes.is_empty() {

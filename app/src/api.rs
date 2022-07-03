@@ -1,7 +1,9 @@
-use crate::{model::PasteSummary, Error, Result};
+use crate::{
+    model::{PasteId, PasteSummary},
+    Error, Result,
+};
 use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 #[derive(Debug, Deserialize)]
 pub struct PasteResponse {
@@ -20,7 +22,7 @@ pub struct CreatePaste<'a> {
     pub as_user: bool,
     pub content: &'a str,
     pub title: &'a str,
-    pub id: Option<PasteId<'a>>,
+    pub id: Option<&'a PasteId>,
 }
 
 #[allow(dead_code)] // Only used in !SSR
@@ -37,27 +39,8 @@ pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
     Ok(resp.json::<PasteResponse>().await?)
 }
 
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum PasteId<'a> {
-    Paste(&'a str),
-    UserPaste(&'a str, &'a str),
-}
-
-impl fmt::Display for PasteId<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Paste(id) => write!(f, "{id}"),
-            Self::UserPaste(user, id) => write!(f, "{user}:{id}"),
-        }
-    }
-}
-
-pub async fn get_paste(id: PasteId<'_>) -> Result<String> {
-    let path = match id {
-        PasteId::Paste(id) => format!("/{id}/raw"),
-        PasteId::UserPaste(user, id) => format!("/u/{user}/{id}/raw"),
-    };
+pub async fn get_paste(id: &PasteId) -> Result<String> {
+    let path = id.to_raw_url();
     let resp = Request::get(&path).send().await?;
 
     if resp.status() == 404 {
@@ -72,7 +55,7 @@ pub async fn get_paste(id: PasteId<'_>) -> Result<String> {
 }
 
 #[cfg(not(feature = "ssr"))]
-pub async fn delete_paste(id: PasteId<'_>) -> Result<()> {
+pub async fn delete_paste(id: &PasteId) -> Result<()> {
     let resp = Request::delete(&format!("/api/internal/paste/{id}"))
         .send()
         .await?;
