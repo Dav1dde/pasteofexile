@@ -1,8 +1,8 @@
 use crate::{
-    async_callback,
+    components::{PasteToolbox, PasteToolboxProps},
     future::LocalBoxFuture,
     memo_cond,
-    model::PasteSummary,
+    model::{PasteSummary, UserPasteId},
     router::RoutedComponent,
     utils::{if_browser, pretty_date},
     Meta, Result,
@@ -50,8 +50,9 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
     }
 
     fn meta(Data { name, .. }: &Data) -> Result<Meta> {
-        let title = format!("Test {name}").into();
-        let description = "description".into();
+        let title = format!("{name}'s builds").into();
+        let description = format!("{name}'s builds").into();
+        // TODO: pobbin logo
         let image = "".into();
         let color = "";
 
@@ -88,17 +89,17 @@ pub fn user_page(Data { pastes, .. }: Data) -> View<G> {
     }
 }
 
-fn summary_to_view<G: GenericNode>(summary: Rc<PasteSummary>) -> View<G> {
+fn summary_to_view<G: GenericNode + Html>(summary: Rc<PasteSummary>) -> View<G> {
     let deleted = Signal::new(false);
 
     let url = summary.to_url();
     let asc = crate::assets::ascendancy_image(&summary.ascendancy).unwrap_or("");
-    // TODO: properly implement for user in PoB and view_paste.rs component
-    let open_in_pob_url = format!(
-        "pob://pobbin/{}:{}",
-        summary.user.as_ref().unwrap(),
-        summary.id
-    );
+
+    let id = UserPasteId {
+        id: summary.id.clone(),
+        user: summary.user.clone().unwrap(),
+    };
+    let open_in_pob_url = id.to_pob_open_url();
 
     let now = js_sys::Date::new_0().get_time();
     let diff_in_ms = if summary.last_modified > 0 {
@@ -107,55 +108,41 @@ fn summary_to_view<G: GenericNode>(summary: Rc<PasteSummary>) -> View<G> {
         -1
     };
 
-    let edit_href = format!("/u/{}/{}/edit", summary.user.as_ref().unwrap(), summary.id);
-
-    let on_delete = async_callback!(
-        summary,
-        deleted,
-        {
-            let paste_id =
-                crate::api::PasteId::UserPaste(summary.user.as_ref().unwrap(), &summary.id);
-            match crate::api::delete_paste(paste_id).await {
-                Err(err) => log::error!("deletion failed: {:?}", err),
-                Ok(_) => deleted.set(true),
-            }
-        },
-        {
-            let message = format!("Are you sure you want to delete {}", summary.title);
-            web_sys::window()
-                .unwrap()
-                .confirm_with_message(&message)
-                .unwrap_or_default()
-        }
-    );
-
     let summary2 = summary.clone();
+    let summary3 = summary.clone();
+
+    let toolbox = PasteToolboxProps {
+        id,
+        on_delete: deleted.clone(),
+    };
+
+    // TODO: don't just hide the element, remove it
     let css = memo_cond!(deleted, "hidden", "p-3 even:bg-slate-700");
+
     view! {
         div(class=*css.get()) {
-            div(class="flex flex-wrap gap-3") {
+            div(class="flex flex-wrap gap-4 items-center") {
                 img(src=asc,
                     width=50, height=50,
                     class="rounded-full h-min",
                     onerror="this.style.visibility='hidden'") {}
-                a(href=url, class="flex-auto text-slate-200") {
-                    (summary.title)
-                    sup(class="ml-1") { (summary2.version) }
+                a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
+                    span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary2.version) } }
+                    span() { (summary3.main_skill_name) }
                 }
-                div(class="flex flex-col gap-2") {
+                div(class="flex-1 flex flex-col items-end justify-between gap-2 whitespace-nowrap") {
                     a(
                         href=open_in_pob_url,
                         title="Open build in Path of Building",
-                        class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex hidden sm:block"
+                        class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer w-fit px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex hidden sm:block"
                      ) { "Open in PoB" }
-                    div(class="flex justify-end gap-2 h-4") {
-                        a(href=edit_href, class="cursor-pointer", dangerously_set_inner_html=crate::svg::PEN) {}
-                        span(on:click=on_delete, class="text-red-600 cursor-pointer", dangerously_set_inner_html=crate::svg::TRASH) {}
+
+                    PasteToolbox(toolbox)
+
+                    div(class="text-right text-sm text-slate-400") {
+                        (pretty_date(diff_in_ms))
                     }
                 }
-            }
-            div(class="text-right text-sm text-slate-400 pt-1") {
-                (pretty_date(diff_in_ms))
             }
         }
     }

@@ -1,5 +1,9 @@
-use crate::{sentry, utils, Error, Result};
-use std::{borrow::Cow, collections::HashMap};
+use crate::{
+    sentry, utils,
+    utils::{b64_decode, b64_encode},
+    Error, Result,
+};
+use serde::{de::DeserializeOwned, Serialize};
 
 pub mod b2;
 
@@ -12,11 +16,6 @@ pub type DefaultStorage = KvStorage;
 pub struct ListItem<T> {
     pub name: String,
     pub metadata: Option<T>,
-}
-
-pub trait Metadata: Sized {
-    fn as_key_value(&self) -> HashMap<&str, Cow<'_, str>>;
-    fn from_key_value(kv: HashMap<String, String>) -> Option<Self>;
 }
 
 #[allow(dead_code)]
@@ -45,33 +44,54 @@ impl B2Storage {
         }
     }
 
-    pub async fn put(&self, filename: &str, sha1: &[u8], data: &mut [u8]) -> Result<()> {
+    pub async fn delete(&self, path: &str) -> Result<()> {
+        self.b2.hide(path).await.map(|_| ())
+    }
+
+    pub async fn put<T: Serialize + 'static>(
+        &self,
+        filename: &str,
+        sha1: &[u8],
+        data: &mut [u8],
+        metadata: Option<T>,
+    ) -> Result<()> {
         let hex = utils::hex(sha1);
+        let metadata = metadata
+            .map(|m| serde_json::to_string(&m))
+            .transpose()?
+            .map(b64_encode);
         let settings = b2::UploadSettings {
             filename,
             content_type: "text/plain",
             sha1: Some(&hex),
+            metadata: metadata.as_deref(),
         };
 
         let upload = self.b2.get_upload_url().await?;
         self.b2.upload(&settings, data, upload).await.map(|_| ())
     }
 
-    pub async fn put_async(
+    pub async fn put_async<T: Serialize + 'static>(
         self,
         ctx: &worker::Context,
         filename: String,
         sha1: &[u8],
         mut data: Vec<u8>,
+        metadata: Option<T>,
     ) -> Result<()> {
         let upload = self.b2.get_upload_url().await?;
 
         let hex = utils::hex(sha1);
+        let metadata = metadata
+            .map(|m| serde_json::to_string(&m))
+            .transpose()?
+            .map(b64_encode);
         let future = async move {
             let settings = b2::UploadSettings {
                 filename: &filename,
                 content_type: "text/plain",
                 sha1: Some(&hex),
+                metadata: metadata.as_deref(),
             };
 
             if let Err(err) = self.b2.upload(&settings, &mut data, upload).await {
@@ -83,6 +103,31 @@ impl B2Storage {
         };
         ctx.wait_until(future);
         Ok(())
+    }
+
+    pub async fn list<T: DeserializeOwned>(
+        &self,
+        prefix: impl Into<String>,
+    ) -> Result<Vec<ListItem<T>>> {
+        let prefix = prefix.into();
+        let response = self.b2.list_files(&prefix, 100).await?;
+
+        response
+            .files
+            .into_iter()
+            .map(|f| {
+                Ok(ListItem {
+                    name: f.file_name,
+                    metadata: f
+                        .file_info
+                        .get("metadata")
+                        .map(b64_decode)
+                        .transpose()?
+                        .map(|m| serde_json::from_slice(&m))
+                        .transpose()?,
+                })
+            })
+            .collect::<Result<_>>()
     }
 }
 
@@ -109,17 +154,13 @@ impl KvStorage {
         Ok(())
     }
 
-    pub async fn put<T: Metadata>(
+    pub async fn put<T: Serialize + 'static>(
         &self,
         filename: &str,
         _sha1: &[u8],
         data: &mut [u8],
         metadata: Option<T>,
     ) -> Result<()> {
-        let metadata = metadata
-            .as_ref()
-            .map(|m| m.as_key_value())
-            .unwrap_or_default();
         self.kv
             .put_bytes(filename, data)?
             .metadata(metadata)?
@@ -128,7 +169,7 @@ impl KvStorage {
         Ok(())
     }
 
-    pub async fn put_async<T: Metadata + 'static>(
+    pub async fn put_async<T: Serialize + 'static>(
         self,
         ctx: &worker::Context,
         filename: String,
@@ -137,10 +178,6 @@ impl KvStorage {
         metadata: Option<T>,
     ) -> Result<()> {
         let future = async move {
-            let metadata = metadata
-                .as_ref()
-                .map(|m| m.as_key_value())
-                .unwrap_or_default();
             let r = self
                 .kv
                 .put_bytes(&filename, &data)
@@ -161,7 +198,10 @@ impl KvStorage {
         Ok(())
     }
 
-    pub async fn list<T: Metadata>(&self, path: impl Into<String>) -> Result<Vec<ListItem<T>>> {
+    pub async fn list<T: DeserializeOwned>(
+        &self,
+        path: impl Into<String>,
+    ) -> Result<Vec<ListItem<T>>> {
         let response = self.kv.list().prefix(path.into()).execute().await?;
 
         response
@@ -170,17 +210,12 @@ impl KvStorage {
             .map(|key| {
                 Ok(ListItem {
                     name: key.name,
-                    metadata: key.metadata.and_then(|m| from_value(m)),
+                    metadata: key
+                        .metadata
+                        .map(|metadata| serde_json::from_value(metadata))
+                        .transpose()?,
                 })
             })
             .collect::<Result<_>>()
     }
-}
-
-fn from_value<T: Metadata>(value: serde_json::Value) -> Option<T> {
-    let mut map = HashMap::new();
-    for (k, v) in value.as_object()?.into_iter() {
-        map.insert(k.to_owned(), v.as_str()?.to_owned());
-    }
-    T::from_key_value(map)
 }

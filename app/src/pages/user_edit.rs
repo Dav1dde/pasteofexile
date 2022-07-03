@@ -1,14 +1,14 @@
 use crate::{
     components::{CreatePaste, CreatePasteProps},
     future::LocalBoxFuture,
+    model::UserPasteId,
     router::RoutedComponent,
     Meta, Result,
 };
 use sycamore::prelude::*;
 
 pub struct Data {
-    id: String,
-    user: String,
+    id: UserPasteId,
     content: String,
 }
 
@@ -18,8 +18,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
         let paste = ctx.get_paste().unwrap();
         Ok(Data {
-            id,
-            user,
+            id: UserPasteId { user, id },
             content: paste.content().to_owned(),
         })
     }
@@ -31,13 +30,20 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
             .unwrap()
             .inner_html();
 
-        Ok(Data { id, user, content })
+        Ok(Data {
+            id: UserPasteId { user, id },
+            content,
+        })
     }
 
     fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
+        let id = crate::model::PasteId::user(user, id);
         Box::pin(async move {
-            let content = crate::api::get_paste(crate::api::PasteId::UserPaste(&user, &id)).await?;
-            Ok(Data { id, user, content })
+            let content = crate::api::get_paste(&id).await?;
+            Ok(Data {
+                id: id.unwrap_user(),
+                content,
+            })
         })
     }
 
@@ -53,8 +59,8 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
 }
 
 #[component(UserEditPastePage<G>)]
-pub fn user_edit_paste_page(Data { id, user, content }: Data) -> View<G> {
-    let props = CreatePasteProps::Update { id, user, content };
+pub fn user_edit_paste_page(Data { id, content }: Data) -> View<G> {
+    let props = CreatePasteProps::Update { id, content };
     view! {
         CreatePaste(props)
     }

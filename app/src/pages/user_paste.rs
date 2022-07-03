@@ -1,17 +1,19 @@
 use crate::{
-    components::{ViewPaste, ViewPasteProps},
+    components::{PasteToolbox, PasteToolboxProps, ViewPaste, ViewPasteProps},
+    effect,
     future::LocalBoxFuture,
-    meta, pob,
+    meta,
+    model::UserPasteId,
+    pob,
     router::RoutedComponent,
-    Meta, Result,
+    svg, Meta, Result,
 };
 use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
 use std::rc::Rc;
 use sycamore::prelude::*;
 
 pub struct Data {
-    id: String,
-    user: String,
+    id: UserPasteId,
     content: String,
     pob: Rc<SerdePathOfBuilding>,
 }
@@ -22,8 +24,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
         let paste = ctx.get_paste().unwrap();
         Ok(Data {
-            id,
-            user,
+            id: UserPasteId { user, id },
             content: paste.content().to_owned(),
             pob: paste.path_of_building()?,
         })
@@ -38,8 +39,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
 
         let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
         Ok(Data {
-            id,
-            user,
+            id: UserPasteId { user, id },
             content,
             pob,
         })
@@ -47,11 +47,13 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
 
     fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
         Box::pin(async move {
-            let content = crate::api::get_paste(crate::api::PasteId::UserPaste(&user, &id)).await?;
+            // TODO: get rid of these clones
+            let content =
+                crate::api::get_paste(&crate::model::PasteId::user(user.clone(), id.clone()))
+                    .await?;
             let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
             Ok(Data {
-                id,
-                user,
+                id: UserPasteId { user, id },
                 content,
                 pob,
             })
@@ -64,7 +66,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         let config = pob::TitleConfig { no_title: true };
         let mut title = pob::title_with_config(pob, &config).into();
         if let Some(version) = pob.max_tree_version() {
-            title = format!("{title} [{version}] by {}", arg.user).into();
+            title = format!("{title} [{version}] by {}", arg.id.user).into();
         }
 
         let description = meta::get_paste_summary(pob).join("\n").into();
@@ -84,16 +86,37 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
 }
 
 #[component(UserPastePage<G>)]
-pub fn user_paste_page(
-    Data {
-        id,
-        user: _,
+pub fn user_paste_page(Data { id, content, pob }: Data) -> View<G> {
+    let deleted = Signal::new(false);
+
+    let back_to_user = id.to_user_url();
+    let navigate_after_delete = back_to_user.clone();
+
+    let toolbox = PasteToolboxProps {
+        id: id.clone(),
+        on_delete: deleted.clone(),
+    };
+    let name = id.user.clone();
+    let props = ViewPasteProps {
+        id: id.into(),
         content,
         pob,
-    }: Data,
-) -> View<G> {
-    let props = ViewPasteProps { id, content, pob };
+    };
+
+    effect!(deleted, {
+        if *deleted.get() {
+            sycamore_router::navigate(&navigate_after_delete);
+        }
+    });
+
     view! {
+        div(class="flex justify-between") {
+            a(href=back_to_user, class="flex items-center mb-12 text-sky-400") {
+                span(dangerously_set_inner_html=svg::BACK, class="h-[16px] mr-2")
+                    span() { (name) } "'s builds"
+            }
+            PasteToolbox(toolbox)
+        }
         ViewPaste(props)
     }
 }

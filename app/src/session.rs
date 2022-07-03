@@ -21,6 +21,13 @@ impl Session {
     pub fn is_logged_in(&self) -> bool {
         matches!(self, Self::LoggedIn(_))
     }
+
+    pub fn user(&self) -> Option<&User> {
+        match self {
+            Self::LoggedIn(user) => Some(user),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone)]

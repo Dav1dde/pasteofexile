@@ -1,12 +1,11 @@
 use crate::{
     consts, crypto, poe_api,
-    storage::Metadata,
     utils::{self, is_valid_id, EnvExt, RequestExt, ResponseExt},
     Error, Result,
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, collections::HashMap, fmt, str::FromStr};
+use std::{fmt, str::FromStr};
 use sycamore_router::Route;
 use worker::{Context, Env, Headers, Method, Request, Response};
 
@@ -94,6 +93,7 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     }
 }
 
+// TODO: use app::model::PasteId
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum PasteId {
@@ -178,11 +178,12 @@ async fn handle_delete_paste(env: &Env, id: PasteId) -> Result<Response> {
     Ok(Response::empty()?)
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,
     pub ascendancy: Option<String>,
     pub version: Option<String>,
+    pub main_skill_name: Option<String>,
     pub last_modified: u64,
 }
 
@@ -192,39 +193,9 @@ impl PasteMetadata {
             title: app::pob::title(pob),
             ascendancy: pob.ascendancy_name().map(String::from),
             version: pob.max_tree_version(),
+            main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),
             last_modified: worker::Date::now().as_millis(),
         }
-    }
-}
-
-impl Metadata for PasteMetadata {
-    fn from_key_value(mut kv: HashMap<String, String>) -> Option<Self> {
-        let title = kv.remove("title")?;
-        let ascendancy = kv.remove("ascendancy");
-        let version = kv.remove("version");
-        let last_modified = kv
-            .remove("last_modified")
-            .and_then(|x| x.parse().ok())
-            .unwrap_or(0);
-        Some(Self {
-            title,
-            ascendancy,
-            version,
-            last_modified,
-        })
-    }
-
-    fn as_key_value(&self) -> HashMap<&str, Cow<'_, str>> {
-        let mut kv = HashMap::new();
-        kv.insert("title", self.title.as_str().into());
-        if let Some(ref ascendancy) = self.ascendancy {
-            kv.insert("ascendancy", ascendancy.into());
-        }
-        if let Some(ref version) = self.version {
-            kv.insert("version", version.into());
-        }
-        kv.insert("last_modified", self.last_modified.to_string().into());
-        kv
     }
 }
 
@@ -287,7 +258,8 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
         }
     } else {
         validate_access!(data.id.is_none());
-        validate!(data.title.is_none(), "Cannot set title");
+        // TODO: should unused fields (like title) be validated?
+        // validate!(data.title.is_none(), "Cannot set title");
 
         PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
     };
@@ -349,7 +321,7 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
         .await?
         .into_iter()
         .map(|item: crate::storage::ListItem<PasteMetadata>| {
-            let metadata = item.metadata.unwrap();
+            let metadata = item.metadata.unwrap_or_default();
             let id = item.name.rsplit_once('/').unwrap().1.to_owned();
 
             // TODO: properly do this
@@ -360,6 +332,7 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
                 title: metadata.title,
                 ascendancy: metadata.ascendancy.unwrap_or_default(),
                 version: metadata.version.unwrap_or_default(),
+                main_skill_name: metadata.main_skill_name.unwrap_or_default(),
                 last_modified: metadata.last_modified,
             }
         })

@@ -19,9 +19,21 @@ impl SerdePathOfBuilding {
     }
 
     fn main_skill(&self) -> Option<&Skill> {
-        let index = self.pob.build.main_socket_group;
+        let mut index = self.pob.build.main_socket_group as usize;
         if index < 1 {
-            return None;
+            // find a fallback main skill with at least some links
+            let (i, _) = self
+                .pob
+                .skills
+                .active_skills()
+                .iter()
+                .enumerate()
+                .filter(|(_, s)| s.gems.len() >= 4)
+                .filter(|(_, s)| s.active_gems().next().is_some())
+                // max_by_key returns the last item, but we actually want the first -> rev
+                .rev()
+                .max_by_key(|(_, s)| s.gems.len())?;
+            index = i + 1;
         }
         self.pob.skills.active_skills().get(index as usize - 1)
     }
@@ -110,15 +122,26 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     }
 
     fn main_skill_name(&self) -> Option<&str> {
-        self.main_skill()
-            .and_then(|skill| {
-                let index = skill.main_active_skill;
-                match index {
-                    0 => None,
-                    index => skill.active_gems().nth(index as usize - 1),
+        let skill = self.main_skill()?;
+
+        let mut index = skill.main_active_skill.checked_sub(1)? as usize;
+        for (i, gem) in skill.active_gems().enumerate() {
+            if i == index {
+                return Some(&gem.name);
+            }
+            if gem.is_vaal() {
+                // Vaal skills count 'twice', decrement the original index to account for
+                // that. After the adjustment check again if the second part of the gem
+                // might be matching.
+                index -= 1;
+
+                if i == index {
+                    return Some(gem.non_vaal_name());
                 }
-            })
-            .map(|gem| gem.name.as_str())
+            }
+        }
+
+        None
     }
 
     fn main_skill_supported_by(&self, skill: &str) -> bool {

@@ -7,7 +7,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 use worker::{
     kv::KvStore, wasm_bindgen::JsValue, Env, Fetch, Headers, Method, Request, RequestInit,
 };
@@ -50,11 +50,26 @@ pub struct UploadResponse {
     pub file_name: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListResponse {
+    pub files: Vec<File>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct File {
+    pub file_name: String,
+    pub file_info: HashMap<String, String>,
+    pub upload_timestamp: u64,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct UploadSettings<'a> {
     pub filename: &'a str,
     pub content_type: &'a str,
     pub sha1: Option<&'a str>,
+    pub metadata: Option<&'a str>,
 }
 
 const AUTH_DETAILS_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
@@ -104,6 +119,9 @@ impl B2 {
             headers.set("X-Bz-File-Name", settings.filename)?;
             headers.set("Content-Type", settings.content_type)?;
             headers.set("X-Bz-Content-Sha1", &sha1)?;
+            if let Some(metadata) = settings.metadata {
+                headers.set("X-Bz-Info-Metadata", metadata)?;
+            }
 
             let request = Request::new_with_init(
                 &upload.upload_url,
@@ -166,6 +184,64 @@ impl B2 {
 
             let mut r = Fetch::Request(request).send().await?;
             retry_if!(r, "upload_url", 401 | 503, r.json().await?)
+        })
+        .await
+    }
+
+    pub async fn list_files(&self, prefix: &str, max_file_count: u16) -> Result<ListResponse> {
+        retry(3, |_| async move {
+            let auth = self.credentials.get_auth_details(false).await?;
+
+            let mut url = auth.api_url.to_owned();
+            url.push_str("/b2api/v2/b2_list_file_names");
+
+            let mut headers = Headers::new();
+            headers.set("Authorization", &auth.authorization_token)?;
+
+            let body = JsValue::from_str(&serde_json::to_string(
+                &json!({"bucketId": auth.allowed.bucket_id, "prefix": prefix, "maxFileCount": max_file_count}),
+            )?);
+            let request = Request::new_with_init(
+                &url,
+                &RequestInit {
+                    method: Method::Post,
+                    headers,
+                    body: Some(body),
+                    ..Default::default()
+                },
+            )?;
+
+            let mut r = Fetch::Request(request).send().await?;
+            retry_if!(r, "list_files", 401 | 503, r.json().await?)
+        })
+        .await
+    }
+
+    pub async fn hide(&self, path: &str) -> Result<File> {
+        retry(3, |_| async move {
+            let auth = self.credentials.get_auth_details(false).await?;
+
+            let mut url = auth.api_url.to_owned();
+            url.push_str("/b2api/v2/b2_hide_file");
+
+            let mut headers = Headers::new();
+            headers.set("Authorization", &auth.authorization_token)?;
+
+            let body = JsValue::from_str(&serde_json::to_string(
+                &json!({"bucketId": auth.allowed.bucket_id, "fileName": path}),
+            )?);
+            let request = Request::new_with_init(
+                &url,
+                &RequestInit {
+                    method: Method::Post,
+                    headers,
+                    body: Some(body),
+                    ..Default::default()
+                },
+            )?;
+
+            let mut r = Fetch::Request(request).send().await?;
+            retry_if!(r, "list_files", 401 | 503, r.json().await?)
         })
         .await
     }
