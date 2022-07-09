@@ -44,9 +44,10 @@ pub fn paste_toolbox(
     let controls = memo_cond!(is_current_user, "flex justify-end gap-2 h-4", "hidden");
     view! {
         div(class=*controls.get()) {
-            a(href=edit_href, class="cursor-pointer", dangerously_set_inner_html=svg::PEN) {}
+            a(href=edit_href, class="cursor-pointer", title="Edit", dangerously_set_inner_html=svg::PEN) {}
             span(on:click=on_delete,
                  class="text-red-600 cursor-pointer",
+                 title="Delete",
                  dangerously_set_inner_html=svg::TRASH) {}
         }
     }

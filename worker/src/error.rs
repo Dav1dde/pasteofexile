@@ -35,6 +35,9 @@ pub enum Error {
     Dangerous(#[from] DangerousError),
 
     #[error("{0}")]
+    Base64(#[from] base64::DecodeError),
+
+    #[error("{0}")]
     Error(String),
 }
 
@@ -50,6 +53,7 @@ impl Error {
             Self::AccessDenied => "AccessDenied",
             Self::InvalidPoB(..) => "InvalidPoB",
             Self::Dangerous(..) => "DangerousError",
+            Self::Base64(..) => "Base64",
             Self::Error(..) => "Error",
         }
     }
@@ -65,6 +69,7 @@ impl Error {
             Self::AccessDenied => "info",
             Self::InvalidPoB(..) => "error",
             Self::Dangerous(..) => "error",
+            Self::Base64(..) => "error",
             Self::Error(..) => "error",
         }
     }

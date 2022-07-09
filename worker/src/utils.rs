@@ -21,6 +21,10 @@ pub fn b64_encode<T: AsRef<[u8]>>(input: T) -> String {
     base64::encode_config(input, base64::URL_SAFE_NO_PAD)
 }
 
+pub fn b64_decode<T: AsRef<[u8]>>(input: T) -> crate::Result<Vec<u8>> {
+    Ok(base64::decode_config(input, base64::URL_SAFE_NO_PAD)?)
+}
+
 pub fn hex(data: &[u8]) -> String {
     data.iter().map(|x| format!("{:02X}", x)).collect()
 }

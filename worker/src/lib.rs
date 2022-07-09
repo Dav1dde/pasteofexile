@@ -51,7 +51,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                 .await?
                 .into_iter()
                 .map(|item: storage::ListItem<PasteMetadata>| {
-                    let metadata = item.metadata.unwrap();
+                    let metadata = item.metadata.unwrap_or_default();
                     let id = item.name.rsplit_once('/').unwrap().1.to_owned();
 
                     PasteSummary {
