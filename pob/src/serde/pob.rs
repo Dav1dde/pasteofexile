@@ -23,7 +23,7 @@ impl SerdePathOfBuilding {
         if index < 1 {
             return None;
         }
-        self.pob.skills.skills.get(index as usize - 1)
+        self.pob.skills.active_skills().get(index as usize - 1)
     }
 
     fn has_keystone_on_gear(&self, keystone: Keystone) -> bool {
@@ -134,7 +134,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
 
         self.pob
             .skills
-            .skills
+            .active_skills()
             .iter()
             .enumerate()
             .map(|(index, s)| {
@@ -216,6 +216,7 @@ mod tests {
 
     static V316_EMPTY: &str = include_str!("../../test/316_empty.xml");
     static V316_POISON_OCC: &str = include_str!("../../test/316_poison_occ.xml");
+    static V318_SKILLSET: &str = include_str!("../../test/318_skillset.xml");
 
     #[test]
     fn parse_v316_empty() {
@@ -259,5 +260,14 @@ mod tests {
         assert_eq!(Some("3.19".to_owned()), pob.max_tree_version());
 
         // TODO: test configs
+    }
+
+    #[test]
+    fn parse_v318_skillset() {
+        let pob = SerdePathOfBuilding::from_xml(V318_SKILLSET).unwrap();
+
+        assert_eq!(Some("Crackling Lance"), pob.main_skill_name());
+
+        // TODO: assert skill sets, expose skill sets
     }
 }

@@ -70,7 +70,31 @@ pub(crate) struct BuildStat {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Skills {
-    #[serde(default, rename = "$value")]
+    #[serde(default, rename = "activeSkillSet")]
+    pub active_skill_set: Option<u16>,
+
+    #[serde(default, rename = "SkillSet")]
+    pub skill_sets: Vec<SkillSet>,
+    #[serde(default, rename = "Skill")]
+    pub skills: Vec<Skill>,
+}
+
+impl Skills {
+    pub fn active_skills(&self) -> &[Skill] {
+        self.active_skill_set
+            .and_then(|active_skill_set| self.skill_sets.get(active_skill_set as usize))
+            .map(|ss| &ss.skills)
+            .unwrap_or(&self.skills)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct SkillSet {
+    // #[serde(rename = "id")]
+    // pub id: u16,
+    // #[serde(default, rename = "title")]
+    // pub title: String,
+    #[serde(default, rename = "Skill")]
     pub skills: Vec<Skill>,
 }
 
