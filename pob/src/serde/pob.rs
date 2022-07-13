@@ -290,7 +290,10 @@ mod tests {
     fn parse_v318_skillset() {
         let pob = SerdePathOfBuilding::from_xml(V318_SKILLSET).unwrap();
 
-        assert_eq!(Some("Crackling Lance"), pob.main_skill_name());
+        assert_eq!(Some("Arc"), pob.main_skill_name());
+        assert_eq!(3, pob.skill_sets().len());
+        assert!(pob.skill_sets()[0].is_selected);
+        assert_eq!(Some("Arc SS"), pob.skill_sets()[0].title);
 
         // TODO: assert skill sets, expose skill sets
     }

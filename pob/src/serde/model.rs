@@ -84,7 +84,9 @@ pub(crate) struct Skills {
 impl Skills {
     pub fn active_skills(&self) -> &[Skill] {
         self.active_skill_set
-            .and_then(|active_skill_set| self.skill_sets.get(active_skill_set as usize))
+            .and_then(|active_skill_set| {
+                self.skill_sets.iter().find(|ss| ss.id == active_skill_set)
+            })
             .map(|ss| &ss.skills)
             .unwrap_or(&self.skills)
     }

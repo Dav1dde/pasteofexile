@@ -516,7 +516,7 @@ Gain 7 Charges when you are Hit by an Enemy
 	</Items>
 	<Import lastAccountHash="a6623423e4ea5c4cdd834a393f9e31ab56d80b82" lastRealm="PC" lastCharacterHash="e51fba2c5d48728b321c67b1358dfb1f338ca773"/>
 	<Skills activeSkillSet="1" matchGemLevelToCharacterLevel="false" sortGemsByDPS="true" sortGemsByDPSField="CombinedDPS" defaultGemLevel="20" showAltQualityGems="false" defaultGemQuality="20" showSupportGemTypes="ALL">
-		<SkillSet id="1" title="Arc">
+		<SkillSet id="1" title="Arc SS">
 			<Skill includeInFullDPS="false" groupCount="nil" skillSet="nil" label="" mainActiveSkill="1" enabled="true" mainActiveSkillCalcs="1">
 				<Gem skillMinionCalcs="AbsolutionTemplarJudge" gemId="Metadata/Items/Gems/SkillGemArc" skillMinion="SummonedPhantasm" enableGlobal1="true" level="20" qualityId="Default" count="1" skillMinionSkillCalcs="1" skillMinionSkill="1" enabled="true" skillId="Arc" quality="20" nameSpec="Arc" enableGlobal2="false"/>
 				<Gem gemId="Metadata/Items/Gems/SupportGemArcaneSurge" enableGlobal1="true" level="20" qualityId="Default" count="1" enabled="true" skillId="SupportArcaneSurge" quality="20" nameSpec="Arcane Surge" enableGlobal2="false"/>
