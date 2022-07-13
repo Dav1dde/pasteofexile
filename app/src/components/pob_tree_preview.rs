@@ -98,8 +98,8 @@ pub fn pob_tree_preview(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     });
 
     view! {
-        select(class="sm:ml-3 mt-1 mb-2", bind:value=value, on:input=on_input) { (select) }
-        div(class="h-[370px] md:h-[500px] cursor-move md:resize-y md:overflow-auto",
+        select(class="sm:ml-3 mt-1 mb-2 px-1", bind:value=value, on:input=on_input) { (select) }
+        div(class="h-[370px] md:h-[700px] cursor-move md:resize-y md:overflow-auto",
             on:pointerdown=on_move_start,
             on:pointermove=on_move_move,
             on:pointerup=on_move_end.clone(),

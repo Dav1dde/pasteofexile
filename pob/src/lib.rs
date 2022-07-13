@@ -27,7 +27,7 @@ pub trait PathOfBuilding {
     fn main_skill_name(&self) -> Option<&str>;
     fn main_skill_supported_by(&self, skill: &str) -> bool;
 
-    fn skills(&self) -> Vec<Skill>;
+    fn skill_sets(&self) -> Vec<SkillSet>;
 
     fn tree_specs(&self) -> Vec<TreeSpec>;
     fn has_tree_node(&self, node: u32) -> bool;
@@ -43,6 +43,14 @@ pub struct TreeSpec<'a> {
 
     /// Whether the tree spec is active/selected
     pub active: bool,
+}
+
+#[derive(Debug)]
+pub struct SkillSet<'a> {
+    pub id: u16,
+    pub title: Option<&'a str>,
+    pub skills: Vec<Skill<'a>>,
+    pub is_selected: bool,
 }
 
 #[derive(Debug)]

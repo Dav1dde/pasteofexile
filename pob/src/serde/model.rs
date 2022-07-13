@@ -73,6 +73,8 @@ pub(crate) struct Skills {
     #[serde(default, rename = "activeSkillSet")]
     pub active_skill_set: Option<u16>,
 
+    // Newer exports have skills nested in skill sets.
+    // QuickXML doesn't allow me to use an enum here.
     #[serde(default, rename = "SkillSet")]
     pub skill_sets: Vec<SkillSet>,
     #[serde(default, rename = "Skill")]
@@ -90,10 +92,10 @@ impl Skills {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct SkillSet {
-    // #[serde(rename = "id")]
-    // pub id: u16,
-    // #[serde(default, rename = "title")]
-    // pub title: String,
+    #[serde(rename = "id")]
+    pub id: u16,
+    #[serde(default, rename = "title")]
+    pub title: Option<String>,
     #[serde(default, rename = "Skill")]
     pub skills: Vec<Skill>,
 }

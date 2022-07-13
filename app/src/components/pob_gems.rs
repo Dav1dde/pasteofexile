@@ -3,17 +3,69 @@ use itertools::Itertools;
 use pob::{PathOfBuilding, SerdePathOfBuilding, Skill};
 use std::rc::Rc;
 use sycamore::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::{Event, HtmlSelectElement};
 
 #[component(PobGems<G>)]
 pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
-    let mut skills = Vec::new();
+    let mut skill_sets = pob.skill_sets();
 
-    let iter_skills = pob
-        .skills()
+    if skill_sets.is_empty() {
+        return view! { div() { } };
+    } else if skill_sets.len() == 1 {
+        let skills = render_skills(skill_sets.remove(0).skills);
+        return view! {
+            div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
+                (skills)
+            }
+        };
+    }
+
+    let content = Signal::new(view! {});
+
+    let mut select = Vec::new();
+    for ss in skill_sets.iter() {
+        let id = ss.id;
+        let selected = ss.is_selected;
+        let title = ss
+            .title
+            .map(|s| s.to_owned())
+            .unwrap_or_else(|| id.to_string());
+        let view = view! { option(value=id, selected=selected) { span { (title) } } };
+        select.push(view)
+    }
+    let select = View::new_fragment(select);
+
+    let on_input = cloned!((pob, content) => move |event: Event| {
+        let id = event.target().unwrap().unchecked_into::<HtmlSelectElement>()
+            .value().parse::<u16>().unwrap_or(u16::MAX);
+
+        if let Some(ss) = pob.skill_sets().into_iter().find(|ss| ss.id == id) {
+            content.set(render_skills(ss.skills));
+        }
+    });
+
+    if let Some(ss) = skill_sets.into_iter().find(|ss| ss.is_selected) {
+        content.set(render_skills(ss.skills));
+    }
+
+    view! {
+        select(class="sm:ml-3 mt-1 mb-2 px-1", on:input=on_input) { (select) }
+        div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
+            div() {
+            (&*content.get())
+            }
+        }
+    }
+}
+
+fn render_skills<G: GenericNode + Html>(skills: Vec<Skill>) -> View<G> {
+    let iter_skills = skills
         .into_iter()
         .filter(is_enabled)
         .filter(|s| !is_enchant(s));
 
+    let mut skills = Vec::new();
     for (key, group) in &iter_skills.group_by(|s| s.gems.is_empty()) {
         if key {
             // it's a bunched up group of labels
@@ -40,12 +92,7 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
         }
     }
 
-    let skills = View::new_fragment(skills);
-    view! {
-        div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
-            (skills)
-        }
-    }
+    View::new_fragment(skills)
 }
 
 fn is_enabled(skill: &Skill) -> bool {

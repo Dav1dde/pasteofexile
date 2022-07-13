@@ -128,48 +128,28 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .any(|gem| gem.name == skill)
     }
 
-    fn skills(&self) -> Vec<crate::Skill> {
-        // starts at 1
-        let main_socket_group = self.pob.build.main_socket_group as usize;
+    fn skill_sets(&self) -> Vec<crate::SkillSet> {
+        let main_socket_group = self.pob.build.main_socket_group as usize; // starts at 1
+
+        // Old PoB, emulate skill sets (all skills in one fake skill set)
+        if !self.pob.skills.skills.is_empty() {
+            return vec![crate::SkillSet {
+                id: 1,
+                title: None,
+                skills: to_skills(&self.pob.skills.skills, main_socket_group),
+                is_selected: true,
+            }];
+        }
 
         self.pob
             .skills
-            .active_skills()
+            .skill_sets
             .iter()
-            .enumerate()
-            .map(|(index, s)| {
-                let is_selected = main_socket_group == index + 1;
-
-                let mut actives = 0;
-                let gems = s
-                    .gems
-                    .iter()
-                    .map(|g| {
-                        let is_selected = if g.is_active() {
-                            actives += 1;
-                            is_selected && s.main_active_skill == actives
-                        } else {
-                            false
-                        };
-                        crate::Gem {
-                            name: &g.name,
-                            skill_id: g.skill_id.as_deref(),
-                            level: g.level,
-                            quality: g.quality,
-                            is_active: g.is_active(),
-                            is_support: g.is_support(),
-                            is_selected,
-                        }
-                    })
-                    .collect();
-
-                crate::Skill {
-                    gems,
-                    label: s.label.as_deref(),
-                    slot: s.slot.as_deref(),
-                    is_selected,
-                    is_enabled: s.enabled,
-                }
+            .map(|ss| crate::SkillSet {
+                id: ss.id,
+                title: ss.title.as_deref(),
+                skills: to_skills(&ss.skills, main_socket_group),
+                is_selected: self.pob.skills.active_skill_set == Some(ss.id),
             })
             .collect()
     }
@@ -205,6 +185,50 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
 
     fn has_keystone(&self, keystone: Keystone) -> bool {
         self.has_tree_node(keystone.node()) || self.has_keystone_on_gear(keystone)
+    }
+}
+
+fn to_skills(skills: &[Skill], main_socket_group: usize) -> Vec<crate::Skill> {
+    skills
+        .iter()
+        .enumerate()
+        .map(|(index, s)| {
+            let is_selected = main_socket_group == index + 1;
+            to_skill(s, is_selected)
+        })
+        .collect()
+}
+
+fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill {
+    let mut actives = 0;
+    let gems = skill
+        .gems
+        .iter()
+        .map(|g| {
+            let is_selected = if g.is_active() {
+                actives += 1;
+                is_selected && skill.main_active_skill == actives
+            } else {
+                false
+            };
+            crate::Gem {
+                name: &g.name,
+                skill_id: g.skill_id.as_deref(),
+                level: g.level,
+                quality: g.quality,
+                is_active: g.is_active(),
+                is_support: g.is_support(),
+                is_selected,
+            }
+        })
+        .collect();
+
+    crate::Skill {
+        gems,
+        label: skill.label.as_deref(),
+        slot: skill.slot.as_deref(),
+        is_selected,
+        is_enabled: skill.enabled,
     }
 }
 
