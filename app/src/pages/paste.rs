@@ -1,13 +1,12 @@
 use crate::{
     components::{ViewPaste, ViewPasteProps},
     future::LocalBoxFuture,
-    meta,
-    model::PasteId,
-    pob,
+    meta, pob,
     router::RoutedComponent,
     Meta, Result,
 };
 use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
+use shared::model::PasteId;
 use std::rc::Rc;
 use sycamore::prelude::*;
 
@@ -43,7 +42,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
     fn from_dynamic<'a>(id: Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
         Box::pin(async move {
             // TODO: get rid of this clone, there needs to be a better way to pass this around
-            let content = crate::api::get_paste(&crate::model::PasteId::id(id.clone())).await?;
+            let content = crate::api::get_paste(&PasteId::new_id(id.clone())).await?;
             let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
             Ok(Data { id, content, pob })
         })
@@ -77,7 +76,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
 #[component(PastePage<G>)]
 pub fn paste_page(Data { id, content, pob }: Data) -> View<G> {
     let props = ViewPasteProps {
-        id: PasteId::id(id),
+        id: PasteId::new_id(id),
         content,
         pob,
     };

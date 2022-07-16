@@ -1,5 +1,5 @@
-use app::model::PasteSummary;
 use serde::Serialize;
+use shared::model::{PasteId, PasteSummary};
 use std::future::Future;
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
@@ -15,8 +15,6 @@ mod sentry;
 mod storage;
 mod utils;
 
-use crate::api::PasteMetadata;
-
 pub use self::error::{Error, ErrorResponse, Result};
 use assets::EnvAssetExt;
 use sentry::Sentry;
@@ -30,15 +28,11 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
         Index => Context::index(host),
         NotFound => Context::not_found(host),
         Paste(id) => {
-            let id = api::PasteId::Paste(id);
-            let path = match id.to_path() {
-                Err(_) => return Ok(Context::not_found(host)),
-                Ok(path) => path,
-            };
+            let id = PasteId::new_id(id);
+            // TODO: handle 404
 
-            if let Some(mut response) = env.storage()?.get(&path).await? {
-                let content = response.text().await?;
-                Context::paste(host, id.unwrap_paste(), content)
+            if let Some(paste) = env.storage()?.get(&id).await? {
+                Context::paste(host, id.to_string(), paste.content)
             } else {
                 Context::not_found(host)
             }
@@ -50,7 +44,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                 .list(format!("user/{name}/pastes/"))
                 .await?
                 .into_iter()
-                .map(|item: storage::ListItem<PasteMetadata>| {
+                .map(|item| {
                     let metadata = item.metadata.unwrap_or_default();
                     let id = item.name.rsplit_once('/').unwrap().1.to_owned();
 
@@ -61,7 +55,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                         ascendancy: metadata.ascendancy.unwrap_or_default(),
                         version: metadata.version.unwrap_or_default(),
                         main_skill_name: metadata.main_skill_name.unwrap_or_default(),
-                        last_modified: metadata.last_modified,
+                        last_modified: item.last_modified,
                     }
                 })
                 .collect::<Vec<_>>();
@@ -70,31 +64,21 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
             Context::user(host, name, pastes)
         }
         UserPaste(user, id) => {
-            let id = api::PasteId::UserPaste(user, id);
-            let path = match id.to_path() {
-                Err(_) => return Ok(Context::not_found(host)),
-                Ok(path) => path,
-            };
+            let id = PasteId::new_user(user, id);
+            // TODO: handle 404
 
-            if let Some(mut response) = env.storage()?.get(&path).await? {
-                let content = response.text().await?;
-                let (user, id) = id.unwrap_user_paste();
-                Context::user_paste(host, user, id, content)
+            if let Some(paste) = env.storage()?.get(&id).await? {
+                Context::user_paste(host, id.unwrap_user(), paste.content)
             } else {
                 Context::not_found(host)
             }
         }
         UserEditPaste(user, id) => {
-            let id = api::PasteId::UserPaste(user, id);
-            let path = match id.to_path() {
-                Err(_) => return Ok(Context::not_found(host)),
-                Ok(path) => path,
-            };
+            let id = PasteId::new_user(user, id);
+            // TODO: handle 404
 
-            if let Some(mut response) = env.storage()?.get(&path).await? {
-                let content = response.text().await?;
-                let (user, id) = id.unwrap_user_paste();
-                Context::user_paste_edit(host, user, id, content)
+            if let Some(paste) = env.storage()?.get(&id).await? {
+                Context::user_paste_edit(host, id.unwrap_user(), paste.content)
             } else {
                 Context::not_found(host)
             }

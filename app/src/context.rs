@@ -1,8 +1,8 @@
+use crate::Route;
 use lazycell::LazyCell;
 use pob::SerdePathOfBuilding;
+use shared::model::{PasteSummary, UserPasteId};
 use std::rc::Rc;
-
-use crate::{model::PasteSummary, Route};
 
 struct ContextInner {
     route: Option<Route>,
@@ -69,10 +69,10 @@ impl Context {
         }
     }
 
-    pub fn user_paste(host: String, user: String, name: String, content: String) -> Self {
+    pub fn user_paste(host: String, up: UserPasteId, content: String) -> Self {
         Self {
             inner: Rc::new(ContextInner {
-                route: Some(Route::UserPaste(user, name)),
+                route: Some(Route::UserPaste(up.user, up.id)),
                 host,
                 inner: Inner::Paste(Paste {
                     content,
@@ -82,10 +82,10 @@ impl Context {
         }
     }
 
-    pub fn user_paste_edit(host: String, user: String, name: String, content: String) -> Self {
+    pub fn user_paste_edit(host: String, up: UserPasteId, content: String) -> Self {
         Self {
             inner: Rc::new(ContextInner {
-                route: Some(Route::UserEditPaste(user, name)),
+                route: Some(Route::UserEditPaste(up.user, up.id)),
                 host,
                 inner: Inner::Paste(Paste {
                     content,

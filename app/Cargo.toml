@@ -17,6 +17,7 @@ client = [
 
 [dependencies]
 pob = { path = "../pob/" }
+shared = { path = "../shared/" }
 
 # sycamore = { version = "0.7", features = ["futures"] }
 # sycamore-router = "0.7"

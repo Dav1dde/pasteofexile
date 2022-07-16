@@ -1,5 +1,6 @@
-use crate::{memo, memo_cond, model::UserPasteId, session::SessionValue, svg::SPINNER};
+use crate::{memo, memo_cond, session::SessionValue, svg::SPINNER};
 use pob::SerdePathOfBuilding;
+use shared::model::UserPasteId;
 use sycamore::{context::use_context, prelude::*};
 
 pub enum CreatePasteProps {

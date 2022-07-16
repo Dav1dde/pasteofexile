@@ -2,11 +2,11 @@ use crate::{
     components::{PasteToolbox, PasteToolboxProps},
     future::LocalBoxFuture,
     memo_cond,
-    model::{PasteSummary, UserPasteId},
     router::RoutedComponent,
     utils::{if_browser, pretty_date},
     Meta, Result,
 };
+use shared::model::{PasteSummary, UserPasteId};
 use std::rc::Rc;
 use sycamore::prelude::*;
 

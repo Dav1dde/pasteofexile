@@ -1,28 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct PasteSummary {
-    pub id: String,
-    pub user: Option<String>,
-    pub title: String,
-    pub ascendancy: String,
-    pub version: String,
-    pub main_skill_name: String,
-    pub last_modified: u64,
-}
-
-impl PasteSummary {
-    pub(crate) fn to_url(&self) -> String {
-        if let Some(ref user) = self.user {
-            format!("/u/{user}/{}", self.id)
-        } else {
-            format!("/{}", self.id)
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserPasteId {
     pub user: String,
     pub id: String,
@@ -51,7 +30,7 @@ impl UserPasteId {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum PasteId {
     // TODO: newtype for this?
@@ -60,12 +39,26 @@ pub enum PasteId {
 }
 
 impl PasteId {
-    pub fn id(id: String) -> Self {
+    pub fn new_id(id: String) -> Self {
         Self::Paste(id)
     }
 
-    pub fn user(user: String, id: String) -> Self {
+    pub fn new_user(user: String, id: String) -> Self {
         Self::UserPaste(UserPasteId { user, id })
+    }
+
+    pub fn id(&self) -> &str {
+        match self {
+            Self::Paste(id) => id,
+            Self::UserPaste(up) => &up.id,
+        }
+    }
+
+    pub fn user(&self) -> Option<&str> {
+        match self {
+            Self::Paste(_) => None,
+            Self::UserPaste(up) => Some(&up.user),
+        }
     }
 
     pub fn to_raw_url(&self) -> String {
@@ -113,7 +106,7 @@ impl FromStr for PasteId {
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let r = s
             .split_once(':')
-            .map(|(user, id)| Self::user(user.to_owned(), id.to_owned()))
+            .map(|(user, id)| Self::new_user(user.to_owned(), id.to_owned()))
             .unwrap_or_else(|| Self::Paste(s.to_owned()));
         Ok(r)
     }
