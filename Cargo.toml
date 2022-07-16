@@ -2,6 +2,7 @@
 members = [
     "app",
     "pob",
+    "shared",
     "worker"
 ]
 

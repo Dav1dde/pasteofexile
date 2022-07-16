@@ -1,4 +1,5 @@
-use crate::{async_callback, memo, memo_cond, model::UserPasteId, session::SessionValue, svg};
+use crate::{async_callback, memo, memo_cond, session::SessionValue, svg};
+use shared::model::UserPasteId;
 use sycamore::{context::use_context, prelude::*};
 
 pub struct PasteToolboxProps {

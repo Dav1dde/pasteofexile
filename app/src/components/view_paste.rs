@@ -2,10 +2,10 @@ use crate::{
     async_callback,
     components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
     memo,
-    model::PasteId,
     pob::{self, Element},
 };
 use ::pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
+use shared::model::PasteId;
 use std::rc::Rc;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;

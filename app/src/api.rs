@@ -1,9 +1,7 @@
-use crate::{
-    model::{PasteId, PasteSummary},
-    Error, Result,
-};
+use crate::{Error, Result};
 use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
+use shared::model::{PasteId, PasteSummary};
 
 #[derive(Debug, Deserialize)]
 pub struct PasteResponse {

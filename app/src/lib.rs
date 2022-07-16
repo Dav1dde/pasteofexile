@@ -7,7 +7,6 @@ mod context;
 mod error;
 mod future;
 mod meta;
-pub mod model;
 mod pages;
 pub mod pob;
 mod response_context;

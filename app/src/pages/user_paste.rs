@@ -2,13 +2,12 @@ use crate::{
     components::{PasteToolbox, PasteToolboxProps, ViewPaste, ViewPasteProps},
     effect,
     future::LocalBoxFuture,
-    meta,
-    model::UserPasteId,
-    pob,
+    meta, pob,
     router::RoutedComponent,
     svg, Meta, Result,
 };
 use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
+use shared::model::{PasteId, UserPasteId};
 use std::rc::Rc;
 use sycamore::prelude::*;
 
@@ -49,8 +48,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         Box::pin(async move {
             // TODO: get rid of these clones
             let content =
-                crate::api::get_paste(&crate::model::PasteId::user(user.clone(), id.clone()))
-                    .await?;
+                crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
             let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
             Ok(Data {
                 id: UserPasteId { user, id },

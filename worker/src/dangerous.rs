@@ -55,7 +55,7 @@ impl Dangerous {
 
     #[allow(dead_code)] // TODO remove me
     pub async fn verify<T: DeserializeOwned>(&self, data: &str) -> Result<T> {
-        let (payload, signature) = data.rsplit_once('.').unwrap();
+        let (payload, signature) = data.rsplit_once('.').ok_or(DangerousError::BadEncoding)?;
 
         let mut signature = base64::decode_config(signature, base64::URL_SAFE_NO_PAD)
             .map_err(|_| DangerousError::BadEncoding)?;

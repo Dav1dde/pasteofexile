@@ -5,7 +5,7 @@ use crate::{
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
-use std::{fmt, str::FromStr};
+use shared::model::{PasteId, PasteMetadata};
 use sycamore_router::Route;
 use worker::{Context, Env, Headers, Method, Request, Response};
 
@@ -33,6 +33,10 @@ enum GetEndpoints {
     Paste(String),
     #[to("/u/<name>/<id>/raw")]
     UserPaste(String, String),
+    #[to("/<id>/json")]
+    PasteJson(String),
+    #[to("/u/<name>/<id>/json")]
+    UserPasteJson(String, String),
     #[to("/pob/<id>")]
     PobPaste(String),
     #[to("/login")]
@@ -73,12 +77,25 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     } else if req.method() == Method::Get {
         match GetEndpoints::match_path(&req.path()) {
             GetEndpoints::User(user) => handle_user(env, user).await.map(Some),
-            GetEndpoints::Paste(id) | GetEndpoints::PobPaste(id) => {
-                handle_download(env, PasteId::Paste(id)).await.map(Some)
-            }
-            GetEndpoints::UserPaste(user, id) => handle_download(env, PasteId::UserPaste(user, id))
+            GetEndpoints::PobPaste(id) => handle_download_text(env, PasteId::Paste(id))
                 .await
                 .map(Some),
+            GetEndpoints::Paste(id) => handle_download_text(env, PasteId::Paste(id))
+                .await
+                .map(Some),
+            GetEndpoints::UserPaste(user, id) => {
+                handle_download_text(env, PasteId::new_user(user, id))
+                    .await
+                    .map(Some)
+            }
+            GetEndpoints::PasteJson(id) => handle_download_json(env, PasteId::Paste(id))
+                .await
+                .map(Some),
+            GetEndpoints::UserPasteJson(user, id) => {
+                handle_download_json(env, PasteId::new_user(user, id))
+                    .await
+                    .map(Some)
+            }
             GetEndpoints::Login() => handle_login(req, env).await.map(Some),
             GetEndpoints::Oauht2Poe() => handle_oauth2_poe(req, env).await.map(Some),
             GetEndpoints::NotFound => Ok(None),
@@ -93,110 +110,35 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     }
 }
 
-// TODO: use app::model::PasteId
-#[derive(Deserialize)]
-#[serde(untagged)]
-pub enum PasteId {
-    Paste(String),
-    UserPaste(String, String),
-}
-
-impl PasteId {
-    pub fn to_path(&self) -> Result<String> {
-        match self {
-            Self::Paste(id) => Ok(utils::to_path(id)?),
-            Self::UserPaste(user, id) => Ok(format!("user/{user}/pastes/{id}")),
-        }
-    }
-
-    pub fn unwrap_paste(self) -> String {
-        match self {
-            Self::Paste(id) => id,
-            _ => panic!("unwrap_paste"),
-        }
-    }
-
-    pub fn unwrap_user_paste(self) -> (String, String) {
-        match self {
-            Self::UserPaste(user, id) => (user, id),
-            _ => panic!("unwrap_paste"),
-        }
-    }
-
-    pub fn user(&self) -> Option<&str> {
-        match self {
-            Self::UserPaste(user, _) => Some(user),
-            _ => None,
-        }
-    }
-
-    pub fn id(&self) -> &str {
-        match self {
-            Self::UserPaste(_, id) => id,
-            Self::Paste(id) => id,
-        }
-    }
-}
-
-impl fmt::Display for PasteId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Paste(id) => write!(f, "{id}"),
-            Self::UserPaste(user, id) => write!(f, "{user}:{id}"),
-        }
-    }
-}
-
-impl FromStr for PasteId {
-    type Err = crate::Error;
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let r = s
-            .split_once(':')
-            .map(|(user, id)| Self::UserPaste(user.to_owned(), id.to_owned()))
-            .unwrap_or_else(|| Self::Paste(s.to_owned()));
-        Ok(r)
-    }
-}
-
-async fn handle_download(env: &Env, id: PasteId) -> Result<Response> {
-    let path = id.to_path()?;
-
-    let response = env
+async fn handle_download_text(env: &Env, id: PasteId) -> Result<Response> {
+    let paste = env
         .storage()?
-        .get(&path)
+        .get(&id)
         .await?
         .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
 
-    response
+    worker::Response::ok(paste.content)?
         .with_headers(Headers::new())
         .with_content_type("text/plain")?
         .cache_for(31536000)
 }
 
+async fn handle_download_json(env: &Env, id: PasteId) -> Result<Response> {
+    let paste = env
+        .storage()?
+        .get(&id)
+        .await?
+        .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
+
+    worker::Response::from_json(&paste)?
+        .with_headers(Headers::new())
+        .with_content_type("application/json")?
+        .cache_for(31536000)
+}
+
 async fn handle_delete_paste(env: &Env, id: PasteId) -> Result<Response> {
-    env.storage()?.delete(&id.to_path()?).await?;
+    env.storage()?.delete(&id).await?;
     Ok(Response::empty()?)
-}
-
-#[derive(Default, Debug, Deserialize, Serialize)]
-pub struct PasteMetadata {
-    pub title: String,
-    pub ascendancy: Option<String>,
-    pub version: Option<String>,
-    pub main_skill_name: Option<String>,
-    pub last_modified: u64,
-}
-
-impl PasteMetadata {
-    fn new(pob: &SerdePathOfBuilding) -> Self {
-        Self {
-            title: app::pob::title(pob),
-            ascendancy: pob.ascendancy_name().map(String::from),
-            version: pob.max_tree_version(),
-            main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),
-            last_modified: worker::Date::now().as_millis(),
-        }
-    }
 }
 
 #[derive(Serialize)]
@@ -209,9 +151,9 @@ impl UploadResponse {
     fn new(id: PasteId) -> Self {
         match id {
             PasteId::Paste(id) => Self { id, user: None },
-            PasteId::UserPaste(user, id) => Self {
-                id,
-                user: Some(user),
+            PasteId::UserPaste(up) => Self {
+                id: up.id,
+                user: Some(up.user),
             },
         }
     }
@@ -233,7 +175,7 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
     let mut content = data.content.into_bytes();
 
     let pob = validate_pob(&content)?;
-    let mut metadata = PasteMetadata::new(&pob);
+    let mut metadata = to_metadata(&pob);
 
     let sha1 = crypto::sha1(&mut content).await?;
 
@@ -254,7 +196,7 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
 
             id
         } else {
-            PasteId::UserPaste(session.name, utils::random_string::<9>()?)
+            PasteId::new_user(session.name, utils::random_string::<9>()?)
         }
     } else {
         validate_access!(data.id.is_none());
@@ -264,11 +206,9 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
         PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
     };
 
-    let filename = id.to_path()?;
-
-    log::debug!("--> uploading paste '{}' to '{}'", id, filename);
+    log::debug!("--> uploading paste '{}'", id);
     env.storage()?
-        .put(&filename, &sha1, &mut content, Some(metadata))
+        .put(&id, &sha1, &mut content, Some(metadata))
         .await?;
     log::debug!("<-- paste uploaded");
 
@@ -284,19 +224,18 @@ async fn handle_pob_upload(ctx: &Context, req: &mut Request, env: &Env) -> Resul
     let mut data = req.bytes().await?;
 
     let pob = validate_pob(&data)?;
-    let metadata = PasteMetadata::new(&pob);
+    let metadata = to_metadata(&pob);
 
     let sha1 = crypto::sha1(&mut data).await?;
-    let id = utils::hash_to_short_id(&sha1, 9)?;
-    let filename = utils::to_path(&id)?;
+    let id = PasteId::new_id(utils::hash_to_short_id(&sha1, 9)?);
 
-    log::debug!("--> uploading paste '{}' to '{}'", id, filename);
+    log::debug!("--> uploading paste '{}'", id);
     env.storage()?
-        .put_async(ctx, filename, &sha1, data, Some(metadata))
+        .put_async(ctx, &id, &sha1, data, Some(metadata))
         .await?;
     log::debug!("<-- paste uploaing ...");
 
-    Ok(Response::ok(id)?)
+    Ok(Response::ok(id.to_string())?)
 }
 
 fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
@@ -314,26 +253,35 @@ fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
     SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e.to_string(), s))
 }
 
+fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
+    PasteMetadata {
+        title: app::pob::title(pob),
+        ascendancy: pob.ascendancy_name().map(String::from),
+        version: pob.max_tree_version(),
+        main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),
+    }
+}
+
 async fn handle_user(env: &Env, user: String) -> Result<Response> {
     let mut pastes = env
         .storage()?
         .list(format!("user/{user}/pastes/"))
         .await?
         .into_iter()
-        .map(|item: crate::storage::ListItem<PasteMetadata>| {
+        .map(|item| {
             let metadata = item.metadata.unwrap_or_default();
             let id = item.name.rsplit_once('/').unwrap().1.to_owned();
 
             // TODO: properly do this
             // TODO: code duplication with lib.rs
-            app::model::PasteSummary {
+            shared::model::PasteSummary {
                 id,
                 user: Some(user.clone()),
                 title: metadata.title,
                 ascendancy: metadata.ascendancy.unwrap_or_default(),
                 version: metadata.version.unwrap_or_default(),
                 main_skill_name: metadata.main_skill_name.unwrap_or_default(),
-                last_modified: metadata.last_modified,
+                last_modified: item.last_modified,
             }
         })
         .collect::<Vec<_>>();

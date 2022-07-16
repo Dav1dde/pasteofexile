@@ -1,10 +1,10 @@
 use crate::{
     components::{CreatePaste, CreatePasteProps},
     future::LocalBoxFuture,
-    model::UserPasteId,
     router::RoutedComponent,
     Meta, Result,
 };
+use shared::model::UserPasteId;
 use sycamore::prelude::*;
 
 pub struct Data {
@@ -37,7 +37,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
     }
 
     fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
-        let id = crate::model::PasteId::user(user, id);
+        let id = shared::model::PasteId::new_user(user, id);
         Box::pin(async move {
             let content = crate::api::get_paste(&id).await?;
             Ok(Data {
