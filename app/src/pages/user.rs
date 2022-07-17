@@ -3,7 +3,7 @@ use crate::{
     future::LocalBoxFuture,
     memo_cond,
     router::RoutedComponent,
-    utils::{if_browser, pretty_date},
+    utils::{find_attribute, if_browser, pretty_date},
     Meta, Result,
 };
 use shared::model::{PasteSummary, UserPasteId};
@@ -26,13 +26,7 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
     }
 
     fn from_hydration(name: Self::RouteArg, element: web_sys::Element) -> Result<Data> {
-        let ssr = element
-            .query_selector("[data-ssr]")
-            .unwrap()
-            .unwrap()
-            .get_attribute("data-ssr")
-            .unwrap_or_default();
-
+        let ssr = find_attribute(&element, "data-ssr").unwrap_or_default();
         // TODO: maybe custom encoding instead of base64, just swap " and @ (a different character)
         let ssr = base64::decode_config(ssr, base64::URL_SAFE_NO_PAD).expect("b64 decode");
         let ssr = String::from_utf8(ssr).expect("utf8");
@@ -66,7 +60,7 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
 }
 
 #[component(UserPage<G>)]
-pub fn user_page(Data { pastes, .. }: Data) -> View<G> {
+pub fn user_page(Data { name, pastes }: Data) -> View<G> {
     let data_ssr = if_browser!({ String::new() }, {
         base64::encode_config(
             serde_json::to_string(&pastes).unwrap(),
@@ -82,6 +76,10 @@ pub fn user_page(Data { pastes, .. }: Data) -> View<G> {
     let p = View::new_fragment(p);
 
     view! {
+        h1(class="text-amber-50 text-xl mb-4") {
+            span { (name) }
+            span { "'s builds" }
+        }
         div(data-ssr=data_ssr,
             class="flex flex-col gap-2") {
             (p)

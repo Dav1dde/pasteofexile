@@ -4,6 +4,20 @@ mod id;
 
 pub use id::*;
 
+#[derive(Debug)]
+pub struct ListPaste {
+    pub name: String, // TODO: this should be a PasteId I think
+    pub metadata: Option<PasteMetadata>,
+    pub last_modified: u64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Paste {
+    pub metadata: Option<PasteMetadata>,
+    pub last_modified: u64,
+    pub content: String,
+}
+
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,

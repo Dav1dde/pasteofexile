@@ -1,7 +1,7 @@
 use crate::{Error, Result};
 use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
-use shared::model::{PasteId, PasteSummary};
+use shared::model::{Paste, PasteId, PasteSummary};
 
 #[derive(Debug, Deserialize)]
 pub struct PasteResponse {
@@ -37,8 +37,8 @@ pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
     Ok(resp.json::<PasteResponse>().await?)
 }
 
-pub async fn get_paste(id: &PasteId) -> Result<String> {
-    let path = id.to_raw_url();
+pub async fn get_paste(id: &PasteId) -> Result<Paste> {
+    let path = id.to_json_url();
     let resp = Request::get(&path).send().await?;
 
     if resp.status() == 404 {
@@ -49,7 +49,7 @@ pub async fn get_paste(id: &PasteId) -> Result<String> {
         return Err(handle_error_response(resp).await);
     }
 
-    Ok(resp.text().await?)
+    Ok(resp.json().await?)
 }
 
 #[cfg(not(feature = "ssr"))]

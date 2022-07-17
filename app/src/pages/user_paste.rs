@@ -4,7 +4,9 @@ use crate::{
     future::LocalBoxFuture,
     meta, pob,
     router::RoutedComponent,
-    svg, Meta, Result,
+    svg,
+    utils::find_text,
+    Meta, Result,
 };
 use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
 use shared::model::{PasteId, UserPasteId};
@@ -13,6 +15,7 @@ use sycamore::prelude::*;
 
 pub struct Data {
     id: UserPasteId,
+    title: Option<String>,
     content: String,
     pob: Rc<SerdePathOfBuilding>,
 }
@@ -24,21 +27,20 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         let paste = ctx.get_paste().unwrap();
         Ok(Data {
             id: UserPasteId { user, id },
+            title: paste.metadata().map(|m| m.title.to_owned()),
             content: paste.content().to_owned(),
             pob: paste.path_of_building()?,
         })
     }
 
     fn from_hydration((user, id): Self::RouteArg, element: web_sys::Element) -> Result<Data> {
-        let content = element
-            .query_selector("textarea")
-            .unwrap()
-            .unwrap()
-            .inner_html();
+        let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
+        let title = find_text(&element, "[data-marker-title]");
 
         let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
         Ok(Data {
             id: UserPasteId { user, id },
+            title,
             content,
             pob,
         })
@@ -47,12 +49,12 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
     fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
         Box::pin(async move {
             // TODO: get rid of these clones
-            let content =
-                crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
-            let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
+            let paste = crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
+            let pob = Rc::new(SerdePathOfBuilding::from_export(&paste.content)?);
             Ok(Data {
                 id: UserPasteId { user, id },
-                content,
+                title: paste.metadata.map(|x| x.title),
+                content: paste.content,
                 pob,
             })
         })
@@ -84,7 +86,14 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
 }
 
 #[component(UserPastePage<G>)]
-pub fn user_paste_page(Data { id, content, pob }: Data) -> View<G> {
+pub fn user_paste_page(
+    Data {
+        id,
+        title,
+        content,
+        pob,
+    }: Data,
+) -> View<G> {
     let deleted = Signal::new(false);
 
     let back_to_user = id.to_user_url();
@@ -97,6 +106,7 @@ pub fn user_paste_page(Data { id, content, pob }: Data) -> View<G> {
     let name = id.user.clone();
     let props = ViewPasteProps {
         id: id.into(),
+        title,
         content,
         pob,
     };

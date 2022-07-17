@@ -3,8 +3,7 @@ use crate::{
     utils::{b64_decode, b64_encode},
     Error, Result,
 };
-use serde::Serialize;
-use shared::model::{PasteId, PasteMetadata};
+use shared::model::{ListPaste, Paste, PasteId, PasteMetadata};
 
 pub mod b2;
 
@@ -12,20 +11,6 @@ pub mod b2;
 pub type DefaultStorage = B2Storage;
 #[cfg(feature = "use-kv-storage")]
 pub type DefaultStorage = KvStorage;
-
-#[derive(Debug)]
-pub struct ListPaste {
-    pub name: String, // TODO: this should be a PasteId I think
-    pub metadata: Option<PasteMetadata>,
-    pub last_modified: u64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Paste {
-    pub metadata: Option<PasteMetadata>,
-    pub last_modified: u64,
-    pub content: String,
-}
 
 #[allow(dead_code)]
 pub struct B2Storage {
