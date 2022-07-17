@@ -1,7 +1,7 @@
 use crate::Route;
 use lazycell::LazyCell;
 use pob::SerdePathOfBuilding;
-use shared::model::{PasteSummary, UserPasteId};
+use shared::model::{PasteMetadata, PasteSummary, UserPasteId};
 use std::rc::Rc;
 
 struct ContextInner {
@@ -46,13 +46,14 @@ impl Context {
         }
     }
 
-    pub fn paste(host: String, name: String, content: String) -> Self {
+    pub fn paste(host: String, name: String, paste: shared::model::Paste) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::Paste(name)),
                 host,
                 inner: Inner::Paste(Paste {
-                    content,
+                    metadata: paste.metadata,
+                    content: paste.content,
                     pob: LazyCell::new(),
                 }),
             }),
@@ -69,26 +70,28 @@ impl Context {
         }
     }
 
-    pub fn user_paste(host: String, up: UserPasteId, content: String) -> Self {
+    pub fn user_paste(host: String, up: UserPasteId, paste: shared::model::Paste) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::UserPaste(up.user, up.id)),
                 host,
                 inner: Inner::Paste(Paste {
-                    content,
+                    metadata: paste.metadata,
+                    content: paste.content,
                     pob: LazyCell::new(),
                 }),
             }),
         }
     }
 
-    pub fn user_paste_edit(host: String, up: UserPasteId, content: String) -> Self {
+    pub fn user_paste_edit(host: String, up: UserPasteId, paste: shared::model::Paste) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::UserEditPaste(up.user, up.id)),
                 host,
                 inner: Inner::Paste(Paste {
-                    content,
+                    metadata: paste.metadata,
+                    content: paste.content,
                     pob: LazyCell::new(),
                 }),
             }),
@@ -120,6 +123,7 @@ impl Context {
 }
 
 pub struct Paste {
+    metadata: Option<PasteMetadata>,
     content: String,
     pob: LazyCell<Rc<SerdePathOfBuilding>>,
 }
@@ -127,6 +131,10 @@ pub struct Paste {
 impl Paste {
     pub fn content(&self) -> &str {
         &self.content
+    }
+
+    pub fn metadata(&self) -> Option<&PasteMetadata> {
+        self.metadata.as_ref()
     }
 
     pub fn path_of_building(&self) -> anyhow::Result<Rc<SerdePathOfBuilding>> {

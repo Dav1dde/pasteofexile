@@ -24,6 +24,10 @@ impl UserPasteId {
         format!("/u/{}/{}/raw", self.user, self.id)
     }
 
+    pub fn to_json_url(&self) -> String {
+        format!("/u/{}/{}/json", self.user, self.id)
+    }
+
     pub fn to_pob_open_url(&self) -> String {
         // TODO: implement this in pob
         format!("pob://pobbin/{}:{}", self.user, self.id)
@@ -66,6 +70,14 @@ impl PasteId {
             // TODO: use Display here?
             Self::Paste(id) => format!("/{id}/raw"),
             Self::UserPaste(up) => up.to_raw_url(),
+        }
+    }
+
+    pub fn to_json_url(&self) -> String {
+        match self {
+            // TODO: use Display here?
+            Self::Paste(id) => format!("/{id}/json"),
+            Self::UserPaste(up) => up.to_json_url(),
         }
     }
 

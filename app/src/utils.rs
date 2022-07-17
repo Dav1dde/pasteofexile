@@ -120,6 +120,22 @@ pub fn from_ref<G: GenericNode, T: JsCast>(node_ref: &NodeRef<G>) -> T {
     }
 }
 
+pub fn find_text(element: &web_sys::Element, selector: &str) -> Option<String> {
+    element
+        .query_selector(selector)
+        .ok()
+        .flatten()
+        .and_then(|e| e.text_content())
+}
+
+pub fn find_attribute(element: &web_sys::Element, attribute: &str) -> Option<String> {
+    element
+        .query_selector(&format!("[{attribute}]"))
+        .ok()
+        .flatten()
+        .and_then(|e| e.get_attribute(attribute))
+}
+
 pub fn pretty_date(diff_in_ms: i64) -> String {
     if diff_in_ms < 0 {
         return String::new();

@@ -32,7 +32,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
             // TODO: handle 404
 
             if let Some(paste) = env.storage()?.get(&id).await? {
-                Context::paste(host, id.to_string(), paste.content)
+                Context::paste(host, id.to_string(), paste)
             } else {
                 Context::not_found(host)
             }
@@ -68,7 +68,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
             // TODO: handle 404
 
             if let Some(paste) = env.storage()?.get(&id).await? {
-                Context::user_paste(host, id.unwrap_user(), paste.content)
+                Context::user_paste(host, id.unwrap_user(), paste)
             } else {
                 Context::not_found(host)
             }
@@ -78,7 +78,7 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
             // TODO: handle 404
 
             if let Some(paste) = env.storage()?.get(&id).await? {
-                Context::user_paste_edit(host, id.unwrap_user(), paste.content)
+                Context::user_paste_edit(host, id.unwrap_user(), paste)
             } else {
                 Context::not_found(host)
             }

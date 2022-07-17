@@ -5,7 +5,11 @@ use sycamore::{context::use_context, prelude::*};
 
 pub enum CreatePasteProps {
     None,
-    Update { id: UserPasteId, content: String },
+    Update {
+        id: UserPasteId,
+        content: String,
+        title: Option<String>,
+    },
 }
 
 impl CreatePasteProps {
@@ -13,6 +17,14 @@ impl CreatePasteProps {
         match self {
             // TODO: should be able to get rid of that clone
             Self::Update { content, .. } => Some(content.clone()),
+            _ => None,
+        }
+    }
+
+    fn title(&self) -> Option<String> {
+        match self {
+            // TODO: should be able to get rid of that clone
+            Self::Update { title, .. } => title.clone(),
             _ => None,
         }
     }
@@ -44,7 +56,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
     let loading = Signal::new(false);
     let error = Signal::new(String::new());
     let as_user = Signal::new(is_update);
-    let custom_title = Signal::new(String::new());
+    let custom_title = Signal::new(props.title().unwrap_or_default());
 
     let session = use_context::<SessionValue>();
 

@@ -13,6 +13,7 @@ use web_sys::HtmlTextAreaElement;
 
 pub struct ViewPasteProps {
     pub id: PasteId,
+    pub title: Option<String>,
     pub content: String,
     pub pob: Rc<SerdePathOfBuilding>,
 }
@@ -38,8 +39,15 @@ impl CopyState {
 }
 
 #[component(ViewPaste<G>)]
-pub fn view_paste(ViewPasteProps { id, content, pob }: ViewPasteProps) -> View<G> {
-    let title = pob::title(&*pob);
+pub fn view_paste(
+    ViewPasteProps {
+        id,
+        title,
+        content,
+        pob,
+    }: ViewPasteProps,
+) -> View<G> {
+    let title = title.unwrap_or_else(|| pob::title(&*pob));
 
     let version = pob.max_tree_version().unwrap_or_default();
 
@@ -137,7 +145,7 @@ pub fn view_paste(ViewPasteProps { id, content, pob }: ViewPasteProps) -> View<G
                         width=50, height=50,
                         class="rounded-full mr-3 -ml-2",
                         onerror="this.style.display='none'") {}
-                    span(class="pt-[3px]") { (title) }
+                    span(class="pt-[3px]", data-marker-title="") { (title) }
                     sup(class="ml-1") { (version) }
                 }
                 (summary)
@@ -147,6 +155,7 @@ pub fn view_paste(ViewPasteProps { id, content, pob }: ViewPasteProps) -> View<G
                     ref=content_ref,
                     on:click=select_all,
                     class="flex-auto resize-none text-sm break-all outline-none max-h-40 min-h-[5rem] dark:bg-slate-600 bg-slate-200 dark:text-slate-300 text-slate-700 rounded-sm shadow-sm pl-1",
+                    data-marker-content="",
                     readonly=true
                 ) {
                     (content)
