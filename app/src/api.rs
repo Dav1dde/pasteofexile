@@ -25,6 +25,7 @@ pub struct CreatePaste<'a> {
 
 #[allow(dead_code)] // Only used in !SSR
 pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
+    let _in_flight = crate::progress::start_request();
     let resp = Request::post("/api/internal/paste/")
         .body(serde_json::to_string(&content)?)
         .send()
@@ -38,7 +39,9 @@ pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
 }
 
 pub async fn get_paste(id: &PasteId) -> Result<Paste> {
+    let _in_flight = crate::progress::start_request();
     let path = id.to_json_url();
+
     let resp = Request::get(&path).send().await?;
 
     if resp.status() == 404 {
@@ -54,6 +57,7 @@ pub async fn get_paste(id: &PasteId) -> Result<Paste> {
 
 #[cfg(not(feature = "ssr"))]
 pub async fn delete_paste(id: &PasteId) -> Result<()> {
+    let _in_flight = crate::progress::start_request();
     let resp = Request::delete(&format!("/api/internal/paste/{id}"))
         .send()
         .await?;
@@ -66,6 +70,7 @@ pub async fn delete_paste(id: &PasteId) -> Result<()> {
 }
 
 pub async fn get_user(user: &str) -> Result<Vec<PasteSummary>> {
+    let _in_flight = crate::progress::start_request();
     let resp = Request::get(&format!("/api/internal/user/{user}"))
         .send()
         .await?;

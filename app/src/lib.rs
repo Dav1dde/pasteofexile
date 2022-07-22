@@ -9,6 +9,7 @@ mod future;
 mod meta;
 mod pages;
 pub mod pob;
+mod progress;
 mod response_context;
 mod router;
 mod session;
@@ -59,6 +60,7 @@ pub fn app(ctx: Option<Context>) -> View<G> {
     };
 
     view! {
+        progress::Progress()
         session::SessionWrapper(|| view! {
             div {
                 nav(class="flex justify-between	p-4 lg:px-8 mb-10 bg-slate-200 dark:bg-slate-900 dark:drop-shadow-lg") {
