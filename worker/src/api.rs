@@ -37,8 +37,15 @@ enum GetEndpoints {
     PasteJson(String),
     #[to("/u/<name>/<id>/json")]
     UserPasteJson(String, String),
+    /// Path of Building endpoint for importing builds.
+    /// This supports the anonymous and user scoped paste IDs.
+    /// User scoped paste IDs are used in `pob://` protocol links.
+    /// Anonymous paste IDs are coming from importing an anonymous build URL in PoB.
     #[to("/pob/<id>")]
-    PobPaste(String),
+    PobPaste(PasteId),
+    /// Path of Building endpoint for importing user paste URLs.
+    #[to("/pob/u/<name>/<id>")]
+    PobUserPaste(String, String),
     #[to("/login")]
     Login(),
     #[to("/oauth2/authorization/poe")]
@@ -77,9 +84,12 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     } else if req.method() == Method::Get {
         match GetEndpoints::match_path(&req.path()) {
             GetEndpoints::User(user) => handle_user(env, user).await.map(Some),
-            GetEndpoints::PobPaste(id) => handle_download_text(env, PasteId::Paste(id))
-                .await
-                .map(Some),
+            GetEndpoints::PobPaste(id) => handle_download_text(env, id).await.map(Some),
+            GetEndpoints::PobUserPaste(user, id) => {
+                handle_download_text(env, PasteId::new_user(user, id))
+                    .await
+                    .map(Some)
+            }
             GetEndpoints::Paste(id) => handle_download_text(env, PasteId::Paste(id))
                 .await
                 .map(Some),

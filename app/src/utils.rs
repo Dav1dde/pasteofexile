@@ -89,12 +89,12 @@ macro_rules! async_callback {
 }
 
 macro_rules! if_browser {
-    ({ $($browser:tt)* }, { $($server:tt)* }) => {{
-        #[cfg(not(feature = "ssr"))] { $($browser)* }
-        #[cfg(feature = "ssr")] { $($server)* }
+    ($browser:expr, $server:expr) => {{
+        #[cfg(not(feature = "ssr"))] { $browser }
+        #[cfg(feature = "ssr")] { $server }
     }};
-    { $($browser:tt)* } => {{
-        #[cfg(not(feature = "ssr"))] { $($browser)* }
+    { $browser:expr } => {{
+        #[cfg(not(feature = "ssr"))] { $browser }
     }};
 }
 pub(crate) use if_browser;

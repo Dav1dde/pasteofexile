@@ -61,17 +61,26 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
 
 #[component(UserPage<G>)]
 pub fn user_page(Data { name, pastes }: Data) -> View<G> {
-    let data_ssr = if_browser!({ String::new() }, {
+    let data_ssr = if_browser!(
+        String::new(),
         base64::encode_config(
             serde_json::to_string(&pastes).unwrap(),
             base64::URL_SAFE_NO_PAD,
         )
-    });
+    );
 
     let p = pastes
         .into_iter()
         .map(Rc::new)
-        .map(summary_to_view)
+        .map(|summary| {
+            let deleted = Signal::new(false);
+            let content = memo_cond!(
+                deleted,
+                view! {},
+                summary_to_view(summary.clone(), deleted.clone())
+            );
+            view! { (&*content.get()) }
+        })
         .collect();
     let p = View::new_fragment(p);
 
@@ -87,11 +96,13 @@ pub fn user_page(Data { name, pastes }: Data) -> View<G> {
     }
 }
 
-fn summary_to_view<G: GenericNode + Html>(summary: Rc<PasteSummary>) -> View<G> {
-    let deleted = Signal::new(false);
-
+fn summary_to_view<G: GenericNode + Html>(
+    summary: Rc<PasteSummary>,
+    on_delete: Signal<bool>,
+) -> View<G> {
     let url = summary.to_url();
-    let asc = crate::assets::ascendancy_image(&summary.ascendancy).unwrap_or("");
+    let image = crate::assets::ascendancy_image(&summary.ascendancy).unwrap_or("");
+    let color = crate::meta::get_color(&summary.ascendancy);
 
     let id = UserPasteId {
         id: summary.id.clone(),
@@ -109,18 +120,14 @@ fn summary_to_view<G: GenericNode + Html>(summary: Rc<PasteSummary>) -> View<G> 
     let summary2 = summary.clone();
     let summary3 = summary.clone();
 
-    let toolbox = PasteToolboxProps {
-        id,
-        on_delete: deleted.clone(),
-    };
-
-    // TODO: don't just hide the element, remove it
-    let css = memo_cond!(deleted, "hidden", "p-3 even:bg-slate-700");
+    let toolbox = PasteToolboxProps { id, on_delete };
 
     view! {
-        div(class=*css.get()) {
+        div(class="p-3 even:bg-slate-700 border-solid hover:border-l-4",
+            style=format!("border-color: {color}")
+        ) {
             div(class="flex flex-wrap gap-4 items-center") {
-                img(src=asc,
+                img(src=image,
                     width=50, height=50,
                     class="rounded-full h-min",
                     onerror="this.style.visibility='hidden'") {}

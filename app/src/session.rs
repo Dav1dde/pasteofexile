@@ -104,7 +104,7 @@ where
 
             SessionValue(signal)
         },
-        { SessionValue(Signal::new(Session::None)) }
+        SessionValue(Signal::new(Session::None))
     );
 
     view! { ContextProvider(ContextProviderProps{ value, children }) }
