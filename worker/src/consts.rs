@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::time::Duration;
+
 const ONE_KB: usize = 1024;
 
 pub const MAX_UPLOAD_SIZE: usize = 50 * ONE_KB;
@@ -20,7 +22,8 @@ pub const ENV_OAUTH_CLIENT_SECRET: &str = "OAUTH_CLIENT_SECRET";
 
 pub const OAUTH_SCOPE: &str = "account:profile";
 
-const HOUR: u32 = 3_600;
-const DAY: u32 = 24 * HOUR;
+const HOUR: u64 = 3_600;
+const DAY: u64 = 24 * HOUR;
 
-pub const CACHE_ASSETS: u32 = 2 * DAY;
+pub const CACHE_ASSETS: u64 = 2 * DAY;
+pub const CACHE_FOREVER: Duration = Duration::from_secs(31536000);

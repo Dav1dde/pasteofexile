@@ -124,12 +124,8 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     error.set(err.to_string());
                     log::info!("{:?}", err);
                 }
-                Ok(response) => {
-                    if let Some(user) = response.user {
-                        sycamore_router::navigate(&format!("/u/{}/{}", user, response.id))
-                    } else {
-                        sycamore_router::navigate(&response.id)
-                    }
+                Ok(id) => {
+                    sycamore_router::navigate(&id.to_url());
                 }
             };
         });

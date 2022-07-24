@@ -4,12 +4,6 @@ use serde::{Deserialize, Serialize};
 use shared::model::{Paste, PasteId, PasteSummary};
 
 #[derive(Debug, Deserialize)]
-pub struct PasteResponse {
-    pub id: String,
-    pub user: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct ErrorResponse {
     pub code: u16,
     pub message: String,
@@ -24,7 +18,7 @@ pub struct CreatePaste<'a> {
 }
 
 #[allow(dead_code)] // Only used in !SSR
-pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
+pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteId> {
     let _in_flight = crate::progress::start_request();
     let resp = Request::post("/api/internal/paste/")
         .body(serde_json::to_string(&content)?)
@@ -35,7 +29,7 @@ pub async fn create_paste(content: CreatePaste<'_>) -> Result<PasteResponse> {
         return Err(handle_error_response(resp).await);
     }
 
-    Ok(resp.json::<PasteResponse>().await?)
+    Ok(resp.json::<PasteId>().await?)
 }
 
 pub async fn get_paste(id: &PasteId) -> Result<Paste> {

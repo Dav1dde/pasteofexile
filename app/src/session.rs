@@ -22,6 +22,7 @@ impl Session {
         matches!(self, Self::LoggedIn(_))
     }
 
+    #[cfg(not(feature = "ssr"))]
     pub fn user(&self) -> Option<&User> {
         match self {
             Self::LoggedIn(user) => Some(user),

@@ -43,11 +43,23 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
         })
     }
 
-    fn meta(Data { name, .. }: &Data) -> Result<Meta> {
+    fn meta(Data { name, pastes }: &Data) -> Result<Meta> {
         let title = format!("{name}'s builds").into();
-        let description = format!("{name}'s builds").into();
-        // TODO: pobbin logo
-        let image = "".into();
+
+        let mut summary = pastes
+            .iter()
+            .take(3)
+            .map(|paste| format!("\u{27A4} {}", paste.title))
+            .collect::<Vec<_>>();
+        if pastes.len() > 3 {
+            summary.push(format!("\u{27A4} .. {} more builds", pastes.len() - 3));
+        }
+        if summary.is_empty() {
+            summary.push("\u{27A4} there aren't any builds yet".to_owned());
+        }
+
+        let description = summary.join("\n").into();
+        let image = crate::assets::logo().into();
         let color = "";
 
         Ok(Meta {
@@ -81,8 +93,15 @@ pub fn user_page(Data { name, pastes }: Data) -> View<G> {
             );
             view! { (&*content.get()) }
         })
-        .collect();
-    let p = View::new_fragment(p);
+        .collect::<Vec<_>>();
+
+    let p = if !p.is_empty() {
+        View::new_fragment(p)
+    } else {
+        view! {
+            span(class="text-center") { "There is nothing here .." }
+        }
+    };
 
     view! {
         h1(class="text-amber-50 text-xl mb-4") {
@@ -135,11 +154,18 @@ fn summary_to_view<G: GenericNode + Html>(
                     span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary2.version) } }
                     span() { (summary3.main_skill_name) }
                 }
-                div(class="flex-1 flex flex-col items-end justify-between gap-2 whitespace-nowrap") {
+                div(class="
+                    flex-1 sm:flex-initial flex flex-col items-end justify-between gap-2
+                    whitespace-nowrap") {
                     a(
                         href=open_in_pob_url,
                         title="Open build in Path of Building",
-                        class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer w-fit px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex hidden sm:block"
+                        class="
+                            bg-sky-500 hover:bg-sky-700 hover:cursor-pointer
+                            w-fit px-6 py-2 text-sm rounded-lg
+                            font-semibold text-white
+                            disabled:opacity-50 disabled:cursor-not-allowed inline-flex hidden sm:block
+                        "
                      ) { "Open in PoB" }
 
                     PasteToolbox(toolbox)

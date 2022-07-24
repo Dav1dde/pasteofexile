@@ -1,12 +1,12 @@
-use crate::{async_callback, memo, memo_cond, session::SessionValue, svg};
 use shared::model::UserPasteId;
-use sycamore::{context::use_context, prelude::*};
+use sycamore::prelude::*;
 
 pub struct PasteToolboxProps {
     pub id: UserPasteId,
     pub on_delete: Signal<bool>,
 }
 
+#[cfg(not(feature = "ssr"))]
 #[component(PasteToolbox<G>)]
 pub fn paste_toolbox(
     PasteToolboxProps {
@@ -14,7 +14,9 @@ pub fn paste_toolbox(
         on_delete: _on_delete,
     }: PasteToolboxProps,
 ) -> View<G> {
-    let session = use_context::<SessionValue>();
+    use crate::{async_callback, memo, memo_cond, session::SessionValue, svg};
+
+    let session = sycamore::context::use_context::<SessionValue>();
 
     let is_current_user = memo!(session, id, {
         let session = session.get();
@@ -40,16 +42,33 @@ pub fn paste_toolbox(
         }
     );
 
-    let edit_href = id.to_paste_edit_url();
+    let controls = memo_cond!(
+        is_current_user,
+        {
+            let edit_href = id.to_paste_edit_url();
+            let on_delete = on_delete.clone();
+            view! {
+                div(class="flex justify-end gap-2 h-4") {
+                    a(href=edit_href, class="cursor-pointer", title="Edit", dangerously_set_inner_html=svg::PEN) {}
+                    span(on:click=on_delete,
+                         class="text-red-600 cursor-pointer",
+                         title="Delete",
+                         dangerously_set_inner_html=svg::TRASH) {}
+                }
+            }
+        },
+        view! {}
+    );
 
-    let controls = memo_cond!(is_current_user, "flex justify-end gap-2 h-4", "hidden");
     view! {
-        div(class=*controls.get()) {
-            a(href=edit_href, class="cursor-pointer", title="Edit", dangerously_set_inner_html=svg::PEN) {}
-            span(on:click=on_delete,
-                 class="text-red-600 cursor-pointer",
-                 title="Delete",
-                 dangerously_set_inner_html=svg::TRASH) {}
-        }
+        div() { (&*controls.get()) }
+    }
+}
+
+#[cfg(feature = "ssr")]
+#[component(PasteToolbox<G>)]
+pub fn paste_toolbox(_props: PasteToolboxProps) -> View<G> {
+    view! {
+        div() {}
     }
 }

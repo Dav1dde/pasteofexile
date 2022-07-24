@@ -31,6 +31,10 @@ pub fn ascendancy_image(ascendancy_or_class: &str) -> Option<&'static str> {
     )
 }
 
+pub fn logo() -> &'static str {
+    "/apple-touch-icon.png"
+}
+
 #[cfg(test)]
 mod tests {
     use crate::assets::ascendancy_image;

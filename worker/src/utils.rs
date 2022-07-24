@@ -1,3 +1,5 @@
+use std::fmt;
+use std::time::Duration;
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
 use worker::{js_sys, worker_sys, Env, Request, Response, Result};
@@ -76,11 +78,87 @@ pub fn to_path(id: &str) -> Result<String> {
     Ok(result)
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum Cachability {
+    Public,
+    #[allow(dead_code)]
+    Private,
+    #[allow(dead_code)]
+    NoCache,
+}
+
+impl fmt::Display for Cachability {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Public => write!(f, "public"),
+            Self::Private => write!(f, "private"),
+            Self::NoCache => write!(f, "no-cache"),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Default)]
+pub struct CacheControl {
+    pub cachability: Option<Cachability>,
+    pub max_age: Option<Duration>,
+    pub s_max_age: Option<Duration>,
+}
+
+impl CacheControl {
+    pub fn cachability(mut self, cachability: Cachability) -> Self {
+        self.cachability = Some(cachability);
+        self
+    }
+
+    pub fn max_age(mut self, duration: Duration) -> Self {
+        self.max_age = Some(duration);
+        self
+    }
+
+    pub fn s_max_age(mut self, duration: Duration) -> Self {
+        self.s_max_age = Some(duration);
+        self
+    }
+
+    pub fn public(self) -> Self {
+        self.cachability(Cachability::Public)
+    }
+}
+
+impl fmt::Display for CacheControl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut need_comma = false;
+        macro_rules! w {
+            ($e:expr, $fmt:expr) => {
+                if let Some(v) = $e {
+                    if need_comma {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, $fmt, v)?;
+                    #[allow(unused_assignments)]
+                    {
+                        need_comma = true;
+                    }
+                }
+            };
+        }
+
+        w!(self.cachability, "{}");
+        w!(self.max_age.map(|d| d.as_secs()), "max-age={}");
+        w!(self.s_max_age.map(|d| d.as_secs()), "s-max-age={}");
+
+        Ok(())
+    }
+}
+
 pub trait ResponseExt: Sized {
     fn redirect2(target: &str) -> crate::Result<Self>;
 
-    fn cache_for(self, ttl: u32) -> crate::Result<Self> {
-        self.with_header("Cache-Control", &format!("max-age={}", ttl))
+    fn cache_for(self, ttl: Duration) -> crate::Result<Self> {
+        self.with_cache_control(CacheControl::default().public().max_age(ttl))
+    }
+    fn with_cache_control(self, cache_control: CacheControl) -> crate::Result<Self> {
+        self.with_header("Cache-Control", &cache_control.to_string())
     }
     fn with_content_type(self, content_type: &str) -> crate::Result<Self> {
         self.with_header("Content-Type", content_type)
@@ -88,6 +166,13 @@ pub trait ResponseExt: Sized {
     fn with_etag(self, entity_id: &str) -> crate::Result<Self> {
         let entity_id = format!("\"{}\"", entity_id.trim_matches('"'));
         self.with_header("Etag", &entity_id)
+    }
+    fn with_etag_opt(self, entity_id: Option<&str>) -> crate::Result<Self> {
+        if let Some(entity_id) = entity_id {
+            self.with_etag(entity_id)
+        } else {
+            Ok(self)
+        }
     }
     fn with_state_cookie(self, state: &str) -> crate::Result<Self> {
         self.append_header(
@@ -218,5 +303,48 @@ mod tests {
         assert!(is_valid_id("abcde"));
         assert!(is_valid_id("AZ09az-_"));
         assert!(is_valid_id("-AZ09az-_"));
+    }
+
+    #[test]
+    fn test_cache_control() {
+        assert_eq!(
+            "public",
+            CacheControl::default()
+                .cachability(Cachability::Public)
+                .to_string()
+        );
+        assert_eq!(
+            "private",
+            CacheControl::default()
+                .cachability(Cachability::Private)
+                .to_string()
+        );
+        assert_eq!(
+            "no-cache",
+            CacheControl::default()
+                .cachability(Cachability::NoCache)
+                .to_string()
+        );
+        assert_eq!(
+            "s-max-age=123",
+            CacheControl::default()
+                .s_max_age(Duration::from_secs(123))
+                .to_string()
+        );
+        assert_eq!(
+            "max-age=121, s-max-age=123",
+            CacheControl::default()
+                .max_age(Duration::from_secs(121))
+                .s_max_age(Duration::from_secs(123))
+                .to_string()
+        );
+        assert_eq!(
+            "public, max-age=121, s-max-age=123",
+            CacheControl::default()
+                .cachability(Cachability::Public)
+                .max_age(Duration::from_secs(121))
+                .s_max_age(Duration::from_secs(123))
+                .to_string()
+        );
     }
 }

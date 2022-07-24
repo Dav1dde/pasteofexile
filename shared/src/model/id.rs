@@ -28,9 +28,23 @@ impl UserPasteId {
         format!("/u/{}/{}/json", self.user, self.id)
     }
 
+    pub fn to_pob_load_url(&self) -> String {
+        // TODO: maybe get rid of this format?
+        format!("/pob/{}:{}", self.user, self.id)
+    }
+
+    pub fn to_pob_long_load_url(&self) -> String {
+        format!("/pob/u/{}/{}", self.user, self.id)
+    }
+
     pub fn to_pob_open_url(&self) -> String {
-        // TODO: implement this in pob
         format!("pob://pobbin/{}:{}", self.user, self.id)
+    }
+}
+
+impl fmt::Display for UserPasteId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.user, self.id)
     }
 }
 
@@ -62,6 +76,13 @@ impl PasteId {
         match self {
             Self::Paste(_) => None,
             Self::UserPaste(up) => Some(&up.user),
+        }
+    }
+
+    pub fn to_url(&self) -> String {
+        match self {
+            Self::Paste(id) => format!("/{id}"),
+            Self::UserPaste(up) => up.to_paste_url(),
         }
     }
 

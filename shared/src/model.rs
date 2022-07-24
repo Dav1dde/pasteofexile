@@ -15,6 +15,8 @@ pub struct ListPaste {
 pub struct Paste {
     pub metadata: Option<PasteMetadata>,
     pub last_modified: u64,
+    // TODO: there is no reason for this to be optional
+    pub entity_id: Option<String>,
     pub content: String,
 }
 

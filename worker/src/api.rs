@@ -1,10 +1,10 @@
 use crate::{
     consts, crypto, poe_api,
-    utils::{self, is_valid_id, EnvExt, RequestExt, ResponseExt},
+    utils::{self, is_valid_id, CacheControl, EnvExt, RequestExt, ResponseExt},
     Error, Result,
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use shared::model::{PasteId, PasteMetadata};
 use sycamore_router::Route;
 use worker::{Context, Env, Headers, Method, Request, Response};
@@ -112,7 +112,9 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
         }
     } else if req.method() == Method::Delete {
         match DeleteEndpoints::match_path(&req.path()) {
-            DeleteEndpoints::DeletePaste(id) => handle_delete_paste(env, id).await.map(Some),
+            DeleteEndpoints::DeletePaste(id) => {
+                handle_delete_paste(ctx, req, env, id).await.map(Some)
+            }
             DeleteEndpoints::NotFound => Ok(None),
         }
     } else {
@@ -130,7 +132,12 @@ async fn handle_download_text(env: &Env, id: PasteId) -> Result<Response> {
     worker::Response::ok(paste.content)?
         .with_headers(Headers::new())
         .with_content_type("text/plain")?
-        .cache_for(31536000)
+        .with_etag_opt(paste.entity_id.as_deref())?
+        .with_cache_control(
+            CacheControl::default()
+                .public()
+                .s_max_age(consts::CACHE_FOREVER),
+        )
 }
 
 async fn handle_download_json(env: &Env, id: PasteId) -> Result<Response> {
@@ -143,30 +150,23 @@ async fn handle_download_json(env: &Env, id: PasteId) -> Result<Response> {
     worker::Response::from_json(&paste)?
         .with_headers(Headers::new())
         .with_content_type("application/json")?
-        .cache_for(31536000)
+        .with_etag_opt(paste.entity_id.as_deref())?
+        .with_cache_control(
+            CacheControl::default()
+                .public()
+                .s_max_age(consts::CACHE_FOREVER),
+        )
 }
 
-async fn handle_delete_paste(env: &Env, id: PasteId) -> Result<Response> {
+async fn handle_delete_paste(
+    ctx: &Context,
+    req: &Request,
+    env: &Env,
+    id: PasteId,
+) -> Result<Response> {
     env.storage()?.delete(&id).await?;
+    crate::cache::on_paste_change(ctx, req, id);
     Ok(Response::empty()?)
-}
-
-#[derive(Serialize)]
-struct UploadResponse {
-    id: String,
-    user: Option<String>,
-}
-
-impl UploadResponse {
-    fn new(id: PasteId) -> Self {
-        match id {
-            PasteId::Paste(id) => Self { id, user: None },
-            PasteId::UserPaste(up) => Self {
-                id: up.id,
-                user: Some(up.user),
-            },
-        }
-    }
 }
 
 #[derive(Deserialize)]
@@ -180,7 +180,7 @@ struct UploadRequest {
     content: String,
 }
 
-async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<Response> {
+async fn handle_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Response> {
     let data = req.json::<UploadRequest>().await?;
     let mut content = data.content.into_bytes();
 
@@ -222,12 +222,11 @@ async fn handle_upload(_ctx: &Context, req: &mut Request, env: &Env) -> Result<R
         .await?;
     log::debug!("<-- paste uploaded");
 
-    let response = serde_json::to_vec(&UploadResponse::new(id))?;
-    let mut response = Response::from_bytes(response)?;
-    response
-        .headers_mut()
-        .set("Content-Type", "application/json")?;
-    Ok(response)
+    let body = serde_json::to_vec(&id)?;
+
+    crate::cache::on_paste_change(ctx, req, id);
+
+    Response::from_bytes(body)?.with_content_type("application/json")
 }
 
 async fn handle_pob_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Response> {
@@ -245,7 +244,11 @@ async fn handle_pob_upload(ctx: &Context, req: &mut Request, env: &Env) -> Resul
         .await?;
     log::debug!("<-- paste uploaing ...");
 
-    Ok(Response::ok(id.to_string())?)
+    let response = Response::ok(id.to_string())?;
+
+    crate::cache::on_paste_change(ctx, req, id);
+
+    Ok(response)
 }
 
 fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
@@ -273,6 +276,7 @@ fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
 }
 
 async fn handle_user(env: &Env, user: String) -> Result<Response> {
+    // TODO: code duplication with lib.rs
     let mut pastes = env
         .storage()?
         .list(format!("user/{user}/pastes/"))
@@ -297,8 +301,21 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
         .collect::<Vec<_>>();
     pastes.sort_unstable_by(|a, b| b.last_modified.cmp(&a.last_modified));
 
-    // TODO: caching
-    Ok(Response::from_json(&pastes)?)
+    // We can calculate the etag based on the latest entry and the total amount of entries.
+    // If something was deleted or added the count changes, if something was deleted and
+    // added to keep the count equal, the latest last modified changed.
+    let etag = pastes
+        .first()
+        .map(|f| format!("{}-{}", pastes.len(), f.last_modified))
+        .unwrap_or_else(|| "empty".to_owned());
+
+    Response::from_json(&pastes)?
+        .with_etag(&etag)?
+        .with_cache_control(
+            CacheControl::default()
+                .public()
+                .s_max_age(consts::CACHE_FOREVER),
+        )
 }
 
 async fn handle_login(req: &Request, env: &Env) -> Result<Response> {

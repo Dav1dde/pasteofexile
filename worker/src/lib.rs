@@ -1,10 +1,11 @@
 use serde::Serialize;
 use shared::model::{PasteId, PasteSummary};
-use std::future::Future;
+use std::{future::Future, time::Duration};
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
 mod api;
 mod assets;
+mod cache;
 mod consts;
 mod crypto;
 mod dangerous;
@@ -18,23 +19,50 @@ mod utils;
 pub use self::error::{Error, ErrorResponse, Result};
 use assets::EnvAssetExt;
 use sentry::Sentry;
-use utils::{EnvExt, ResponseExt};
+use utils::{CacheControl, EnvExt, ResponseExt};
 
-async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<app::Context> {
+struct ResponseInfo {
+    cache_control: CacheControl,
+    etag: Option<String>,
+}
+
+impl Default for ResponseInfo {
+    fn default() -> Self {
+        Self {
+            cache_control: CacheControl::default().max_age(Duration::from_secs(3_600)),
+            etag: None,
+        }
+    }
+}
+
+async fn build_context(
+    req: &Request,
+    env: &Env,
+    route: app::Route,
+) -> Result<(ResponseInfo, app::Context)> {
     // TODO: refactor this context garbage, maybe make it into a trait?
     let host = req.url()?.host_str().unwrap().to_owned();
     use app::{Context, Route::*};
-    let ctx = match route {
-        Index => Context::index(host),
-        NotFound => Context::not_found(host),
+    let (info, ctx) = match route {
+        Index => (ResponseInfo::default(), Context::index(host)),
+        NotFound => (ResponseInfo::default(), Context::not_found(host)),
         Paste(id) => {
             let id = PasteId::new_id(id);
             // TODO: handle 404
 
+            // We can cache this forever because we know anonymous pastes will never change
+            // For 404's this is technically incorrect, but what are the odds...
+            let mut info = ResponseInfo {
+                cache_control: CacheControl::default().max_age(consts::CACHE_FOREVER),
+                ..Default::default()
+            };
+
             if let Some(paste) = env.storage()?.get(&id).await? {
-                Context::paste(host, id.to_string(), paste)
+                info.etag = paste.entity_id.clone();
+                (info, Context::paste(host, id.to_string(), paste))
             } else {
-                Context::not_found(host)
+                info.etag = Some("not_found".to_owned());
+                (info, Context::not_found(host))
             }
         }
         User(name) => {
@@ -61,31 +89,61 @@ async fn build_context(req: &Request, env: &Env, route: app::Route) -> Result<ap
                 .collect::<Vec<_>>();
             pastes.sort_unstable_by(|a, b| b.last_modified.cmp(&a.last_modified));
 
-            Context::user(host, name, pastes)
+            // We can calculate the etag based on the latest entry and the total amount of entries.
+            // If something was deleted or added the count changes, if something was deleted and
+            // added to keep the count equal, the latest last modified changed.
+            let etag = pastes
+                .first()
+                .map(|f| format!("{}-{}", pastes.len(), f.last_modified))
+                .unwrap_or_else(|| "empty".to_owned());
+
+            let info = ResponseInfo {
+                cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
+                etag: Some(etag),
+            };
+
+            (info, Context::user(host, name, pastes))
         }
         UserPaste(user, id) => {
             let id = PasteId::new_user(user, id);
             // TODO: handle 404
 
+            let mut info = ResponseInfo {
+                cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
+                ..Default::default()
+            };
+
             if let Some(paste) = env.storage()?.get(&id).await? {
-                Context::user_paste(host, id.unwrap_user(), paste)
+                info.etag = paste.entity_id.clone();
+                (info, Context::user_paste(host, id.unwrap_user(), paste))
             } else {
-                Context::not_found(host)
+                info.etag = Some("not_found".to_owned());
+                (info, Context::not_found(host))
             }
         }
         UserEditPaste(user, id) => {
             let id = PasteId::new_user(user, id);
             // TODO: handle 404
 
+            let mut info = ResponseInfo {
+                cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
+                ..Default::default()
+            };
+
             if let Some(paste) = env.storage()?.get(&id).await? {
-                Context::user_paste_edit(host, id.unwrap_user(), paste)
+                info.etag = paste.entity_id.clone();
+                (
+                    info,
+                    Context::user_paste_edit(host, id.unwrap_user(), paste),
+                )
             } else {
-                Context::not_found(host)
+                info.etag = Some("not_found".to_owned());
+                (info, Context::not_found(host))
             }
         }
     };
 
-    Ok(ctx)
+    Ok((info, ctx))
 }
 
 #[derive(Serialize)]
@@ -170,7 +228,7 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
             provider_name: "Paste of Exile - POBb.in",
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
         };
-        return Response::from_json(&oembed)?.cache_for(12 * 3_600);
+        return Response::from_json(&oembed)?.cache_for(Duration::from_secs(12 * 3_600));
     }
 
     if let Some(response) = assets::try_handle(req, env).await? {
@@ -178,7 +236,7 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
     }
 
     let route = app::Route::resolve(&req.path());
-    let ctx = build_context(req, env, route).await?;
+    let (info, ctx) = build_context(req, env, route).await?;
 
     let (app, rctx) = app::render_to_string(ctx);
     let head = app::render_head(app::Head {
@@ -193,7 +251,8 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
 
     Response::from_html(index)?
         .with_status(rctx.status_code)
-        .cache_for(3_600)
+        .with_etag_opt(info.etag.as_deref())?
+        .with_cache_control(info.cache_control)
 }
 
 async fn cached<'a, F, Fut>(
@@ -212,7 +271,6 @@ where
     if use_cache {
         if let Some(response) = cache.get(&*req, true).await? {
             log::debug!("cache hit");
-            // TODO: 304 handling?
             return response
                 .dup_headers() // cached response has immutable headers
                 .with_header("Cf-Cache-Status", "HIT");

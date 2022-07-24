@@ -58,8 +58,7 @@ async fn serve_asset(req: &Request, env: &Env) -> Result<Response> {
 
     Response::from_bytes(value)?
         .with_content_type(get_mime(&path).unwrap_or("text/plain"))?
-        .cache_for(consts::CACHE_ASSETS)?
-        .with_etag(&path)
+        .cache_for(consts::CACHE_FOREVER)
 }
 
 #[wasm_bindgen(raw_module = "./assets.mjs")]

@@ -1,8 +1,9 @@
 use crate::{
     sentry, utils,
-    utils::{b64_decode, b64_encode},
+    utils::{b64_decode, b64_encode, hex},
     Error, Result,
 };
+use serde::{Deserialize, Serialize};
 use shared::model::{ListPaste, Paste, PasteId, PasteMetadata};
 
 pub mod b2;
@@ -40,16 +41,18 @@ impl B2Storage {
             200 => {
                 let metadata = response
                     .headers()
-                    .get("x-bz-info-metadata")
+                    .get("X-Bz-Info-Metadata")
                     .unwrap()
                     .map(b64_decode)
                     .transpose()?
                     .map(|m| serde_json::from_slice(&m))
                     .transpose()?;
 
+                let entity_id = response.headers().get("X-Bz-Content-Sha1").unwrap();
+
                 let last_modified = response
                     .headers()
-                    .get("x-bz-upload-timestamp")
+                    .get("X-Bz-Upload-Timestamp")
                     .unwrap()
                     .and_then(|x| x.parse().ok())
                     .unwrap_or(0);
@@ -59,6 +62,7 @@ impl B2Storage {
                 Ok(Some(Paste {
                     metadata,
                     last_modified,
+                    entity_id,
                     content,
                 }))
             }
@@ -158,6 +162,16 @@ impl B2Storage {
     }
 }
 
+#[derive(Default, Serialize, Deserialize)]
+struct KvMetadata {
+    #[serde(default)]
+    last_modified: u64,
+    #[serde(default)]
+    entity_id: Option<String>,
+    #[serde(flatten)]
+    metadata: Option<PasteMetadata>,
+}
+
 #[allow(dead_code)]
 pub struct KvStorage {
     kv: worker::kv::KvStore,
@@ -173,12 +187,19 @@ impl KvStorage {
 
     pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
         let path = to_path(id)?;
-        let (data, metadata) = self.kv.get(&path).text_with_metadata().await?;
+        let (data, metadata) = self
+            .kv
+            .get(&path)
+            .text_with_metadata::<KvMetadata>()
+            .await?;
+
+        let metadata = metadata.unwrap_or_default();
 
         Ok(data.map(|content| Paste {
             content,
-            metadata,
-            last_modified: 0,
+            metadata: metadata.metadata,
+            entity_id: metadata.entity_id,
+            last_modified: metadata.last_modified,
         }))
     }
 
@@ -191,14 +212,18 @@ impl KvStorage {
     pub async fn put(
         &self,
         id: &PasteId,
-        _sha1: &[u8],
+        sha1: &[u8],
         data: &mut [u8],
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         let path = to_path(id)?;
         self.kv
             .put_bytes(&path, data)?
-            .metadata(metadata)?
+            .metadata(KvMetadata {
+                entity_id: Some(hex(sha1)),
+                last_modified: js_sys::Date::new_0().get_time() as u64,
+                metadata,
+            })?
             .execute()
             .await?;
         Ok(())
@@ -208,11 +233,16 @@ impl KvStorage {
         self,
         ctx: &worker::Context,
         id: &PasteId,
-        _sha1: &[u8],
+        sha1: &[u8],
         data: Vec<u8>,
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         let path = to_path(id)?;
+        let metadata = KvMetadata {
+            entity_id: Some(hex(sha1)),
+            last_modified: js_sys::Date::new_0().get_time() as u64,
+            metadata,
+        };
         let future = async move {
             let r = self
                 .kv
