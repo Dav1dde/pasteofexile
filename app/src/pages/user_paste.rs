@@ -10,7 +10,7 @@ use crate::{
 };
 use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
 use shared::model::{PasteId, UserPasteId};
-use std::rc::Rc;
+use std::{borrow::Cow, rc::Rc};
 use sycamore::prelude::*;
 
 pub struct Data {
@@ -63,11 +63,18 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
     fn meta(arg: &Data) -> Result<Meta> {
         let pob: &SerdePathOfBuilding = &arg.pob;
 
-        let config = pob::TitleConfig { no_title: true };
-        let mut title = pob::title_with_config(pob, &config).into();
-        if let Some(version) = pob.max_tree_version() {
-            title = format!("{title} [{version}] by {}", arg.id.user).into();
+        let config = pob::TitleConfig { no_level: true };
+
+        let title: Cow<str> = arg
+            .title
+            .as_ref()
+            .map(|x| x.into())
+            .unwrap_or_else(|| pob::title_with_config(pob, &config).into());
+        let title = match pob.max_tree_version() {
+            Some(version) => format!("{title} [{version}] by {}", arg.id.user),
+            None => format!("{title} by {}", arg.id.user),
         }
+        .into();
 
         let description = meta::get_paste_summary(pob).join("\n").into();
 
@@ -76,11 +83,14 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
             .into();
         let color = meta::get_color(pob.ascendancy_or_class_name());
 
+        let oembed = format!("/oembed.json?user={}", arg.id.user).into();
+
         Ok(Meta {
             title,
             description,
             image,
             color,
+            oembed,
         })
     }
 }

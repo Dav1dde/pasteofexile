@@ -213,7 +213,10 @@ async fn handle_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Re
         if let Some(id) = data.id {
             validate_access!(Some(session.name.as_str()) == id.user());
             validate!(is_valid_id(id.id()), "Invalid id");
-            validate!(data.custom_id.as_deref() == Some(id.id()), "Custom id does not match paste id");
+            validate!(
+                data.custom_id.as_deref() == Some(id.id()),
+                "Custom id does not match paste id"
+            );
 
             id
         } else {

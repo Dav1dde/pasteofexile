@@ -73,7 +73,7 @@ pub fn hp_pool<T: PathOfBuilding>(pob: &T) -> u32 {
 
 #[derive(Default)]
 pub struct TitleConfig {
-    pub no_title: bool,
+    pub no_level: bool,
 }
 
 pub fn title<T: PathOfBuilding>(pob: &T) -> String {
@@ -84,7 +84,7 @@ pub fn title_with_config<T: PathOfBuilding>(pob: &T, config: &TitleConfig) -> St
     let mut items = Vec::with_capacity(5);
 
     let level = format!("Level {}", pob.level());
-    if !config.no_title {
+    if !config.no_level {
         items.push(level.as_str());
     }
 

@@ -60,13 +60,12 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
 
         let description = summary.join("\n").into();
         let image = crate::assets::logo().into();
-        let color = "";
 
         Ok(Meta {
             title,
             description,
             image,
-            color,
+            ..Default::default()
         })
     }
 }

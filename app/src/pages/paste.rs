@@ -62,7 +62,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
     fn meta(arg: &Data) -> Result<Meta> {
         let pob: &SerdePathOfBuilding = &arg.pob;
 
-        let config = pob::TitleConfig { no_title: true };
+        let config = pob::TitleConfig { no_level: true };
         let mut title = arg
             .title
             .as_ref()
@@ -85,6 +85,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
             description,
             image,
             color,
+            ..Default::default()
         })
     }
 }

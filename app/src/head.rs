@@ -11,6 +11,10 @@ pub struct HeadArgs {
 pub fn head(args: HeadArgs) -> View<G> {
     let meta = args.meta;
     let title = meta.title.clone();
+    let image = match meta.image.is_empty() {
+        true => crate::assets::logo().into(),
+        false => meta.image,
+    };
 
     let preload = args
         .preload
@@ -35,13 +39,19 @@ pub fn head(args: HeadArgs) -> View<G> {
         .collect::<Vec<_>>();
     let prefetch = View::new_fragment(prefetch);
 
+    let meta_title = meta.title.clone();
+    let meta_description = meta.description.clone();
     view! {
         title { (title) }
+        meta(name="title", content=meta_title)
+        meta(name="description", content=meta_description)
+        meta(property="og:type", content="website")
+        meta(property="og:site_name", content="Paste of Exile - pobb.in")
         meta(property="og:title", content=meta.title)
         meta(property="og:description", content=meta.description)
-        meta(property="og:image", content=meta.image)
+        meta(property="og:image", content=image)
         meta(name="theme-color", content=meta.color)
-        link(type="application/json+oembed", href="/oembed.json")
+        link(type="application/json+oembed", href=meta.oembed)
         (preload)
         (prefetch)
     }

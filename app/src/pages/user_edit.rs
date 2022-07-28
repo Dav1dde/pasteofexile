@@ -50,12 +50,10 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
     }
 
     fn meta(_arg: &Data) -> Result<Meta> {
-        // TODO: better meta
         Ok(Meta {
             title: "Edit Build".into(),
             description: "".into(),
-            image: "".into(),
-            color: "",
+            ..Default::default()
         })
     }
 }

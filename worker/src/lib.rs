@@ -1,6 +1,6 @@
 use serde::Serialize;
 use shared::model::{PasteId, PasteSummary, UserPasteId};
-use std::{future::Future, time::Duration};
+use std::{borrow::Cow, future::Future, time::Duration};
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
 mod api;
@@ -137,8 +137,10 @@ async fn build_context(
     Ok((info, ctx))
 }
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 struct Oembed<'a> {
+    author_name: Option<Cow<'a, str>>,
+    author_url: Option<Cow<'a, str>>,
     provider_name: &'a str,
     provider_url: &'a str,
 }
@@ -215,10 +217,21 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
     }
 
     if req.path() == "/oembed.json" && req.method() == Method::Get {
-        let oembed = Oembed {
+        let mut oembed = Oembed {
             provider_name: "Paste of Exile - POBb.in",
             provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
+            ..Default::default()
         };
+
+        let url = req.url()?;
+        if let Some(author) = url
+            .query_pairs()
+            .find_map(|(k, v)| (k == "user").then_some(v))
+        {
+            oembed.author_url = Some(format!("{}/u/{author}", oembed.provider_url).into());
+            oembed.author_name = Some(author);
+        }
+
         return Response::from_json(&oembed)?.cache_for(Duration::from_secs(12 * 3_600));
     }
 
