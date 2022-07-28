@@ -171,12 +171,22 @@ async fn handle_delete_paste(
 
 #[derive(Deserialize)]
 struct UploadRequest {
+    /// Existing id to update a paste.
     #[serde(default)]
     id: Option<PasteId>,
+
+    /// Whether to create a new id as a user scoped paste.
     #[serde(default)]
     as_user: bool,
+
+    /// Custom title for the paste, currently only supported
+    /// for user pastes.
     #[serde(default)]
     title: Option<String>,
+    /// Custom id for user pastes. Ignored when an id is already supplied.
+    #[serde(default)]
+    custom_id: Option<String>,
+
     content: String,
 }
 
@@ -203,15 +213,23 @@ async fn handle_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Re
         if let Some(id) = data.id {
             validate_access!(Some(session.name.as_str()) == id.user());
             validate!(is_valid_id(id.id()), "Invalid id");
+            validate!(data.custom_id.as_deref() == Some(id.id()), "Custom id does not match paste id");
 
             id
         } else {
-            PasteId::new_user(session.name, utils::random_string::<9>()?)
+            let id = match data.custom_id {
+                Some(id) => id,
+                None => utils::random_string::<9>()?,
+            };
+            validate!(is_valid_id(&id), "Invalid id");
+
+            PasteId::new_user(session.name, id)
         }
     } else {
         validate_access!(data.id.is_none());
         // TODO: should unused fields (like title) be validated?
         // validate!(data.title.is_none(), "Cannot set title");
+        validate!(data.custom_id.is_none(), "Cannot set custom id");
 
         PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
     };
@@ -329,7 +347,7 @@ async fn handle_login(req: &Request, env: &Env) -> Result<Response> {
         .oauth()?
         .get_login_url(&redirect_uri, &state, consts::OAUTH_SCOPE);
 
-    Response::redirect2(&login_uri)?.with_state_cookie(&state)
+    Response::redirect_temp(&login_uri)?.with_state_cookie(&state)
 }
 
 async fn handle_oauth2_poe(req: &Request, env: &Env) -> Result<Response> {
@@ -360,7 +378,7 @@ async fn handle_oauth2_poe(req: &Request, env: &Env) -> Result<Response> {
     let session = env.dangerous()?.sign(&user).await?;
 
     // TODO: redirect back to where the user actually came from
-    Response::redirect2(&format!("/u/{}", user.name))?
+    Response::redirect_temp(&format!("/u/{}", user.name))?
         .with_delete_state_cookie()?
         .with_new_session(&session)
 }

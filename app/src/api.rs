@@ -14,6 +14,7 @@ pub struct CreatePaste<'a> {
     pub as_user: bool,
     pub content: &'a str,
     pub title: &'a str,
+    pub custom_id: Option<&'a str>,
     pub id: Option<&'a PasteId>,
 }
 

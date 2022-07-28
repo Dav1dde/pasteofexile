@@ -61,7 +61,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
     }
 
     fn meta(arg: &Data) -> Result<Meta> {
-        let pob: &SerdePathOfBuilding = &*arg.pob;
+        let pob: &SerdePathOfBuilding = &arg.pob;
 
         let config = pob::TitleConfig { no_title: true };
         let mut title = pob::title_with_config(pob, &config).into();

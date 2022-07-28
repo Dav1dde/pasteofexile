@@ -152,7 +152,8 @@ impl fmt::Display for CacheControl {
 }
 
 pub trait ResponseExt: Sized {
-    fn redirect2(target: &str) -> crate::Result<Self>;
+    fn redirect_temp(target: &str) -> crate::Result<Self>;
+    fn redirect_perm(target: &str) -> crate::Result<Self>;
 
     fn cache_for(self, ttl: Duration) -> crate::Result<Self> {
         self.with_cache_control(CacheControl::default().public().max_age(ttl))
@@ -201,9 +202,15 @@ pub trait ResponseExt: Sized {
 }
 
 impl ResponseExt for Response {
-    fn redirect2(target: &str) -> crate::Result<Self> {
+    fn redirect_temp(target: &str) -> crate::Result<Self> {
         Self::empty()?
             .with_status(307)
+            .with_header("Location", target)
+    }
+
+    fn redirect_perm(target: &str) -> crate::Result<Self> {
+        Self::empty()?
+            .with_status(301)
             .with_header("Location", target)
     }
 

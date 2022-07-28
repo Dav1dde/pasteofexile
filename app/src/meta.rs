@@ -2,10 +2,10 @@ use crate::pob;
 use ::pob::SerdePathOfBuilding;
 use std::borrow::Cow;
 
-const TITLE_INDEX: &str = "POB B.in - Share your Path of Exile build";
-const TITLE_NOT_FOUND: &str = "POB B.in - Not Found";
-const TITLE_SERVER_ERROR: &str = "POB B.in - Server Error";
-const DESCRIPTION: &str = "POB B.in is a website to share your Path of Building builds online";
+const TITLE_INDEX: &str = "POBb.in - Share your Path of Exile build";
+const TITLE_NOT_FOUND: &str = "POBb.in - Not Found";
+const TITLE_SERVER_ERROR: &str = "POBb.in - Server Error";
+const DESCRIPTION: &str = "POBb.in is a website to share your Path of Building builds online";
 const DEFAULT_COLOR: &str = "#0ea5e9";
 
 pub enum Prefetch {

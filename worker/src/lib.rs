@@ -1,5 +1,5 @@
 use serde::Serialize;
-use shared::model::{PasteId, PasteSummary};
+use shared::model::{PasteId, PasteSummary, UserPasteId};
 use std::{future::Future, time::Duration};
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
@@ -24,6 +24,7 @@ use utils::{CacheControl, EnvExt, ResponseExt};
 struct ResponseInfo {
     cache_control: CacheControl,
     etag: Option<String>,
+    redirect: Option<String>,
 }
 
 impl Default for ResponseInfo {
@@ -31,6 +32,7 @@ impl Default for ResponseInfo {
         Self {
             cache_control: CacheControl::default().max_age(Duration::from_secs(3_600)),
             etag: None,
+            redirect: None,
         }
     }
 }
@@ -100,6 +102,7 @@ async fn build_context(
             let info = ResponseInfo {
                 cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
                 etag: Some(etag),
+                ..Default::default()
             };
 
             (info, Context::user(host, name, pastes))
@@ -122,24 +125,12 @@ async fn build_context(
             }
         }
         UserEditPaste(user, id) => {
-            let id = PasteId::new_user(user, id);
-            // TODO: handle 404
-
-            let mut info = ResponseInfo {
-                cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
+            let info = ResponseInfo {
+                redirect: Some(UserPasteId { user, id }.to_paste_url()),
                 ..Default::default()
             };
 
-            if let Some(paste) = env.storage()?.get(&id).await? {
-                info.etag = paste.entity_id.clone();
-                (
-                    info,
-                    Context::user_paste_edit(host, id.unwrap_user(), paste),
-                )
-            } else {
-                info.etag = Some("not_found".to_owned());
-                (info, Context::not_found(host))
-            }
+            (info, Context::not_found(host))
         }
     };
 
@@ -237,6 +228,10 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
 
     let route = app::Route::resolve(&req.path());
     let (info, ctx) = build_context(req, env, route).await?;
+
+    if let Some(location) = info.redirect {
+        return Response::redirect_perm(&location);
+    }
 
     let (app, rctx) = app::render_to_string(ctx);
     let head = app::render_head(app::Head {

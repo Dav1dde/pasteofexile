@@ -157,7 +157,7 @@ impl<'a> Element<'a> {
             let is_last = i == values.len() - 1;
 
             renderer.push(Fragment::with_formatting(
-                Formatting::class(*color),
+                Formatting::class(color),
                 value.to_owned(),
             ));
 

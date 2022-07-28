@@ -2,6 +2,7 @@ use crate::{memo, memo_cond, session::SessionValue, svg::SPINNER};
 use pob::SerdePathOfBuilding;
 use shared::model::UserPasteId;
 use sycamore::{context::use_context, prelude::*};
+use wasm_bindgen::JsCast;
 
 pub enum CreatePasteProps {
     None,
@@ -33,7 +34,6 @@ impl CreatePasteProps {
         matches!(self, Self::Update { .. })
     }
 
-    #[cfg(not(feature = "ssr"))]
     fn paste_id(&self) -> Option<&UserPasteId> {
         match self {
             Self::Update { id, .. } => Some(id),
@@ -57,6 +57,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
     let error = Signal::new(String::new());
     let as_user = Signal::new(is_update);
     let custom_title = Signal::new(props.title().unwrap_or_default());
+    let custom_id = Signal::new(props.paste_id().map(|up| up.id.clone()).unwrap_or_default());
 
     let session = use_context::<SessionValue>();
 
@@ -78,11 +79,12 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         }
     });
 
+    let raw_title = memo!(pob, (*pob.get()).as_ref().map(crate::pob::title));
     let title = memo!(
-        pob,
-        (*pob.get())
+        raw_title,
+        (*raw_title.get())
             .as_ref()
-            .map(crate::pob::title)
+            .cloned()
             .unwrap_or_else(|| if is_update {
                 "Update your Build".to_owned()
             } else {
@@ -93,7 +95,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
     #[cfg(not(feature = "ssr"))]
     let paste_id = props.paste_id().cloned();
     #[cfg(not(feature = "ssr"))]
-    let btn_submit = cloned!((loading, value, error, as_user, title, custom_title, paste_id) => move |_| {
+    let btn_submit = cloned!((loading, value, error, as_user, title, custom_title, custom_id, paste_id) => move |_| {
         use wasm_bindgen_futures::spawn_local;
         use crate::api;
 
@@ -108,15 +110,17 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         let as_user = *as_user.get();
         let title = title.get();
         let custom_title = custom_title.get();
+        let custom_id = custom_id.get();
         let future = cloned!((loading, error, paste_id) => async move {
-            let title = if custom_title.is_empty() { &*title } else { &*custom_title };
             let id = paste_id.map(|e| e.clone().into());
-            // TODO: include PasteId here, for updates
+            let title = if custom_title.is_empty() { &*title } else { &*custom_title };
+
             let params = api::CreatePaste {
-                as_user,
-                content: &*value,
-                title,
                 id: id.as_ref(),
+                as_user,
+                title,
+                custom_id: (!custom_id.is_empty()).then_some(&*custom_id),
+                content: &*value,
             };
             match api::create_paste(params).await {
                 Err(err) => {
@@ -146,32 +150,93 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
 
     let on_input = cloned!(error => move |_| error.set("".to_owned()));
 
-    let as_user2 = as_user.clone();
+    let on_custom_id = |event: web_sys::Event| {
+        let event = event.unchecked_into::<web_sys::InputEvent>();
+        if event.is_composing() {
+            return;
+        }
+
+        let target = event
+            .target()
+            .unwrap()
+            .unchecked_into::<web_sys::HtmlInputElement>();
+        let value = target
+            .value()
+            .chars()
+            .map(|c| if c == ' ' { '_' } else { c })
+            .filter(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_'))
+            .collect::<String>();
+        target.set_value(&value);
+    };
+
+    let as_user_content = memo_cond!(
+        as_user,
+        {
+            let title = raw_title.clone();
+            let title2 = (*raw_title.get()).clone().unwrap_or_default();
+            let custom_id = custom_id.clone();
+            let custom_id2 = custom_id.clone();
+            view! {
+                div(class="") { "Title" }
+                input(
+                    class="bg-slate-500 w-full px-2 py-1 rounded-sm outline-none",
+                    type="text",
+                    maxlength=90,
+                    minlength=3,
+                    value=title2,
+                    placeholder=title.get().as_deref().unwrap_or_default(),
+                    bind:value=custom_title.clone()) { }
+
+                div(class="") { "Id" }
+                input(
+                    class="bg-slate-500 w-full px-2 py-1 rounded-sm outline-none
+                        read-only:text-slate-400 read-only:bg-slate-700",
+                    type="text",
+                    maxlength=90,
+                    minlength=3,
+                    pattern="[a-zA-Z0-9-_]*",
+                    placeholder="<auto generated>",
+                    readonly=is_update,
+                    value=custom_id2.get(),
+                    bind:value=custom_id,
+                    on:input=on_custom_id) { }
+            }
+        },
+        view! {}
+    );
+
+    let cancel = if is_update {
+        view! {
+            button(
+                title="Back",
+                tabindex="-1",
+                onclick="window.history.go(-1)",
+                class="hover:underline hover:cursor-pointer select-none
+                text-sm disabled:cursor-not-allowed inline-flex"
+            ) { "Cancel" }
+        }
+    } else {
+        view! {}
+    };
+
     let value2 = value.clone();
     view! {
         div(class="flex flex-col gap-y-3") {
-            h1(class="dark:text-slate-100 text-slate-900") { (title.get()) }
+            h1(class="dark:text-slate-100 text-slate-900", data-marker-title="") { (title.get()) }
             textarea(
                 bind:value=value,
                 on:input=on_input,
                 spellcheck=false,
-                class="dark:bg-slate-500 bg-slate-200 block w-full mt-1 py-2 px-3 rounded-sm shadow-sm focus:outline-none dark:text-slate-300 text-slate-700 resize-none text-sm break-all",
-                style="min-height: 60vh"
+                class="dark:bg-slate-500 bg-slate-200 block w-full mt-1 py-2 px-3
+                    rounded-sm shadow-sm focus:outline-none dark:text-slate-300 text-slate-700
+                    resize-none text-sm break-all",
+                style="min-height: 60vh",
+                data-marker-content=""
             ) {
                 (value2.get())
             }
             div(class="grid grid-cols-[min-content_1fr] gap-3 items-center empty:hidden") {
-                (if *as_user2.get() {
-                    view! {
-                        div(class="") { "Title" }
-                        input(
-                            class="dark:bg-slate-500 bg-slate-200 w-full px-2 py-1 rounded-sm outline-none",
-                            maxlength=90,
-                            minlength=3,
-                            bind:value=custom_title.clone()) {}
-                    }
-                } else { view! {} }
-                )
+                (&*as_user_content.get())
             }
             div(class="flex items-center gap-x-5") {
                 div(class="flex-auto flex items-center text-red-500") { (*error.get()) }
@@ -187,11 +252,14 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                         view! {}
                     })
                 }
+                (cancel)
                 button(
                     on:click=btn_submit,
                     disabled=*btn_submit_disabled.get(),
-                    class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed flex",
-                    dangerously_set_inner_html=*btn_content.get()
+                    class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2
+                        text-sm rounded-lg font-semibold text-white disabled:opacity-50
+                        disabled:cursor-not-allowed flex",
+                    dangerously_set_inner_html=&btn_content.get()
                 ) {
                 }
             }
