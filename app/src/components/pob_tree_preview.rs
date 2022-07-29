@@ -1,14 +1,16 @@
 use crate::components::PobColoredText;
 use crate::{Prefetch, ResponseContext};
+use itertools::Itertools;
 use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec};
 use std::{any::TypeId, cell::RefCell, rc::Rc};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{Event, HtmlElement, PointerEvent};
+use web_sys::{Event, HtmlElement, HtmlSelectElement, PointerEvent};
 
 struct Tree {
     name: String,
     image_url: String,
+    active: bool,
 }
 
 #[component(PobTreePreview<G>)]
@@ -16,10 +18,10 @@ pub fn pob_tree_preview(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     let trees = pob
         .tree_specs()
         .into_iter()
-        .map(|spec| {
-            let name = spec.title.unwrap_or("<Default>").to_owned();
-            let image_url = get_tree_url(&spec).unwrap();
-            Tree { name, image_url }
+        .map(|spec| Tree {
+            name: spec.title.unwrap_or("<Default>").to_owned(),
+            image_url: get_tree_url(&spec).unwrap(),
+            active: spec.active,
         })
         .collect::<Vec<_>>();
 
@@ -37,20 +39,23 @@ pub fn pob_tree_preview(pob: Rc<SerdePathOfBuilding>) -> View<G> {
         }
     }
 
-    let value = trees.get(0).unwrap().image_url.clone();
+    let value = trees
+        .iter()
+        .find_or_first(|t| t.active)
+        .unwrap()
+        .image_url
+        .clone();
     let style = format!("background-image: url({value})");
-    let value = Signal::new(value);
-
-    let select = trees.into_iter()
-        .enumerate()
-        .map(|(i, t)| {
-            let selected = i == 0;
-            view! { option(value=t.image_url, selected=selected) { span { PobColoredText(t.name) } } }
-        })
-        .collect::<Vec<_>>();
-    let select = View::new_fragment(select);
-
     let node_ref = NodeRef::new();
+    let select = render_select(
+        trees,
+        cloned!(node_ref => move |value| {
+            let property = format!("url({})", value);
+            let _ = crate::utils::from_ref::<_, HtmlElement>(&node_ref)
+                .style()
+                .set_property("background-image", &property);
+        }),
+    );
 
     let state = Rc::new(RefCell::new(TouchState::new(node_ref.clone())));
     let on_move_start = cloned!(state => move |event: Event| {
@@ -90,16 +95,9 @@ pub fn pob_tree_preview(pob: Rc<SerdePathOfBuilding>) -> View<G> {
         state.borrow_mut().remove_pointer(&event);
     });
 
-    let on_input = cloned!(value, node_ref => move |_| {
-        let property = format!("url({})", value.get());
-        let _ = crate::utils::from_ref::<_, HtmlElement>(&node_ref)
-            .style()
-            .set_property("background-image", &property);
-    });
-
     view! {
-        select(class="sm:ml-3 mt-1 mb-2 px-1", bind:value=value, on:input=on_input) { (select) }
-        div(class="h-[370px] md:h-[700px] cursor-move md:resize-y md:overflow-auto",
+        (select)
+        div(class="h-[370px] md:h-[700px] cursor-move md:resize-y md:overflow-auto mt-2",
             on:pointerdown=on_move_start,
             on:pointermove=on_move_move,
             on:pointerup=on_move_end.clone(),
@@ -107,10 +105,40 @@ pub fn pob_tree_preview(pob: Rc<SerdePathOfBuilding>) -> View<G> {
             on:pointercancel=on_move_end,
         ) {
             div(ref=node_ref,
-                class="h-full w-full bg-center bg-no-repeat bg-[length:180%] md:bg-[length:80%] touch-none transition-[background-image] duration-1000 will-change-[background-image]",
+                class="h-full w-full bg-center bg-no-repeat bg-[length:180%] md:bg-[length:80%] touch-none
+                    transition-[background-image] duration-1000 will-change-[background-image]",
                 style=style) {
             }
         }
+    }
+}
+
+fn render_select<G: GenericNode + Html, F>(trees: Vec<Tree>, on_change: F) -> View<G>
+where
+    F: Fn(String) + 'static,
+{
+    if trees.len() <= 1 {
+        return view! {};
+    }
+
+    let select = trees.into_iter()
+        .map(|t| {
+            view! { option(value=t.image_url, selected=t.active) { span { PobColoredText(t.name) } } }
+        })
+        .collect::<Vec<_>>();
+    let select = View::new_fragment(select);
+
+    let on_input = move |event: web_sys::Event| {
+        let event = event.unchecked_into::<web_sys::InputEvent>();
+        let element = event
+            .target()
+            .unwrap()
+            .unchecked_into::<HtmlSelectElement>();
+        on_change(element.value());
+    };
+
+    view! {
+        select(class="sm:ml-3 mt-1 px-1", on:input=on_input) { (select) }
     }
 }
 

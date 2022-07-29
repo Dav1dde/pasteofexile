@@ -66,7 +66,7 @@ pub fn view_paste(
     } else {
         View::empty()
     };
-    let tree_preview = if !pob.tree_specs().is_empty() {
+    let tree_preview = if has_displayable_tree(&pob) {
         view! {
             div(class="basis-full") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
@@ -198,4 +198,14 @@ fn render<G: GenericNode>(elements: Vec<Element>) -> View<G> {
             .filter_map(|e| e.render_to_view())
             .collect(),
     )
+}
+
+fn has_displayable_tree(pob: &SerdePathOfBuilding) -> bool {
+    let specs = pob.tree_specs();
+
+    specs.len() > 1
+        || specs
+            .first()
+            .map(|spec| spec.nodes.len() > 1)
+            .unwrap_or(false)
 }
