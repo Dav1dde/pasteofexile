@@ -63,12 +63,14 @@ pub fn app(ctx: Option<Context>) -> View<G> {
         progress::Progress()
         session::SessionWrapper(|| view! {
             div {
-                nav(class="flex justify-between	p-4 lg:px-8 mb-10 bg-slate-200 dark:bg-slate-900 dark:drop-shadow-lg") {
-                    a(href="/", on:click=navigate_index) {
-                        span() { "POB" }
-                        span(class="text-sky-500 dark:text-sky-400") { "b.in" }
+                nav(class="bg-slate-200 dark:bg-slate-900 dark:drop-shadow-lg") {
+                    div(class="flex justify-between	p-4 lg:px-8 mb-10 mx-auto max-w-[1920px]") {
+                        a(href="/", on:click=navigate_index) {
+                            span() { "POB" }
+                            span(class="text-sky-500 dark:text-sky-400") { "b.in" }
+                        }
+                        components::LoginStatus()
                     }
-                    components::LoginStatus()
                 }
                 div(class="max-w-screen-xl mx-auto px-5 xl:px-0") {
                     router::Router(ctx)
