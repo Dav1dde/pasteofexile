@@ -23,7 +23,7 @@ pub struct Paste {
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,
-    pub ascendancy: Option<String>,
+    pub ascendancy_or_class: String,
     pub version: Option<String>,
     pub main_skill_name: Option<String>,
 }
@@ -33,7 +33,7 @@ pub struct PasteSummary {
     pub id: String,
     pub user: Option<String>,
     pub title: String,
-    pub ascendancy: String,
+    pub ascendancy_or_class: String,
     pub version: String,
     pub main_skill_name: String,
     pub last_modified: u64,

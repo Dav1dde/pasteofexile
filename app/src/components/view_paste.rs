@@ -132,18 +132,14 @@ pub fn view_paste(
         .collect();
     let summary = View::new_fragment(summary);
 
-    let src = pob
-        .ascendancy_name()
-        .and_then(crate::assets::ascendancy_image)
-        .unwrap_or("");
+    let src = crate::assets::ascendancy_image(pob.ascendancy_or_class_name()).unwrap_or_default();
 
     view! {
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
             div(class="flex-auto flex flex-col gap-y-2 -mt-[3px]") {
                 h1(class="flex items-center text-xl mb-1 dark:text-slate-100 text-slate-900") {
                     img(src=src,
-                        width=50, height=50,
-                        class="rounded-full mr-3 -ml-2",
+                        class="asc-image rounded-full mr-3 -ml-2",
                         onerror="this.style.display='none'") {}
                     span(class="pt-[3px]", data-marker-title="") { (title) }
                     sup(class="ml-1") { (version) }

@@ -82,7 +82,7 @@ async fn build_context(
                         id,
                         user: Some(name.clone()),
                         title: metadata.title,
-                        ascendancy: metadata.ascendancy.unwrap_or_default(),
+                        ascendancy_or_class: metadata.ascendancy_or_class,
                         version: metadata.version.unwrap_or_default(),
                         main_skill_name: metadata.main_skill_name.unwrap_or_default(),
                         last_modified: item.last_modified,

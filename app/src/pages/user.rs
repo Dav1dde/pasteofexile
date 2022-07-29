@@ -119,8 +119,8 @@ fn summary_to_view<G: GenericNode + Html>(
     on_delete: Signal<bool>,
 ) -> View<G> {
     let url = summary.to_url();
-    let image = crate::assets::ascendancy_image(&summary.ascendancy).unwrap_or("");
-    let color = crate::meta::get_color(&summary.ascendancy);
+    let image = crate::assets::ascendancy_image(&summary.ascendancy_or_class).unwrap_or("");
+    let color = crate::meta::get_color(&summary.ascendancy_or_class);
 
     let id = UserPasteId {
         id: summary.id.clone(),
@@ -146,8 +146,7 @@ fn summary_to_view<G: GenericNode + Html>(
         ) {
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
-                    width=50, height=50,
-                    class="rounded-full h-min",
+                    class="asc-image rounded-full",
                     onerror="this.style.visibility='hidden'") {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
                     span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary2.version) } }

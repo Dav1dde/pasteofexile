@@ -290,7 +290,7 @@ fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
 fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
     PasteMetadata {
         title: app::pob::title(pob),
-        ascendancy: pob.ascendancy_name().map(String::from),
+        ascendancy_or_class: pob.ascendancy_or_class_name().to_owned(),
         version: pob.max_tree_version(),
         main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),
     }
@@ -313,7 +313,7 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
                 id,
                 user: Some(user.clone()),
                 title: metadata.title,
-                ascendancy: metadata.ascendancy.unwrap_or_default(),
+                ascendancy_or_class: metadata.ascendancy_or_class,
                 version: metadata.version.unwrap_or_default(),
                 main_skill_name: metadata.main_skill_name.unwrap_or_default(),
                 last_modified: item.last_modified,

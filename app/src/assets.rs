@@ -9,6 +9,15 @@ pub fn ascendancy_image(ascendancy_or_class: &str) -> Option<&'static str> {
     }
 
     assets!(
+        // Class
+        Duelist,
+        Marauder,
+        Ranger,
+        Scion,
+        Shadow,
+        Templar,
+        Witch,
+        // Ascendancy
         Ascendant,
         Assassin,
         Berserker,
