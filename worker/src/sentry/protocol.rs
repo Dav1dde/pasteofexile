@@ -1,19 +1,20 @@
+use super::utils::{ts_rfc3339, ts_rfc3339_opt};
+use serde::Serialize;
+use std::borrow::Cow;
 use std::collections::BTreeMap as Map;
 use std::fmt;
-use std::borrow::Cow;
 use std::io::Write;
-use serde::Serialize;
-use super::utils::{ts_rfc3339_opt, ts_rfc3339};
 
 pub use serde_json::Value;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
 pub enum EnvelopeItem {
     Event(Event<'static>),
     Transaction(Transaction<'static>),
 }
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Envelope {
     event_id: Option<uuid::Uuid>,
     items: Vec<EnvelopeItem>,
@@ -50,11 +51,9 @@ impl Envelope {
             match item {
                 EnvelopeItem::Event(event) => serde_json::to_writer(&mut item_buf, event)?,
                 EnvelopeItem::Transaction(transaction) => {
-                    worker::console_log!("LOL");
                     serde_json::to_writer(&mut item_buf, transaction)?
                 }
             }
-                    worker::console_log!("LOL2");
             let item_type = match item {
                 EnvelopeItem::Event(_) => "event",
                 EnvelopeItem::Transaction(_) => "transaction",
@@ -90,7 +89,6 @@ impl From<Transaction<'static>> for Envelope {
     }
 }
 
-
 #[derive(Serialize)]
 pub struct Store<'a> {
     pub logger: &'a str,
@@ -105,12 +103,12 @@ pub struct Store<'a> {
     pub transaction: &'a str,
 }
 
-#[derive(Clone, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct Exceptions {
     values: Vec<Exception>,
 }
 
-#[derive(Serialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct Exception {
     /// The type of the exception.
     #[serde(rename = "type")]
@@ -122,7 +120,6 @@ pub struct Exception {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<String>,
 }
-
 
 #[derive(Default, Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct Request {
@@ -145,7 +142,6 @@ pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
 }
-
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct SpanId([u8; 8]);
@@ -172,8 +168,9 @@ impl fmt::Debug for SpanId {
 
 impl serde::Serialize for SpanId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         self.to_string().serialize(serializer)
     }
 }
@@ -203,12 +200,12 @@ impl fmt::Display for TraceId {
 
 impl serde::Serialize for TraceId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         self.to_string().serialize(serializer)
     }
 }
-
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Timestamp(pub(crate) u64);
@@ -231,13 +228,14 @@ impl Default for Timestamp {
 
 impl serde::Serialize for Timestamp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         ((self.0 as f32) / 1000.0).serialize(serializer)
     }
 }
 
-#[derive(Serialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct Span {
     /// The ID of the span
     #[serde(default)]
@@ -259,10 +257,7 @@ pub struct Span {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// The timestamp at the measuring of the span finished.
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        with = "ts_rfc3339_opt"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", with = "ts_rfc3339_opt")]
     pub timestamp: Option<Timestamp>,
     /// The timestamp at the measuring of the span started.
     #[serde(with = "ts_rfc3339")]
@@ -335,7 +330,7 @@ pub enum SpanStatus {
 }
 
 /// Represents a tracing transaction.
-#[derive(Serialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Transaction<'a> {
     /// The ID of the event
     #[serde(serialize_with = "super::utils::serialize_id")]
@@ -385,12 +380,15 @@ pub struct Transaction<'a> {
     /// Optionally HTTP request data to be sent along.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request: Option<Request>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<User>,
 }
 
 impl<'a> Default for Transaction<'a> {
     fn default() -> Self {
         Self {
-            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap()).into_uuid(),
+            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap())
+                .into_uuid(),
             name: Default::default(),
             release: Default::default(),
             environment: Default::default(),
@@ -402,22 +400,22 @@ impl<'a> Default for Transaction<'a> {
             spans: Default::default(),
             contexts: Default::default(),
             request: Default::default(),
-
+            user: Default::default(),
         }
     }
 }
 
-
 /// Represents a full event for Sentry.
-#[derive(Serialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Event<'a> {
     /// The ID of the event
     #[serde(serialize_with = "super::utils::serialize_id")]
     pub event_id: uuid::Uuid,
     /// The level of the event (defaults to error)
     pub level: Level,
-    /// An optional fingerprint configuration to override the default.
-    pub fingerprint: Cow<'a, [Cow<'a, str>]>,
+    // /// An optional fingerprint configuration to override the default.
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // pub fingerprint: Cow<'a, [Cow<'a, str>]>,
     /// The culprit of the event.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub culprit: Option<String>,
@@ -442,7 +440,7 @@ pub struct Event<'a> {
     //     default = "event::default_platform",
     //     skip_serializing_if = "event::is_default_platform"
     // )]
-    // pub platform: Cow<'a, str>,
+    pub platform: Cow<'a, str>,
     /// The timestamp of when the event was created.
     ///
     /// This can be set to `None` in which case the server will set a timestamp.
@@ -485,15 +483,16 @@ pub struct Event<'a> {
 impl<'a> Default for Event<'a> {
     fn default() -> Self {
         Self {
-            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap()).into_uuid(),
+            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap())
+                .into_uuid(),
             level: Default::default(),
-            fingerprint: Default::default(),
             culprit: Default::default(),
             transaction: Default::default(),
             message: Default::default(),
             logentry: Default::default(),
             logger: Default::default(),
             modules: Default::default(),
+            platform: "other".into(),
             timestamp: Default::default(),
             server_name: Default::default(),
             release: Default::default(),
@@ -510,7 +509,7 @@ impl<'a> Default for Event<'a> {
     }
 }
 
-#[derive(Serialize, Default, Clone, Debug, PartialEq)]
+#[derive(Serialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct LogEntry {
     /// The log message with parameters replaced by `%s`
     pub message: String,
@@ -520,7 +519,7 @@ pub struct LogEntry {
 }
 
 /// Represents a single breadcrumb.
-#[derive(Default, Serialize, Debug, Clone, PartialEq)]
+#[derive(Default, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Breadcrumb {
     pub timestamp: Timestamp,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -536,7 +535,8 @@ pub struct Breadcrumb {
     pub data: Map<String, Value>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Serialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum Level {
     /// Indicates very spammy debug information.
     Debug,
@@ -568,24 +568,16 @@ impl fmt::Display for Level {
     }
 }
 
-impl serde::Serialize for Level {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
-        self.to_string().serialize(serializer)
-    }
-}
-
-#[derive(Serialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", tag = "type")]
 #[non_exhaustive]
 pub enum Context {
-    Trace(Box<TraceContext>),
-    #[serde(rename = "unknown")]
-    Other(Map<String, Value>),
+    Trace(TraceContext),
+    // #[serde(rename = "unknown")]
+    // Other(Map<String, Value>),
 }
 
-#[derive(Serialize, Debug, Clone, Default, PartialEq)]
+#[derive(Serialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct TraceContext {
     /// The ID of the trace event
     pub span_id: SpanId,
@@ -604,5 +596,3 @@ pub struct TraceContext {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<SpanStatus>,
 }
-
-

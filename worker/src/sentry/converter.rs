@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use super::protocol::{Event, Exception, Value, Breadcrumb, Level};
+use super::protocol::{Breadcrumb, Event, Exception, Level, Value};
 use tracing::field::{Field, Visit};
 use tracing::{span, Subscriber};
 use tracing_subscriber::layer::Context;
@@ -115,7 +115,7 @@ pub fn event_from_error<E: Error + ?Sized>(err: &E) -> Event<'static> {
 
     exceptions.reverse();
     Event {
-        exception: exceptions.into(),
+        exception: exceptions,
         level: Level::Error,
         ..Default::default()
     }
@@ -150,37 +150,17 @@ pub fn parse_type_from_debug(d: &str) -> &str {
         .trim()
 }
 
-/// Creates an [`Event`] from a given [`tracing_core::Event`]
-pub fn event_from_event<S>(event: &tracing::Event, _ctx: Context<S>) -> Event<'static>
-where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-{
-    let (message, visitor) = extract_event_data(event);
-
-    Event {
-        logger: Some(event.metadata().target().to_owned()),
-        level: convert_tracing_level(event.metadata().level()),
-        message,
-        ..Default::default()
-    }
-}
-
 /// Creates an exception [`Event`] from a given [`tracing_core::Event`]
 pub fn exception_from_event<S>(event: &tracing::Event, _ctx: Context<S>) -> Event<'static>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    // TODO: Exception records in Sentry need a valid type, value and full stack trace to support
-    // proper grouping and issue metadata generation. tracing_core::Record does not contain sufficient
-    // information for this. However, it may contain a serialized error which we can parse to emit
-    // an exception record.
     let (message, visitor) = extract_event_data(event);
     Event {
         logger: Some(event.metadata().target().to_owned()),
         level: convert_tracing_level(event.metadata().level()),
         message,
-        exception: visitor.exceptions.into(),
+        exception: visitor.exceptions,
         ..Default::default()
     }
 }
-

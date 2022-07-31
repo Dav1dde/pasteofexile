@@ -1,57 +1,30 @@
-use crate::{consts, utils::ResponseExt, Error, Result};
+use crate::{consts, request_context::RequestContext, utils::ResponseExt, Error, Result};
 use std::borrow::Cow;
 use wasm_bindgen::prelude::*;
-use worker::{
-    kv::{self, KvStore},
-    Env, Request, Response,
-};
+use worker::Response;
 
-pub trait KvAssetExt {
-    fn get_asset(&self, name: &str) -> kv::GetOptionsBuilder;
-}
-
-impl KvAssetExt for KvStore {
-    fn get_asset(&self, name: &str) -> kv::GetOptionsBuilder {
-        self.get(&resolve(name))
-    }
-}
-
-pub trait EnvAssetExt {
-    fn get_asset(&self, name: &str) -> Result<kv::GetOptionsBuilder>;
-    fn get_assets(&self) -> Result<kv::KvStore>;
-}
-
-impl EnvAssetExt for Env {
-    fn get_asset(&self, name: &str) -> Result<kv::GetOptionsBuilder> {
-        Ok(self.get_assets()?.get_asset(name))
-    }
-
-    fn get_assets(&self) -> Result<kv::KvStore> {
-        Ok(self.kv(consts::KV_STATIC_CONTENT)?)
-    }
-}
-
-pub async fn try_handle(req: &mut Request, env: &Env) -> Result<Option<Response>> {
+pub async fn try_handle(rctx: &RequestContext) -> Result<Option<Response>> {
     // does the last segment contain a '.'
-    let is_asset_path = req
+    let is_asset_path = rctx
         .path()
         .rsplit_once('/')
         .map(|x| x.1)
-        .unwrap_or(&req.path())
+        .unwrap_or(&rctx.path())
         .contains('.');
 
     if is_asset_path {
-        Ok(Some(serve_asset(req, env).await?))
+        Ok(Some(serve_asset(rctx).await?))
     } else {
         Ok(None)
     }
 }
 
-async fn serve_asset(req: &Request, env: &Env) -> Result<Response> {
-    let path = req.path();
+#[tracing::instrument(skip_all)]
+async fn serve_asset(rctx: &RequestContext) -> Result<Response> {
+    let path = rctx.path();
     let path = path.trim_start_matches('/');
     let path = resolve(path);
-    let value = match env.get_asset(&path)?.bytes().await? {
+    let value = match rctx.get_asset(&path)?.bytes().await? {
         Some(value) => value,
         None => return Err(Error::NotFound("asset", path.to_string())),
     };
@@ -66,7 +39,7 @@ extern "C" {
     fn get_asset(name: &str) -> Option<String>;
 }
 
-fn resolve(name: &str) -> Cow<'_, str> {
+pub(crate) fn resolve(name: &str) -> Cow<'_, str> {
     match get_asset(name) {
         Some(name) => Cow::Owned(name),
         None => Cow::Borrowed(name),

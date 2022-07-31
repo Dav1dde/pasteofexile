@@ -1,18 +1,20 @@
 use shared::model::PasteId;
 
-pub(crate) fn on_paste_change(ctx: &worker::Context, req: &worker::Request, id: PasteId) {
+use crate::request_context::RequestContext;
+
+pub(crate) fn on_paste_change(rctx: &RequestContext, id: PasteId) {
     let user_paste = match id {
         PasteId::UserPaste(up) => up,
         _ => return,
     };
 
-    let mut prefix = req.url().unwrap();
+    let mut prefix = rctx.req().url().unwrap();
     prefix.set_path("");
     prefix.set_query(None);
     prefix.set_fragment(None);
     let prefix = prefix.to_string();
 
-    ctx.wait_until(async move {
+    rctx.ctx().wait_until(async move {
         let cache = worker::Cache::default();
 
         macro_rules! clear {

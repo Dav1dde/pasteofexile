@@ -33,6 +33,7 @@ impl B2Storage {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
         let path = to_path(id)?;
         let mut response = self.b2.download(&path).await?;
@@ -74,11 +75,13 @@ impl B2Storage {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
         let path = to_path(id)?;
         self.b2.hide(&path).await.map(|_| ())
     }
 
+    #[tracing::instrument(skip(self, sha1, data))]
     pub async fn put(
         &self,
         id: &PasteId,
@@ -103,6 +106,7 @@ impl B2Storage {
         self.b2.upload(&settings, data, upload).await.map(|_| ())
     }
 
+    #[tracing::instrument(skip(self, ctx, sha1, data))]
     pub async fn put_async(
         self,
         ctx: &worker::Context,
@@ -129,7 +133,8 @@ impl B2Storage {
 
             if let Err(err) = self.b2.upload(&settings, &mut data, upload).await {
                 log::error!("<-- failed to upload paste: {:?}", err);
-                sentry::with_sentry(|sentry| sentry.capture_err_level(&err, "error"));
+                // TODO: is this necessary, tracing should pick it up already from log::erorr!
+                sentry::with_sentry(|sentry| sentry.capture_err_level(&err, sentry::Level::Error));
             } else {
                 log::debug!("<-- paste uploaded");
             }
@@ -138,8 +143,8 @@ impl B2Storage {
         Ok(())
     }
 
-    pub async fn list(&self, prefix: impl Into<String>) -> Result<Vec<ListPaste>> {
-        let prefix = prefix.into();
+    #[tracing::instrument(skip(self))]
+    pub async fn list(&self, prefix: String) -> Result<Vec<ListPaste>> {
         let response = self.b2.list_files(&prefix, 100).await?;
 
         response
@@ -185,6 +190,7 @@ impl KvStorage {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
         let path = to_path(id)?;
         let (data, metadata) = self
@@ -203,12 +209,14 @@ impl KvStorage {
         }))
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
         let path = to_path(id)?;
         self.kv.delete(&path).await?;
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, sha1, data))]
     pub async fn put(
         &self,
         id: &PasteId,
@@ -229,6 +237,7 @@ impl KvStorage {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, ctx, sha1, data))]
     pub async fn put_async(
         self,
         ctx: &worker::Context,
@@ -264,8 +273,9 @@ impl KvStorage {
         Ok(())
     }
 
-    pub async fn list(&self, path: impl Into<String>) -> Result<Vec<ListPaste>> {
-        let response = self.kv.list().prefix(path.into()).execute().await?;
+    #[tracing::instrument(skip(self))]
+    pub async fn list(&self, path: String) -> Result<Vec<ListPaste>> {
+        let response = self.kv.list().prefix(path).execute().await?;
 
         response
             .keys

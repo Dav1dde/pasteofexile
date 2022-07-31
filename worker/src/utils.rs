@@ -2,7 +2,7 @@ use std::fmt;
 use std::time::Duration;
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
-use worker::{js_sys, worker_sys, Env, Request, Response, Result};
+use worker::{js_sys, worker_sys, Request, Response, Result};
 
 macro_rules! if_debug {
     ($debug:expr, $otherwise:expr) => {{
@@ -270,31 +270,6 @@ impl RequestExt for Request {
             .filter_map(|part| part.split_once('='))
             .find(|(k, _)| name == k.trim())
             .map(|(_, v)| v.trim().to_owned())
-    }
-}
-
-pub trait EnvExt: Sized {
-    fn storage(&self) -> crate::Result<crate::storage::DefaultStorage>;
-    fn oauth(&self) -> Result<crate::poe_api::Oauth>;
-    fn dangerous(&self) -> Result<crate::dangerous::Dangerous>;
-}
-
-impl EnvExt for Env {
-    fn storage(&self) -> crate::Result<crate::storage::DefaultStorage> {
-        crate::storage::DefaultStorage::from_env(self)
-    }
-
-    fn oauth(&self) -> Result<crate::poe_api::Oauth> {
-        Ok(crate::poe_api::Oauth::new(
-            self.var(crate::consts::ENV_OAUTH_CLIENT_ID)?.to_string(),
-            self.var(crate::consts::ENV_OAUTH_CLIENT_SECRET)?
-                .to_string(),
-        ))
-    }
-
-    fn dangerous(&self) -> Result<crate::dangerous::Dangerous> {
-        let secret = self.var(crate::consts::ENV_SECRET_KEY)?.to_string();
-        Ok(crate::dangerous::Dangerous::new(secret.into_bytes()))
     }
 }
 

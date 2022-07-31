@@ -102,6 +102,7 @@ impl B2 {
         })
     }
 
+    #[tracing::instrument(skip_all, fields(size = content.len()))]
     pub async fn upload(
         &self,
         settings: &UploadSettings<'_>,
@@ -139,6 +140,7 @@ impl B2 {
         .await
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn download(&self, path: &str) -> Result<worker::Response> {
         // Requires a public url for now ...
         let mut url = self.public_file_url.to_owned();
@@ -158,6 +160,7 @@ impl B2 {
         .await
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_upload_url(&self) -> Result<UploadDetails> {
         // Retry in case the credentials expired and on the 2nd attempt force new credentials.
         retry(5, |attempt| async move {
@@ -188,6 +191,7 @@ impl B2 {
         .await
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn list_files(&self, prefix: &str, max_file_count: u16) -> Result<ListResponse> {
         retry(3, |_| async move {
             let auth = self.credentials.get_auth_details(false).await?;
@@ -217,6 +221,7 @@ impl B2 {
         .await
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn hide(&self, path: &str) -> Result<File> {
         retry(3, |_| async move {
             let auth = self.credentials.get_auth_details(false).await?;
@@ -262,6 +267,7 @@ impl Credentials {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_auth_details(&self, force_refresh: bool) -> Result<AuthDetails> {
         if !force_refresh {
             if let Some(auth_details) = self.kv.get("credentials").cache_ttl(3_600).json().await? {
@@ -287,6 +293,7 @@ impl Credentials {
         Ok(auth_details)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_new_auth_details(&self) -> Result<AuthDetails> {
         let mut headers = Headers::new();
         headers.set(

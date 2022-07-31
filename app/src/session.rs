@@ -6,6 +6,7 @@ use sycamore::{
 
 use crate::utils::if_browser;
 
+// TODO move this into shared
 #[derive(Debug, Deserialize, Serialize)]
 pub struct User {
     pub name: String,

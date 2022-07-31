@@ -2,31 +2,25 @@ use super::protocol::Timestamp;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
-pub fn serialize_id<S: serde::Serializer>(uuid: &uuid::Uuid, serializer: S) -> Result<S::Ok, S::Error> {
+pub fn serialize_id<S: serde::Serializer>(
+    uuid: &uuid::Uuid,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
     serializer.serialize_some(&uuid.as_simple().to_string())
 }
 
 pub mod ts_rfc3339 {
-    use std::fmt;
-
-    use serde::{de, ser};
-
     use super::*;
-
-    // pub fn deserialize<'de, D>(d: D) -> Result<Timestamp, D::Error>
-    // where
-    //     D: de::Deserializer<'de>,
-    // {
-    //     d.deserialize_any(Rfc3339Deserializer)
-    // }
+    use serde::{de, ser};
+    use std::fmt;
 
     pub fn serialize<S>(st: &Timestamp, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: ser::Serializer,
     {
         let d = time::Duration::milliseconds(st.0 as i64);
-        worker::console_log!("OOPS!? {:?}", OffsetDateTime::UNIX_EPOCH.checked_add(d));
-        match OffsetDateTime::UNIX_EPOCH.checked_add(d)
+        match OffsetDateTime::UNIX_EPOCH
+            .checked_add(d)
             .and_then(|dt| dt.format(&Rfc3339).ok())
         {
             Some(formatted) => serializer.serialize_str(&formatted),
@@ -59,16 +53,8 @@ pub mod ts_rfc3339 {
 }
 
 pub mod ts_rfc3339_opt {
-    use serde::ser;
-
     use super::*;
-
-    // pub fn deserialize<'de, D>(d: D) -> Result<Option<Timestamp>, D::Error>
-    // where
-    //     D: de::Deserializer<'de>,
-    // {
-    //     ts_rfc3339::deserialize(d).map(Some)
-    // }
+    use serde::ser;
 
     pub fn serialize<S>(st: &Option<Timestamp>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -80,4 +66,3 @@ pub mod ts_rfc3339_opt {
         }
     }
 }
-

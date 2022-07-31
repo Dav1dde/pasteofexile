@@ -1,13 +1,14 @@
 use crate::{
     consts, crypto, poe_api,
-    utils::{self, is_valid_id, CacheControl, EnvExt, RequestExt, ResponseExt},
+    request_context::RequestContext,
+    utils::{self, is_valid_id, CacheControl, ResponseExt},
     Error, Result,
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::Deserialize;
 use shared::model::{PasteId, PasteMetadata};
 use sycamore_router::Route;
-use worker::{Context, Env, Headers, Method, Request, Response};
+use worker::{Headers, Method, Response};
 
 macro_rules! validate {
     ($e:expr, $msg:expr) => {
@@ -72,49 +73,49 @@ enum DeleteEndpoints {
     NotFound,
 }
 
-pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<Option<Response>> {
+pub async fn try_handle(rctx: &mut RequestContext) -> Result<Option<Response>> {
     // TODO: some of these need to render a error page not fallback to JSON (e.g. failed login)
+    let method = rctx.method();
+    let path = rctx.path();
 
-    if req.method() == Method::Post {
-        match PostEndpoints::match_path(&req.path()) {
-            PostEndpoints::Upload() => handle_upload(ctx, req, env).await.map(Some),
-            PostEndpoints::PobUpload() => handle_pob_upload(ctx, req, env).await.map(Some),
+    if method == Method::Post {
+        match PostEndpoints::match_path(&path) {
+            PostEndpoints::Upload() => handle_upload(rctx).await.map(Some),
+            PostEndpoints::PobUpload() => handle_pob_upload(rctx).await.map(Some),
             PostEndpoints::NotFound => Ok(None),
         }
-    } else if req.method() == Method::Get {
-        match GetEndpoints::match_path(&req.path()) {
-            GetEndpoints::User(user) => handle_user(env, user).await.map(Some),
-            GetEndpoints::PobPaste(id) => handle_download_text(env, id).await.map(Some),
+    } else if method == Method::Get {
+        match GetEndpoints::match_path(&path) {
+            GetEndpoints::User(user) => handle_user(rctx, user).await.map(Some),
+            GetEndpoints::PobPaste(id) => handle_download_text(rctx, id).await.map(Some),
             GetEndpoints::PobUserPaste(user, id) => {
-                handle_download_text(env, PasteId::new_user(user, id))
+                handle_download_text(rctx, PasteId::new_user(user, id))
                     .await
                     .map(Some)
             }
-            GetEndpoints::Paste(id) => handle_download_text(env, PasteId::Paste(id))
+            GetEndpoints::Paste(id) => handle_download_text(rctx, PasteId::Paste(id))
                 .await
                 .map(Some),
             GetEndpoints::UserPaste(user, id) => {
-                handle_download_text(env, PasteId::new_user(user, id))
+                handle_download_text(rctx, PasteId::new_user(user, id))
                     .await
                     .map(Some)
             }
-            GetEndpoints::PasteJson(id) => handle_download_json(env, PasteId::Paste(id))
+            GetEndpoints::PasteJson(id) => handle_download_json(rctx, PasteId::Paste(id))
                 .await
                 .map(Some),
             GetEndpoints::UserPasteJson(user, id) => {
-                handle_download_json(env, PasteId::new_user(user, id))
+                handle_download_json(rctx, PasteId::new_user(user, id))
                     .await
                     .map(Some)
             }
-            GetEndpoints::Login() => handle_login(req, env).await.map(Some),
-            GetEndpoints::Oauht2Poe() => handle_oauth2_poe(req, env).await.map(Some),
+            GetEndpoints::Login() => handle_login(rctx).await.map(Some),
+            GetEndpoints::Oauht2Poe() => handle_oauth2_poe(rctx).await.map(Some),
             GetEndpoints::NotFound => Ok(None),
         }
-    } else if req.method() == Method::Delete {
-        match DeleteEndpoints::match_path(&req.path()) {
-            DeleteEndpoints::DeletePaste(id) => {
-                handle_delete_paste(ctx, req, env, id).await.map(Some)
-            }
+    } else if method == Method::Delete {
+        match DeleteEndpoints::match_path(&path) {
+            DeleteEndpoints::DeletePaste(id) => handle_delete_paste(rctx, id).await.map(Some),
             DeleteEndpoints::NotFound => Ok(None),
         }
     } else {
@@ -122,8 +123,9 @@ pub async fn try_handle(ctx: &Context, req: &mut Request, env: &Env) -> Result<O
     }
 }
 
-async fn handle_download_text(env: &Env, id: PasteId) -> Result<Response> {
-    let paste = env
+#[tracing::instrument(skip(rctx))]
+async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Response> {
+    let paste = rctx
         .storage()?
         .get(&id)
         .await?
@@ -140,8 +142,9 @@ async fn handle_download_text(env: &Env, id: PasteId) -> Result<Response> {
         )
 }
 
-async fn handle_download_json(env: &Env, id: PasteId) -> Result<Response> {
-    let paste = env
+#[tracing::instrument(skip(rctx))]
+async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Response> {
+    let paste = rctx
         .storage()?
         .get(&id)
         .await?
@@ -158,14 +161,10 @@ async fn handle_download_json(env: &Env, id: PasteId) -> Result<Response> {
         )
 }
 
-async fn handle_delete_paste(
-    ctx: &Context,
-    req: &Request,
-    env: &Env,
-    id: PasteId,
-) -> Result<Response> {
-    env.storage()?.delete(&id).await?;
-    crate::cache::on_paste_change(ctx, req, id);
+#[tracing::instrument(skip(rctx))]
+async fn handle_delete_paste(rctx: &RequestContext, id: PasteId) -> Result<Response> {
+    rctx.storage()?.delete(&id).await?;
+    crate::cache::on_paste_change(rctx, id);
     Ok(Response::empty()?)
 }
 
@@ -190,8 +189,9 @@ struct UploadRequest {
     content: String,
 }
 
-async fn handle_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Response> {
-    let data = req.json::<UploadRequest>().await?;
+#[tracing::instrument(skip(rctx))]
+async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
+    let data = rctx.req_mut().json::<UploadRequest>().await?;
     let mut content = data.content.into_bytes();
 
     let pob = validate_pob(&content)?;
@@ -200,8 +200,7 @@ async fn handle_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Re
     let sha1 = crypto::sha1(&mut content).await?;
 
     let id = if data.as_user {
-        let session = req.session().ok_or(Error::AccessDenied)?;
-        let session = env.dangerous()?.verify::<app::User>(&session).await?;
+        let session = rctx.session().await?.ok_or(Error::AccessDenied)?;
 
         validate!(data.title.is_some(), "Title is required");
         let title = data.title.unwrap();
@@ -238,20 +237,21 @@ async fn handle_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Re
     };
 
     log::debug!("--> uploading paste '{}'", id);
-    env.storage()?
+    rctx.storage()?
         .put(&id, &sha1, &mut content, Some(metadata))
         .await?;
     log::debug!("<-- paste uploaded");
 
     let body = serde_json::to_vec(&id)?;
 
-    crate::cache::on_paste_change(ctx, req, id);
+    crate::cache::on_paste_change(rctx, id);
 
     Response::from_bytes(body)?.with_content_type("application/json")
 }
 
-async fn handle_pob_upload(ctx: &Context, req: &mut Request, env: &Env) -> Result<Response> {
-    let mut data = req.bytes().await?;
+#[tracing::instrument(skip(rctx))]
+async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
+    let mut data = rctx.req_mut().bytes().await?;
 
     let pob = validate_pob(&data)?;
     let metadata = to_metadata(&pob);
@@ -260,14 +260,14 @@ async fn handle_pob_upload(ctx: &Context, req: &mut Request, env: &Env) -> Resul
     let id = PasteId::new_id(utils::hash_to_short_id(&sha1, 9)?);
 
     log::debug!("--> uploading paste '{}'", id);
-    env.storage()?
-        .put_async(ctx, &id, &sha1, data, Some(metadata))
+    rctx.storage()?
+        .put_async(rctx.ctx(), &id, &sha1, data, Some(metadata))
         .await?;
     log::debug!("<-- paste uploaing ...");
 
     let response = Response::ok(id.to_string())?;
 
-    crate::cache::on_paste_change(ctx, req, id);
+    crate::cache::on_paste_change(rctx, id);
 
     Ok(response)
 }
@@ -296,9 +296,10 @@ fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
     }
 }
 
-async fn handle_user(env: &Env, user: String) -> Result<Response> {
+#[tracing::instrument(skip(rctx))]
+async fn handle_user(rctx: &RequestContext, user: String) -> Result<Response> {
     // TODO: code duplication with lib.rs
-    let mut pastes = env
+    let mut pastes = rctx
         .storage()?
         .list(format!("user/{user}/pastes/"))
         .await?
@@ -339,22 +340,23 @@ async fn handle_user(env: &Env, user: String) -> Result<Response> {
         )
 }
 
-async fn handle_login(req: &Request, env: &Env) -> Result<Response> {
-    let _url = req.url()?;
+#[tracing::instrument(skip(rctx))]
+async fn handle_login(rctx: &RequestContext) -> Result<Response> {
+    let _url = rctx.url()?;
     let host = crate::utils::if_debug!("preview.pobb.in", _url.host_str().unwrap());
 
     let state = utils::random_string::<16>()?;
 
     let redirect_uri = format!("https://{host}/oauth2/authorization/poe");
-    let login_uri = env
+    let login_uri = rctx
         .oauth()?
         .get_login_url(&redirect_uri, &state, consts::OAUTH_SCOPE);
 
     Response::redirect_temp(&login_uri)?.with_state_cookie(&state)
 }
 
-async fn handle_oauth2_poe(req: &Request, env: &Env) -> Result<Response> {
-    let url = req.url()?;
+async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
+    let url = rctx.url()?;
 
     let grant = match poe_api::AuthorizationGrant::try_from(&url) {
         Ok(grant) => grant,
@@ -364,21 +366,21 @@ async fn handle_oauth2_poe(req: &Request, env: &Env) -> Result<Response> {
 
     crate::utils::if_debug!({}, {
         use crate::utils::RequestExt;
-        if req.cookie("state").unwrap_or_default() != grant.state {
+        if rctx.cookie("state").unwrap_or_default() != grant.state {
             // TODO: render error page
             return Ok(Response::error("invalid session state", 403)?);
         }
     });
 
     // TODO: error handling -> show error page
-    let token = env.oauth()?.fetch_token(&grant.code).await?;
+    let token = rctx.oauth()?.fetch_token(&grant.code).await?;
 
     let profile = poe_api::PoeApi::new(token.access_token)
         .fetch_profile()
         .await?;
 
     let user = app::User { name: profile.name };
-    let session = env.dangerous()?.sign(&user).await?;
+    let session = rctx.dangerous()?.sign(&user).await?;
 
     // TODO: redirect back to where the user actually came from
     Response::redirect_temp(&format!("/u/{}", user.name))?

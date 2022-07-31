@@ -8,37 +8,73 @@ mod utils;
 
 pub use self::client::Sentry;
 pub use self::layer::Layer;
-
+pub use self::protocol::{Level, Request, User};
 
 thread_local!(pub(crate) static SENTRY: RefCell<Option<Sentry>> = RefCell::new(None));
 
+pub struct Options {
+    pub project: String,
+    pub token: String,
+}
 
-pub fn init(env: &worker::Env, ctx: &worker::Context, req: &worker::Request) {
-    if let Some(sentry) = Sentry::from_env(env, ctx, req) {
+pub fn init(ctx: &worker::Context, options: impl Into<Option<Options>>) -> SentryToken {
+    if let Some(options) = options.into() {
+        let sentry = Sentry::new(ctx.clone(), options);
         SENTRY.with(move |cell| cell.borrow_mut().replace(sentry));
+        SentryToken(true)
+    } else {
+        SentryToken(false)
     }
 }
 
-pub fn finish() {
-    with_sentry(|sentry| sentry.finish_transaction());
+pub struct SentryToken(bool);
+
+impl SentryToken {
+    pub fn initialized(&self) -> bool {
+        self.0
+    }
 }
 
-pub fn with_sentry<F, T>(f: F) -> Option<T> where F: FnOnce(&Sentry) -> T {
-    SENTRY.with(|sentry| {
-        if let Some(sentry) = sentry.borrow().as_ref() {
-            Some(f(sentry))
-        } else {
-            None
+impl Drop for SentryToken {
+    fn drop(&mut self) {
+        if self.initialized() {
+            SENTRY.with(|cell| {
+                let sentry = cell.borrow_mut().take();
+                if let Some(mut sentry) = sentry {
+                    sentry.finish_transaction();
+                }
+            })
         }
-    })
+    }
 }
 
-pub(crate) fn with_sentry_mut<F, T>(f: F) -> Option<T> where F: FnOnce(&mut Sentry) -> T {
-    SENTRY.with(|sentry| {
-        if let Some(sentry) = sentry.borrow_mut().as_mut() {
-            Some(f(sentry))
-        } else {
-            None
-        }
-    })
+pub struct TransactionContext {
+    pub name: String,
+    pub op: String,
+}
+
+pub fn start_transaction(ctx: TransactionContext) {
+    with_sentry_mut(|sentry| sentry.start_transaction(ctx));
+}
+
+pub fn set_user(user: User) {
+    with_sentry_mut(|sentry| sentry.set_user(user));
+}
+
+pub fn set_request(request: Request) {
+    with_sentry_mut(|sentry| sentry.set_request(request));
+}
+
+pub fn with_sentry<F, T>(f: F) -> Option<T>
+where
+    F: FnOnce(&Sentry) -> T,
+{
+    SENTRY.with(|sentry| sentry.borrow().as_ref().map(f))
+}
+
+pub(crate) fn with_sentry_mut<F, T>(f: F) -> Option<T>
+where
+    F: FnOnce(&mut Sentry) -> T,
+{
+    SENTRY.with(|sentry| sentry.borrow_mut().as_mut().map(f))
 }

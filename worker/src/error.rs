@@ -1,4 +1,4 @@
-use crate::dangerous::DangerousError;
+use crate::{dangerous::DangerousError, sentry::Level};
 use serde::Serialize;
 use thiserror::Error;
 
@@ -62,20 +62,20 @@ impl Error {
         }
     }
 
-    pub fn level(&self) -> &'static str {
+    pub fn level(&self) -> Level {
         match self {
-            Self::NotFound(..) => "info",
-            Self::RemoteFailed(..) => "warning",
-            Self::Serde(..) => "error",
-            Self::Kv(..) => "error",
-            Self::Worker(..) => "error",
-            Self::BadRequest(..) => "info",
-            Self::AccessDenied => "info",
-            Self::InvalidPoB(..) => "error",
-            Self::Dangerous(..) => "error",
-            Self::Base64(..) => "error",
-            Self::IOError(..) => "error",
-            Self::Error(..) => "error",
+            Self::NotFound(..) => Level::Info,
+            Self::RemoteFailed(..) => Level::Warning,
+            Self::Serde(..) => Level::Error,
+            Self::Kv(..) => Level::Error,
+            Self::Worker(..) => Level::Error,
+            Self::BadRequest(..) => Level::Info,
+            Self::AccessDenied => Level::Info,
+            Self::InvalidPoB(..) => Level::Error,
+            Self::Dangerous(..) => Level::Error,
+            Self::Base64(..) => Level::Error,
+            Self::IOError(..) => Level::Error,
+            Self::Error(..) => Level::Error,
         }
     }
 

@@ -1,6 +1,6 @@
 use serde::Serialize;
 use shared::model::{PasteId, PasteSummary, UserPasteId};
-use std::{borrow::Cow, future::Future, time::Duration};
+use std::{borrow::Cow, time::Duration};
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
 mod api;
@@ -11,14 +11,15 @@ mod crypto;
 mod dangerous;
 mod error;
 mod poe_api;
+mod request_context;
 mod retry;
 mod sentry;
 mod storage;
 mod utils;
 
 pub use self::error::{Error, ErrorResponse, Result};
-use assets::EnvAssetExt;
-use utils::{CacheControl, EnvExt, ResponseExt};
+use request_context::RequestContext;
+use utils::{CacheControl, ResponseExt};
 
 struct ResponseInfo {
     cache_control: CacheControl,
@@ -36,13 +37,13 @@ impl Default for ResponseInfo {
     }
 }
 
+#[tracing::instrument(skip(rctx))]
 async fn build_context(
-    req: &Request,
-    env: &Env,
+    rctx: &RequestContext,
     route: app::Route,
 ) -> Result<(ResponseInfo, app::Context)> {
     // TODO: refactor this context garbage, maybe make it into a trait?
-    let host = req.url()?.host_str().unwrap().to_owned();
+    let host = rctx.url()?.host_str().unwrap().to_owned();
     use app::{Context, Route::*};
     let (info, ctx) = match route {
         Index => (ResponseInfo::default(), Context::index(host)),
@@ -58,7 +59,7 @@ async fn build_context(
                 ..Default::default()
             };
 
-            if let Some(paste) = env.storage()?.get(&id).await? {
+            if let Some(paste) = rctx.storage()?.get(&id).await? {
                 info.etag = paste.entity_id.clone();
                 (info, Context::paste(host, id.to_string(), paste))
             } else {
@@ -68,7 +69,7 @@ async fn build_context(
         }
         User(name) => {
             // TODO: code duplication with api.rs
-            let mut pastes = env
+            let mut pastes = rctx
                 .storage()?
                 .list(format!("user/{name}/pastes/"))
                 .await?
@@ -115,7 +116,7 @@ async fn build_context(
                 ..Default::default()
             };
 
-            if let Some(paste) = env.storage()?.get(&id).await? {
+            if let Some(paste) = rctx.storage()?.get(&id).await? {
                 info.etag = paste.entity_id.clone();
                 (info, Context::user_paste(host, id.unwrap_user(), paste))
             } else {
@@ -148,27 +149,34 @@ static LOG_INIT: std::sync::Once = std::sync::Once::new();
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Response> {
+    let rctx = RequestContext::new(req, env, ctx);
+
     LOG_INIT.call_once(|| {
         use tracing_subscriber::prelude::*;
-        tracing_subscriber::registry()
-            .with(sentry::Layer {})
-            .init();
+        tracing_subscriber::registry().with(sentry::Layer {}).init();
     });
 
-    sentry::init(&env, &ctx, &req);
-    let response = main_inner(req, env, ctx).await;
-    sentry::finish();
+    let _sentry = sentry::init(rctx.ctx(), rctx.get_sentry_options());
 
-    response
+    sentry::set_user(rctx.get_sentry_user().await);
+    sentry::set_request(rctx.get_sentry_request().await);
+    sentry::start_transaction(sentry::TransactionContext {
+        op: "http.fetch".to_owned(),
+        name: "do_something".to_owned(),
+    });
+
+    // TODO: transaction status in trace.context
+
+    main_inner(rctx).await
 }
 
-async fn main_inner(mut req: Request, env: Env, ctx: Context) -> worker::Result<Response> {
-    let err: ErrorResponse = match cached(&mut req, &env, &ctx, try_main2).await {
+async fn main_inner(mut rctx: RequestContext) -> worker::Result<Response> {
+    let err: ErrorResponse = match cached(&mut rctx).await {
         Ok(response) => {
             worker::console_log!(
                 "{:?} {} {}",
-                req.method(),
-                req.path(),
+                rctx.method(),
+                rctx.path(),
                 response.status_code()
             );
             return Ok(response);
@@ -189,8 +197,8 @@ async fn main_inner(mut req: Request, env: Env, ctx: Context) -> worker::Result<
 
     worker::console_warn!(
         "{:?} {} {} {}",
-        req.method(),
-        req.path(),
+        rctx.method(),
+        rctx.path(),
         response.status_code(),
         err.message
     );
@@ -199,26 +207,19 @@ async fn main_inner(mut req: Request, env: Env, ctx: Context) -> worker::Result<
 }
 
 #[tracing::instrument(skip_all)]
-async fn try_main2(req: &mut Request, env: &Env, ctx: &Context) -> Result<Response> {
-    try_main(req, env, ctx).await
-}
-
-#[tracing::instrument(skip_all)]
-async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Response> {
-    if let Some(response) = api::try_handle(ctx, req, env).await? {
+async fn try_main(rctx: &mut RequestContext) -> Result<Response> {
+    if let Some(response) = api::try_handle(rctx).await? {
         return Ok(response);
     }
 
-    log::info!("test");
-
-    if req.path() == "/oembed.json" && req.method() == Method::Get {
+    if rctx.path() == "/oembed.json" && rctx.method() == Method::Get {
         let mut oembed = Oembed {
             provider_name: "Paste of Exile - POBb.in",
-            provider_url: &format!("https://{}", req.url()?.host_str().unwrap()),
+            provider_url: &format!("https://{}", rctx.url()?.host_str().unwrap()),
             ..Default::default()
         };
 
-        let url = req.url()?;
+        let url = rctx.url()?;
         if let Some(author) = url
             .query_pairs()
             .find_map(|(k, v)| (k == "user").then_some(v))
@@ -230,49 +231,41 @@ async fn try_main(req: &mut Request, env: &Env, ctx: &Context) -> Result<Respons
         return Response::from_json(&oembed)?.cache_for(Duration::from_secs(12 * 3_600));
     }
 
-    if let Some(response) = assets::try_handle(req, env).await? {
+    if let Some(response) = assets::try_handle(rctx).await? {
         return Ok(response);
     }
 
-    let route = app::Route::resolve(&req.path());
-    let (info, ctx) = build_context(req, env, route).await?;
+    let route = app::Route::resolve(&rctx.path());
+    let (info, ctx) = build_context(rctx, route).await?;
 
     if let Some(location) = info.redirect {
         return Response::redirect_perm(&location);
     }
 
-    let (app, rctx) = app::render_to_string(ctx);
+    let (app, resp_ctx) = app::render_to_string(ctx);
     let head = app::render_head(app::Head {
-        meta: rctx.meta.unwrap_or_default(),
-        prefetch: rctx.prefetch,
-        preload: rctx.preload,
+        meta: resp_ctx.meta.unwrap_or_default(),
+        prefetch: resp_ctx.prefetch,
+        preload: resp_ctx.preload,
     });
 
-    let index = env.get_asset("index.html")?.text().await?.unwrap();
+    let index = rctx.get_asset("index.html")?.text().await?.unwrap();
     let index = index.replace("<!-- %head% -->", &head);
     let index = index.replace("<!-- %app% -->", &app);
 
     Response::from_html(index)?
-        .with_status(rctx.status_code)
+        .with_status(resp_ctx.status_code)
         .with_etag_opt(info.etag.as_deref())?
         .with_cache_control(info.cache_control)
 }
 
-async fn cached<'a, F, Fut>(
-    req: &'a mut Request,
-    env: &'a Env,
-    ctx: &'a worker::Context,
-    f: F,
-) -> Result<Response>
-where
-    F: Fn(&'a mut Request, &'a Env, &'a worker::Context) -> Fut,
-    Fut: Future<Output = Result<Response>> + 'a,
-{
+#[tracing::instrument(skip_all)]
+async fn cached(rctx: &mut RequestContext) -> Result<Response> {
     let cache = Cache::default();
-    let use_cache = req.method() == Method::Get;
+    let use_cache = rctx.method() == Method::Get;
 
     if use_cache {
-        if let Some(response) = cache.get(&*req, true).await? {
+        if let Some(response) = cache.get(rctx.req(), true).await? {
             log::debug!("cache hit");
             return response
                 .dup_headers() // cached response has immutable headers
@@ -280,18 +273,14 @@ where
         }
     }
 
-    // I think I cannot get around this clone in current rust,
-    // if I use HRTBs for `F`, I cannot give `Fut` the correct lifetime.
-    // except by using a `BoxFuture`, which isn't really better.
-    // --> clone always (need to clone in most cases anyways)
-    let request_for_cache = req.clone()?;
-    let response = f(req, env, ctx).await?;
-    let req = request_for_cache;
+    let response = try_main(rctx).await?;
 
     if use_cache && should_cache(&response) {
         let (response, response_for_cache) = response.cloned()?;
 
-        ctx.wait_until(async move {
+        let req = rctx.req().clone()?;
+
+        rctx.ctx().wait_until(async move {
             log::debug!("--> caching response");
             let _ = cache.put(&req, response_for_cache).await;
             log::debug!("<-- response cached");
@@ -304,5 +293,5 @@ where
 }
 
 fn should_cache(response: &Response) -> bool {
-    response.headers().has("Cache-Control").unwrap()
+    response.headers().has("Cache-Control").unwrap_or(false)
 }

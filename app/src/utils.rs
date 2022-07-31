@@ -191,11 +191,11 @@ mod tests {
         assert_eq!(pretty_date(0), "just now");
         assert_eq!(pretty_date(1), "just now");
         assert_eq!(pretty_date(30 * SECS), "30 seconds ago");
-        assert_eq!(pretty_date(1 * MINS), "a minute ago");
+        assert_eq!(pretty_date(MINS), "a minute ago");
         assert_eq!(pretty_date(3 * MINS + 5 * SECS), "3 minutes ago");
-        assert_eq!(pretty_date(1 * HOURS + 10 * MINS), "an hour ago");
+        assert_eq!(pretty_date(HOURS + 10 * MINS), "an hour ago");
         assert_eq!(pretty_date(23 * HOURS), "23 hours ago");
-        assert_eq!(pretty_date(1 * DAYS), "a day ago");
+        assert_eq!(pretty_date(DAYS), "a day ago");
         assert_eq!(pretty_date(13 * DAYS), "13 days ago");
         assert_eq!(pretty_date(2 * WEEKS), "2 weeks ago");
         assert_eq!(pretty_date(7 * WEEKS), "7 weeks ago");

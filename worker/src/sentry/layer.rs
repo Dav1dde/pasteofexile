@@ -1,13 +1,14 @@
-use tracing_subscriber::{layer, registry::LookupSpan};
-use tracing::{span, Subscriber};
-use worker::console_log;
 use super::protocol;
+use tracing::{span, Subscriber};
+use tracing_subscriber::{layer, registry::LookupSpan};
 
+pub struct Layer {}
 
-pub struct Layer {
-}
-
-impl<S> layer::Layer<S> for Layer where S: Subscriber + for<'a> LookupSpan<'a> {
+#[allow(clippy::significant_drop_in_scrutinee)]
+impl<S> layer::Layer<S> for Layer
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
     fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, ctx: layer::Context<'_, S>) {
         let span = match ctx.span(id) {
             Some(span) => span,
@@ -26,7 +27,7 @@ impl<S> layer::Layer<S> for Layer where S: Subscriber + for<'a> LookupSpan<'a> {
             }
         });
 
-        let parent = span.scope().skip(1).next();
+        let parent = span.scope().nth(1);
         let parent_span_id = parent.and_then(|parent| {
             let mut extensions = parent.extensions_mut();
             let span = extensions.get_mut::<protocol::Span>()?;
@@ -42,12 +43,12 @@ impl<S> layer::Layer<S> for Layer where S: Subscriber + for<'a> LookupSpan<'a> {
             ..Default::default()
         };
 
-        let trace_context = protocol::TraceContext { 
+        let trace_context = protocol::TraceContext {
             span_id: sentry_span.span_id,
-            trace_id: sentry_span.trace_id, 
-            parent_span_id: sentry_span.parent_span_id, 
-            op: sentry_span.op.clone(), 
-            description: sentry_span.description.clone(), 
+            trace_id: sentry_span.trace_id,
+            parent_span_id: sentry_span.parent_span_id,
+            op: sentry_span.op.clone(),
+            description: sentry_span.description.clone(),
             ..Default::default()
         };
 
@@ -70,7 +71,7 @@ impl<S> layer::Layer<S> for Layer where S: Subscriber + for<'a> LookupSpan<'a> {
         };
 
         sentry_span.timestamp = Some(protocol::Timestamp::now());
-        
+
         super::with_sentry_mut(|sentry| {
             sentry.add_span(sentry_span);
             sentry.pop_trace_context();
@@ -104,14 +105,12 @@ impl<S> layer::Layer<S> for Layer where S: Subscriber + for<'a> LookupSpan<'a> {
             &Level::ERROR => {
                 let event = super::converter::exception_from_event(event, ctx);
                 super::with_sentry(|sentry| sentry.capture_event(event));
-            },
+            }
             &Level::WARN | &Level::INFO => {
                 let breadcrumb = super::converter::breadcrumb_from_event(event);
                 super::with_sentry_mut(|sentry| sentry.add_breadcrumb(breadcrumb));
-            },
+            }
             &Level::DEBUG | &Level::TRACE => (),
         }
-
     }
 }
-

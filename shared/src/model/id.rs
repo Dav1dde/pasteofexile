@@ -48,7 +48,7 @@ impl fmt::Display for UserPasteId {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum PasteId {
     // TODO: newtype for this?
