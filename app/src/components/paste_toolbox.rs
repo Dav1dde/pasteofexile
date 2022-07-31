@@ -28,7 +28,7 @@ pub fn paste_toolbox(
         _on_delete,
         {
             match crate::api::delete_paste(&id.into()).await {
-                Err(err) => log::error!("deletion failed: {:?}", err),
+                Err(err) => tracing::error!("deletion failed: {:?}", err),
                 Ok(_) => _on_delete.set(true),
             }
         },

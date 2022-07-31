@@ -236,11 +236,11 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
         PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
     };
 
-    log::debug!("--> uploading paste '{}'", id);
+    tracing::debug!("--> uploading paste '{}'", id);
     rctx.storage()?
         .put(&id, &sha1, &mut content, Some(metadata))
         .await?;
-    log::debug!("<-- paste uploaded");
+    tracing::debug!("<-- paste uploaded");
 
     let body = serde_json::to_vec(&id)?;
 
@@ -259,11 +259,11 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
     let sha1 = crypto::sha1(&mut data).await?;
     let id = PasteId::new_id(utils::hash_to_short_id(&sha1, 9)?);
 
-    log::debug!("--> uploading paste '{}'", id);
+    tracing::debug!("--> uploading paste '{}'", id);
     rctx.storage()?
         .put_async(rctx.ctx(), &id, &sha1, data, Some(metadata))
         .await?;
-    log::debug!("<-- paste uploaing ...");
+    tracing::debug!("<-- paste uploaing ...");
 
     let response = Response::ok(id.to_string())?;
 

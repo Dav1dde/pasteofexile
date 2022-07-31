@@ -30,7 +30,7 @@ where
             Ok(Retry::Err(err)) => {
                 let is_last_attempt = i == max_attempts;
                 if is_last_attempt {
-                    log::warn!("no more attempts available");
+                    tracing::warn!("no more attempts available");
                     return Err(err);
                 }
             }

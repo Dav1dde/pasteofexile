@@ -3,7 +3,7 @@ use sycamore::prelude::*;
 
 pub fn main() {
     console_error_panic_hook::set_once();
-    console_log::init_with_level(log::Level::Debug).unwrap();
+    tracing_wasm::set_as_global_default();
 
     let root = web_sys::window()
         .unwrap()

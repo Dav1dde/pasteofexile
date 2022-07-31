@@ -72,7 +72,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         match SerdePathOfBuilding::from_export(value) {
             Ok(pob) => Some(pob),
             Err(err) => {
-                log::info!("{}", err);
+                tracing::info!("{}", err);
                 error.set("Invalid PoB Code".to_owned());
                 None
             }
@@ -100,7 +100,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         use crate::api;
 
         if *loading.get() {
-            log::info!("can't submit, already loading");
+            tracing::info!("can't submit, already loading");
             return;
         }
 
@@ -126,7 +126,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                 Err(err) => {
                     loading.set(false);
                     error.set(err.to_string());
-                    log::info!("{:?}", err);
+                    tracing::info!("{:?}", err);
                 }
                 Ok(id) => {
                     sycamore_router::navigate(&id.to_url());

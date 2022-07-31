@@ -25,7 +25,7 @@ pub(crate) fn on_paste_change(rctx: &RequestContext, id: PasteId) {
             }};
         }
 
-        log::info!("resetting cached URLs for {user_paste}");
+        tracing::info!("resetting cached URLs for {user_paste}");
         clear!(user_paste.to_paste_url());
         clear!(user_paste.to_json_url());
         clear!(user_paste.to_raw_url());
@@ -33,6 +33,6 @@ pub(crate) fn on_paste_change(rctx: &RequestContext, id: PasteId) {
         clear!(user_paste.to_pob_long_load_url());
         clear!(user_paste.to_paste_edit_url());
         clear!(user_paste.to_user_url());
-        log::info!("done resetting caches");
+        tracing::info!("done resetting caches");
     });
 }

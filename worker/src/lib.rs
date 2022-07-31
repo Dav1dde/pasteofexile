@@ -266,7 +266,7 @@ async fn cached(rctx: &mut RequestContext) -> Result<Response> {
 
     if use_cache {
         if let Some(response) = cache.get(rctx.req(), true).await? {
-            log::debug!("cache hit");
+            tracing::debug!("cache hit");
             return response
                 .dup_headers() // cached response has immutable headers
                 .with_header("Cf-Cache-Status", "HIT");
@@ -281,9 +281,9 @@ async fn cached(rctx: &mut RequestContext) -> Result<Response> {
         let req = rctx.req().clone()?;
 
         rctx.ctx().wait_until(async move {
-            log::debug!("--> caching response");
+            tracing::debug!("--> caching response");
             let _ = cache.put(&req, response_for_cache).await;
-            log::debug!("<-- response cached");
+            tracing::debug!("<-- response cached");
         });
 
         response.with_header("Cf-Cache-Status", "MISS")

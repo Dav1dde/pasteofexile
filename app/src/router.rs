@@ -230,7 +230,7 @@ impl<G: Html> Page<G> {
             Err(err) => err,
         };
 
-        log::info!("encountered error: {:?}", err);
+        tracing::info!("encountered error: {:?}", err);
         // TODO: error context on these errors,
         // e.g. not found page displaying the resource type
         match err {

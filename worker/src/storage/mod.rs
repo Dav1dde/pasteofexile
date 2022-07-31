@@ -132,11 +132,11 @@ impl B2Storage {
             };
 
             if let Err(err) = self.b2.upload(&settings, &mut data, upload).await {
-                log::error!("<-- failed to upload paste: {:?}", err);
-                // TODO: is this necessary, tracing should pick it up already from log::erorr!
+                tracing::error!("<-- failed to upload paste: {:?}", err);
+                // TODO: is this necessary, tracing should pick it up already from tracing::erorr!
                 sentry::with_sentry(|sentry| sentry.capture_err_level(&err, sentry::Level::Error));
             } else {
-                log::debug!("<-- paste uploaded");
+                tracing::debug!("<-- paste uploaded");
             }
         };
         ctx.wait_until(future);
@@ -263,10 +263,11 @@ impl KvStorage {
                 .await;
 
             if let Err(err) = r {
-                log::error!("<-- failed to upload paste: {:?}", err);
+                tracing::error!("<-- failed to upload paste: {:?}", err);
+                // TODO: this should not be necessary due to tracing::error generating an event
                 sentry::with_sentry(|sentry| sentry.capture_err(&err.into()));
             } else {
-                log::debug!("<-- paste uploaded");
+                tracing::debug!("<-- paste uploaded");
             }
         };
         ctx.wait_until(future);

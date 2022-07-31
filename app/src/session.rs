@@ -90,7 +90,7 @@ where
             let session = match Session::from_document() {
                 Ok(session) => session,
                 Err(err) => {
-                    log::error!("Can not extract session: {:?}", err);
+                    tracing::error!("Can not extract session: {:?}", err);
                     Session::logout()
                 }
             };

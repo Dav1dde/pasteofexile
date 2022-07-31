@@ -78,10 +78,10 @@ macro_rules! retry_if {
     ($response:ident, $err:expr, $($status:literal)|+, $map:expr) => {{
         let status_code = $response.status_code();
         if $($status == status_code)||+ {
-            log::info!("request failed {}, retrying '{}' if more attempts are available", status_code, $err);
+            tracing::info!("request failed {}, retrying '{}' if more attempts are available", status_code, $err);
             Retry::err(Error::RemoteFailed(status_code, $err.into()))
         } else if status_code >= 300 {
-            log::info!("request failed {}, not retrying '{}'", status_code, $err);
+            tracing::info!("request failed {}, not retrying '{}'", status_code, $err);
             Err(Error::RemoteFailed(status_code, $err.into()))
         } else {
             Retry::ok($map)
@@ -151,7 +151,7 @@ impl B2 {
             let request = Request::new(&url, Method::Get)?;
             let response = Fetch::Request(request).send().await?;
             if response.status_code() >= 500 {
-                log::info!("download failed {}", response.status_code());
+                tracing::info!("download failed {}", response.status_code());
                 Retry::err(Error::RemoteFailed(response.status_code(), "upload".into()))
             } else {
                 Retry::ok(response)
@@ -271,17 +271,17 @@ impl Credentials {
     async fn get_auth_details(&self, force_refresh: bool) -> Result<AuthDetails> {
         if !force_refresh {
             if let Some(auth_details) = self.kv.get("credentials").cache_ttl(3_600).json().await? {
-                log::debug!("using cached auth details");
+                tracing::debug!("using cached auth details");
                 return Ok(auth_details);
             }
         }
 
-        log::info!(
+        tracing::info!(
             "--> requesting auth details{}",
             if force_refresh { ", forced" } else { "" }
         );
         let auth_details = self.get_new_auth_details().await?;
-        log::info!("<-- got auth details");
+        tracing::info!("<-- got auth details");
 
         // TODO: maybe persist creation time with the key?
         self.kv
