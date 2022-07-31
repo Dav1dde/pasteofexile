@@ -17,7 +17,7 @@ fn convert_tracing_level(level: &tracing::Level) -> Level {
 }
 
 /// Extracts the message and metadata from an event
-fn extract_event_data(event: &tracing::Event) -> (Option<String>, FieldVisitor) {
+pub(crate) fn extract_event_data(event: &tracing::Event) -> (Option<String>, FieldVisitor) {
     // Find message of the event, if any
     let mut visitor = FieldVisitor::default();
     event.record(&mut visitor);

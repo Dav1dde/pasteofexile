@@ -1,14 +1,16 @@
+use std::{borrow::Cow, time::Duration};
+
 use crate::{
     consts, crypto, poe_api,
     request_context::RequestContext,
+    route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
     utils::{self, is_valid_id, CacheControl, ResponseExt},
     Error, Result,
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use shared::model::{PasteId, PasteMetadata};
-use sycamore_router::Route;
-use worker::{Headers, Method, Response};
+use worker::{Headers, Response};
 
 macro_rules! validate {
     ($e:expr, $msg:expr) => {
@@ -26,66 +28,10 @@ macro_rules! validate_access {
     };
 }
 
-#[derive(sycamore_router::Route)]
-enum GetEndpoints {
-    #[to("/api/internal/user/<user>")]
-    User(String),
-    #[to("/<id>/raw")]
-    Paste(String),
-    #[to("/u/<name>/<id>/raw")]
-    UserPaste(String, String),
-    #[to("/<id>/json")]
-    PasteJson(String),
-    #[to("/u/<name>/<id>/json")]
-    UserPasteJson(String, String),
-    /// Path of Building endpoint for importing builds.
-    /// This supports the anonymous and user scoped paste IDs.
-    /// User scoped paste IDs are used in `pob://` protocol links.
-    /// Anonymous paste IDs are coming from importing an anonymous build URL in PoB.
-    #[to("/pob/<id>")]
-    PobPaste(PasteId),
-    /// Path of Building endpoint for importing user paste URLs.
-    #[to("/pob/u/<name>/<id>")]
-    PobUserPaste(String, String),
-    #[to("/login")]
-    Login(),
-    #[to("/oauth2/authorization/poe")]
-    Oauht2Poe(),
-    #[not_found]
-    NotFound,
-}
-
-#[derive(sycamore_router::Route)]
-enum PostEndpoints {
-    #[to("/api/internal/paste/")]
-    Upload(),
-    #[to("/pob/")]
-    PobUpload(),
-    #[not_found]
-    NotFound,
-}
-
-#[derive(sycamore_router::Route)]
-enum DeleteEndpoints {
-    #[to("/api/internal/paste/<id>")]
-    DeletePaste(PasteId),
-    #[not_found]
-    NotFound,
-}
-
-pub async fn try_handle(rctx: &mut RequestContext) -> Result<Option<Response>> {
-    // TODO: some of these need to render a error page not fallback to JSON (e.g. failed login)
-    let method = rctx.method();
-    let path = rctx.path();
-
-    if method == Method::Post {
-        match PostEndpoints::match_path(&path) {
-            PostEndpoints::Upload() => handle_upload(rctx).await.map(Some),
-            PostEndpoints::PobUpload() => handle_pob_upload(rctx).await.map(Some),
-            PostEndpoints::NotFound => Ok(None),
-        }
-    } else if method == Method::Get {
-        match GetEndpoints::match_path(&path) {
+pub async fn try_handle(rctx: &mut RequestContext, route: route::Api) -> Result<Option<Response>> {
+    match route {
+        route::Api::Get(get) => match get {
+            GetEndpoints::Oembed => handle_oembed(rctx).await.map(Some),
             GetEndpoints::User(user) => handle_user(rctx, user).await.map(Some),
             GetEndpoints::PobPaste(id) => handle_download_text(rctx, id).await.map(Some),
             GetEndpoints::PobUserPaste(user, id) => {
@@ -112,15 +58,44 @@ pub async fn try_handle(rctx: &mut RequestContext) -> Result<Option<Response>> {
             GetEndpoints::Login() => handle_login(rctx).await.map(Some),
             GetEndpoints::Oauht2Poe() => handle_oauth2_poe(rctx).await.map(Some),
             GetEndpoints::NotFound => Ok(None),
-        }
-    } else if method == Method::Delete {
-        match DeleteEndpoints::match_path(&path) {
+        },
+        route::Api::Post(post) => match post {
+            PostEndpoints::Upload() => handle_upload(rctx).await.map(Some),
+            PostEndpoints::PobUpload() => handle_pob_upload(rctx).await.map(Some),
+            PostEndpoints::NotFound => Ok(None),
+        },
+        route::Api::Delete(delete) => match delete {
             DeleteEndpoints::DeletePaste(id) => handle_delete_paste(rctx, id).await.map(Some),
             DeleteEndpoints::NotFound => Ok(None),
-        }
-    } else {
-        Ok(None)
+        },
     }
+}
+
+#[derive(Default, Serialize)]
+struct Oembed<'a> {
+    author_name: Option<Cow<'a, str>>,
+    author_url: Option<Cow<'a, str>>,
+    provider_name: &'a str,
+    provider_url: &'a str,
+}
+
+async fn handle_oembed(rctx: &RequestContext) -> Result<Response> {
+    let mut oembed = Oembed {
+        provider_name: "Paste of Exile - POBb.in",
+        provider_url: &format!("https://{}", rctx.url()?.host_str().unwrap()),
+        ..Default::default()
+    };
+
+    let url = rctx.url()?;
+    if let Some(author) = url
+        .query_pairs()
+        .find_map(|(k, v)| (k == "user").then_some(v))
+    {
+        oembed.author_url = Some(format!("{}/u/{author}", oembed.provider_url).into());
+        oembed.author_name = Some(author);
+    }
+
+    worker::Response::from_json(&oembed)?.cache_for(Duration::from_secs(12 * 3_600))
 }
 
 #[tracing::instrument(skip(rctx))]
@@ -198,6 +173,8 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
     let mut metadata = to_metadata(&pob);
 
     let sha1 = crypto::sha1(&mut content).await?;
+
+    tracing::info!(?data.id, data.as_user, ?data.title, ?data.custom_id, "upload");
 
     let id = if data.as_user {
         let session = rctx.session().await?.ok_or(Error::AccessDenied)?;

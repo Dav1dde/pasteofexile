@@ -12,6 +12,7 @@ use sycamore_router::{
 use web_sys::Element;
 
 #[derive(Clone, Debug, PartialEq, Eq, sycamore_router::Route)]
+#[cfg_attr(feature = "ssr", derive(strum::IntoStaticStr))]
 pub enum Route {
     #[to("/")]
     Index,

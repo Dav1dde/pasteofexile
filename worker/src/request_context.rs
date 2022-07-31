@@ -1,17 +1,24 @@
 use std::ops::Deref;
 use worker::kv;
 
-use crate::{consts, sentry, utils::RequestExt};
+use crate::{consts, route, sentry, utils::RequestExt};
 
 pub struct RequestContext {
     req: worker::Request,
     env: worker::Env,
     ctx: worker::Context,
+    route: route::Route,
 }
 
 impl RequestContext {
     pub fn new(req: worker::Request, env: worker::Env, ctx: worker::Context) -> Self {
-        Self { req, env, ctx }
+        let route = route::Route::new(&req);
+        Self {
+            req,
+            env,
+            ctx,
+            route,
+        }
     }
 
     pub fn req(&self) -> &worker::Request {
@@ -29,6 +36,24 @@ impl RequestContext {
 
     pub fn ctx(&self) -> &worker::Context {
         &self.ctx
+    }
+
+    pub fn route(&self) -> &route::Route {
+        &self.route
+    }
+
+    pub fn transaction(&self) -> String {
+        use route::{Api::*, Route::*};
+        match self.route {
+            Asset => "asset".to_owned(),
+            App(ref app) => format!("app::{}", <&str>::from(app)),
+            Api(ref api) => match api {
+                Get(ref get) => format!("api::get::{}", <&str>::from(get)),
+                Post(ref post) => format!("api::post::{}", <&str>::from(post)),
+                Delete(ref delete) => format!("api::delete::{}", <&str>::from(delete)),
+            },
+            NotFound => "not_found".to_owned(),
+        }
     }
 
     pub fn storage(&self) -> crate::Result<crate::storage::DefaultStorage> {

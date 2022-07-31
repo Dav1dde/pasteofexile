@@ -1,6 +1,5 @@
-use serde::Serialize;
 use shared::model::{PasteId, PasteSummary, UserPasteId};
-use std::{borrow::Cow, time::Duration};
+use std::time::Duration;
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
 mod api;
@@ -10,9 +9,11 @@ mod consts;
 mod crypto;
 mod dangerous;
 mod error;
+mod layer;
 mod poe_api;
 mod request_context;
 mod retry;
+mod route;
 mod sentry;
 mod storage;
 mod utils;
@@ -137,14 +138,6 @@ async fn build_context(
     Ok((info, ctx))
 }
 
-#[derive(Default, Serialize)]
-struct Oembed<'a> {
-    author_name: Option<Cow<'a, str>>,
-    author_url: Option<Cow<'a, str>>,
-    provider_name: &'a str,
-    provider_url: &'a str,
-}
-
 static LOG_INIT: std::sync::Once = std::sync::Once::new();
 
 #[event(fetch)]
@@ -153,7 +146,10 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Respon
 
     LOG_INIT.call_once(|| {
         use tracing_subscriber::prelude::*;
-        tracing_subscriber::registry().with(sentry::Layer {}).init();
+        tracing_subscriber::registry()
+            .with(sentry::Layer {})
+            .with(layer::Layer {})
+            .init();
     });
 
     let _sentry = sentry::init(rctx.ctx(), rctx.get_sentry_options());
@@ -162,12 +158,18 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Respon
     sentry::set_request(rctx.get_sentry_request().await);
     sentry::start_transaction(sentry::TransactionContext {
         op: "http.fetch".to_owned(),
-        name: "do_something".to_owned(),
+        name: rctx.transaction(),
     });
 
-    // TODO: transaction status in trace.context
+    let response = main_inner(rctx).await;
 
-    main_inner(rctx).await
+    let status = response
+        .as_ref()
+        .map(|response| response.status_code())
+        .unwrap_or(500);
+    sentry::update_transaction(sentry::Status::from(status));
+
+    response
 }
 
 async fn main_inner(mut rctx: RequestContext) -> worker::Result<Response> {
@@ -208,34 +210,20 @@ async fn main_inner(mut rctx: RequestContext) -> worker::Result<Response> {
 
 #[tracing::instrument(skip_all)]
 async fn try_main(rctx: &mut RequestContext) -> Result<Response> {
-    if let Some(response) = api::try_handle(rctx).await? {
-        return Ok(response);
+    let response = match rctx.route() {
+        route::Route::Api(route) => api::try_handle(rctx, route.clone()).await?,
+        route::Route::Asset => assets::try_handle(rctx).await?,
+        route::Route::App(route) => Some(try_handle_app(rctx, route.clone()).await?),
+        route::Route::NotFound => None,
+    };
+
+    match response {
+        Some(response) => Ok(response),
+        None => try_handle_app(rctx, app::Route::NotFound).await,
     }
+}
 
-    if rctx.path() == "/oembed.json" && rctx.method() == Method::Get {
-        let mut oembed = Oembed {
-            provider_name: "Paste of Exile - POBb.in",
-            provider_url: &format!("https://{}", rctx.url()?.host_str().unwrap()),
-            ..Default::default()
-        };
-
-        let url = rctx.url()?;
-        if let Some(author) = url
-            .query_pairs()
-            .find_map(|(k, v)| (k == "user").then_some(v))
-        {
-            oembed.author_url = Some(format!("{}/u/{author}", oembed.provider_url).into());
-            oembed.author_name = Some(author);
-        }
-
-        return Response::from_json(&oembed)?.cache_for(Duration::from_secs(12 * 3_600));
-    }
-
-    if let Some(response) = assets::try_handle(rctx).await? {
-        return Ok(response);
-    }
-
-    let route = app::Route::resolve(&rctx.path());
+async fn try_handle_app(rctx: &RequestContext, route: app::Route) -> Result<Response> {
     let (info, ctx) = build_context(rctx, route).await?;
 
     if let Some(location) = info.redirect {

@@ -4,19 +4,15 @@ use wasm_bindgen::prelude::*;
 use worker::Response;
 
 pub async fn try_handle(rctx: &RequestContext) -> Result<Option<Response>> {
-    // does the last segment contain a '.'
-    let is_asset_path = rctx
-        .path()
-        .rsplit_once('/')
-        .map(|x| x.1)
-        .unwrap_or(&rctx.path())
-        .contains('.');
-
-    if is_asset_path {
+    if is_asset_path(&rctx.path()) {
         Ok(Some(serve_asset(rctx).await?))
     } else {
         Ok(None)
     }
+}
+
+pub fn is_asset_path(path: &str) -> bool {
+    get_mime(path).is_some()
 }
 
 #[tracing::instrument(skip_all)]
@@ -47,11 +43,7 @@ pub(crate) fn resolve(name: &str) -> Cow<'_, str> {
 }
 
 fn get_mime(path: &str) -> Option<&'static str> {
-    let ext = if let Some((_, ext)) = path.rsplit_once('.') {
-        ext
-    } else {
-        return None;
-    };
+    let (_, ext) = path.rsplit_once('.')?;
 
     let ct = match ext {
         "html" => "text/html",

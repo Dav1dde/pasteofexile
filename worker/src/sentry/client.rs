@@ -81,6 +81,12 @@ impl Sentry {
         self.transaction = Some((transaction, trace_context));
     }
 
+    pub(crate) fn update_transaction(&mut self, status: protocol::SpanStatus) {
+        if let Some((_, trace_context)) = self.transaction.as_mut() {
+            trace_context.status = Some(status);
+        }
+    }
+
     pub(crate) fn finish_transaction(&mut self) {
         let (mut transaction, trace_context) = match self.transaction.take() {
             Some(transaction) => transaction,

@@ -1,14 +1,14 @@
 use std::cell::RefCell;
 
 mod client;
-mod converter;
+pub(crate) mod converter;
 mod layer;
 mod protocol;
 mod utils;
 
 pub use self::client::Sentry;
 pub use self::layer::Layer;
-pub use self::protocol::{Level, Request, User};
+pub use self::protocol::{Level, Request, SpanStatus as Status, User};
 
 thread_local!(pub(crate) static SENTRY: RefCell<Option<Sentry>> = RefCell::new(None));
 
@@ -55,6 +55,10 @@ pub struct TransactionContext {
 
 pub fn start_transaction(ctx: TransactionContext) {
     with_sentry_mut(|sentry| sentry.start_transaction(ctx));
+}
+
+pub fn update_transaction(status: Status) {
+    with_sentry_mut(|sentry| sentry.update_transaction(status));
 }
 
 pub fn set_user(user: User) {

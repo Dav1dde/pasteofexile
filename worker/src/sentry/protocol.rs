@@ -329,6 +329,28 @@ pub enum SpanStatus {
     DataLoss,
 }
 
+impl From<u16> for SpanStatus {
+    #[allow(clippy::match_overlapping_arm)]
+    fn from(status: u16) -> Self {
+        match status {
+            100..=199 => Self::Ok,
+            200..=299 => Self::Ok,
+            300..=399 => Self::Ok,
+            400 => Self::InvalidArgument,
+            401 => Self::Unauthenticated,
+            403 => Self::PermissionDenied,
+            404 => Self::NotFound,
+            409 => Self::AlreadyExists,
+            429 => Self::ResourceExhausted,
+            400..=499 => Self::InvalidArgument,
+            501 => Self::Unimplemented,
+            503 => Self::Unavailable,
+            500..=599 => Self::InternalError,
+            _ => Self::UnknownError,
+        }
+    }
+}
+
 /// Represents a tracing transaction.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Transaction<'a> {
