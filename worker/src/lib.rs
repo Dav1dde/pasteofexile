@@ -157,7 +157,7 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Respon
     sentry::set_user(rctx.get_sentry_user().await);
     sentry::set_request(rctx.get_sentry_request().await);
     sentry::start_transaction(sentry::TransactionContext {
-        op: "http.fetch".to_owned(),
+        op: "http.server".to_owned(),
         name: rctx.transaction(),
     });
 

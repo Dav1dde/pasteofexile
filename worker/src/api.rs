@@ -55,8 +55,8 @@ pub async fn try_handle(rctx: &mut RequestContext, route: route::Api) -> Result<
                     .await
                     .map(Some)
             }
-            GetEndpoints::Login() => handle_login(rctx).await.map(Some),
-            GetEndpoints::Oauht2Poe() => handle_oauth2_poe(rctx).await.map(Some),
+            GetEndpoints::Login => handle_login(rctx).await.map(Some),
+            GetEndpoints::Oauht2Poe => handle_oauth2_poe(rctx).await.map(Some),
             GetEndpoints::NotFound => Ok(None),
         },
         route::Api::Post(post) => match post {
@@ -73,7 +73,9 @@ pub async fn try_handle(rctx: &mut RequestContext, route: route::Api) -> Result<
 
 #[derive(Default, Serialize)]
 struct Oembed<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
     author_name: Option<Cow<'a, str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     author_url: Option<Cow<'a, str>>,
     provider_name: &'a str,
     provider_url: &'a str,
@@ -169,12 +171,12 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
     let data = rctx.req_mut().json::<UploadRequest>().await?;
     let mut content = data.content.into_bytes();
 
+    tracing::info!(?data.id, data.as_user, ?data.title, ?data.custom_id, size = content.len(), "upload");
+
     let pob = validate_pob(&content)?;
     let mut metadata = to_metadata(&pob);
 
     let sha1 = crypto::sha1(&mut content).await?;
-
-    tracing::info!(?data.id, data.as_user, ?data.title, ?data.custom_id, "upload");
 
     let id = if data.as_user {
         let session = rctx.session().await?.ok_or(Error::AccessDenied)?;

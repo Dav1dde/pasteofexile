@@ -16,17 +16,8 @@ impl Route {
 
         let path = req.path();
 
-        if req.method() == Method::Get {
-            if assets::is_asset_path(&path) {
-                return Self::Asset;
-            }
-
-            let app = app::Route::match_path(&path);
-            if !matches!(app, app::Route::NotFound) {
-                return Self::App(app);
-            }
-        }
-
+        // API needs to match first (oembed.json might be an asset). API also has
+        // the most specific routes (no `/<paste>` route)
         match req.method() {
             Method::Get => {
                 let route = GetEndpoints::match_path(&path);
@@ -47,6 +38,20 @@ impl Route {
                 }
             }
             _ => (),
+        }
+
+        if req.method() == Method::Get {
+            // Assets need to match next, because the app routes contain routes which
+            // would match on assets (e.g. app contains `/<paste>`)
+            if assets::is_asset_path(&path) {
+                return Self::Asset;
+            }
+
+            // App is a catch all
+            let app = app::Route::match_path(&path);
+            if !matches!(app, app::Route::NotFound) {
+                return Self::App(app);
+            }
         }
 
         Self::NotFound
@@ -84,9 +89,9 @@ pub enum GetEndpoints {
     #[to("/pob/u/<name>/<id>")]
     PobUserPaste(String, String),
     #[to("/login")]
-    Login(),
+    Login,
     #[to("/oauth2/authorization/poe")]
-    Oauht2Poe(),
+    Oauht2Poe,
     #[not_found]
     NotFound,
 }
