@@ -141,8 +141,9 @@ fn summary_to_view<G: GenericNode + Html>(
     let toolbox = PasteToolboxProps { id, on_delete };
 
     view! {
-        div(class="p-3 even:bg-slate-700 border-solid hover:border-l-4",
-            style=format!("border-color: {color}")
+        div(class="p-3 even:bg-slate-700 border-solid border-[color:var(--col)]
+                hover:border-l-4 hover:bg-[color:var(--bg-col)]",
+            style=format!("--col: {color}; --bg-col: {color}66")
         ) {
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
