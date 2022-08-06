@@ -30,8 +30,8 @@ pub fn pob_tree_preview(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     }
 
     if TypeId::of::<G>() == TypeId::of::<SsrNode>() {
-        for (i, tree) in trees.iter().enumerate() {
-            if i == 0 {
+        for tree in trees.iter() {
+            if tree.active {
                 ResponseContext::preload(Prefetch::Image(tree.image_url.clone()));
             } else {
                 ResponseContext::prefetch(Prefetch::Image(tree.image_url.clone()));
