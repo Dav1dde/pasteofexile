@@ -62,9 +62,9 @@ pub fn app(ctx: Option<Context>) -> View<G> {
     view! {
         progress::Progress()
         session::SessionWrapper(|| view! {
-            div {
-                nav(class="bg-slate-200 dark:bg-slate-900 dark:drop-shadow-lg") {
-                    div(class="flex justify-between	p-4 lg:px-8 mb-10 mx-auto max-w-[1920px]") {
+            div(class="h-screen flex flex-col gap-10") {
+                nav(class="bg-slate-200 dark:bg-slate-900 dark:shadow-lg") {
+                    div(class="flex justify-between	p-4 lg:px-8 mx-auto max-w-[1920px]") {
                         a(href="/", on:click=navigate_index) {
                             span() { "POB" }
                             span(class="text-sky-500 dark:text-sky-400") { "b.in" }
@@ -72,8 +72,15 @@ pub fn app(ctx: Option<Context>) -> View<G> {
                         components::LoginStatus()
                     }
                 }
-                div(class="max-w-screen-xl mx-auto px-5 xl:px-0") {
+                main(class="max-w-screen-xl px-5 xl:px-0 w-full flex-auto self-center") {
                     router::Router(ctx)
+                }
+                footer(class="bg-slate-900 text-slate-400 text-xs self-center w-full
+                       flex flex-wrap justify-between items-center gap-2
+                       shadow-lg shadow-slate-100/50 py-2 px-4 lg:px-8 max-w-[1920px]") {
+                    div() { "pobb.in isn't affiliated with or endorsed by Grinding Gear Games in any way" }
+                    a(href="https://github.com/Dav1dde/pasteofexile", target="_blank",
+                      class="w-4 h-4", dangerously_set_inner_html=svg::GITHUB) {}
                 }
             }
         })

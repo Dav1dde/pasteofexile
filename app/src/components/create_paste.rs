@@ -230,7 +230,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                 class="dark:bg-slate-500 bg-slate-200 block w-full mt-1 py-2 px-3
                     rounded-sm shadow-sm focus:outline-none dark:text-slate-300 text-slate-700
                     resize-none text-sm break-all",
-                style="min-height: 60vh",
+                style="height: 60vh; max-height: 650px",
                 data-marker-content=""
             ) {
                 (value2.get())
