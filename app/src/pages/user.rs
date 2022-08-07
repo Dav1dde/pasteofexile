@@ -6,17 +6,20 @@ use crate::{
     utils::{find_attribute, if_browser, pretty_date},
     Meta, Result,
 };
-use shared::model::{PasteSummary, UserPasteId};
+use shared::{
+    model::{PasteSummary, UserPasteId},
+    User,
+};
 use std::rc::Rc;
 use sycamore::prelude::*;
 
 pub struct Data {
-    name: String,
+    name: User,
     pastes: Vec<PasteSummary>,
 }
 
 impl<G: Html> RoutedComponent<G> for UserPage<G> {
-    type RouteArg = String;
+    type RouteArg = User;
 
     fn from_context(name: Self::RouteArg, ctx: crate::Context) -> Result<Data> {
         Ok(Data {

@@ -4,7 +4,10 @@ use crate::{
     Error, Result,
 };
 use serde::{Deserialize, Serialize};
-use shared::model::{ListPaste, Paste, PasteId, PasteMetadata};
+use shared::{
+    model::{ListPaste, Paste, PasteId, PasteMetadata},
+    User,
+};
 
 pub mod b2;
 
@@ -21,8 +24,12 @@ pub struct B2Storage {
 fn to_path(id: &PasteId) -> Result<String> {
     match id {
         PasteId::Paste(id) => Ok(crate::utils::to_path(id)?),
-        PasteId::UserPaste(up) => Ok(format!("user/{}/pastes/{}", up.user, up.id)),
+        PasteId::UserPaste(up) => Ok(format!("user/{}/pastes/{}", up.user.normalized(), up.id)),
     }
+}
+
+fn to_prefix(user: &User) -> String {
+    format!("user/{}/pastes/", user.normalized())
 }
 
 #[allow(dead_code)]
@@ -144,8 +151,8 @@ impl B2Storage {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn list(&self, prefix: String) -> Result<Vec<ListPaste>> {
-        let response = self.b2.list_files(&prefix, 100).await?;
+    pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
+        let response = self.b2.list_files(&to_prefix(user), 100).await?;
 
         response
             .files
@@ -275,8 +282,8 @@ impl KvStorage {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn list(&self, path: String) -> Result<Vec<ListPaste>> {
-        let response = self.kv.list().prefix(path).execute().await?;
+    pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
+        let response = self.kv.list().prefix(to_prefix(user)).execute().await?;
 
         response
             .keys

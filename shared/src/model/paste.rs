@@ -3,7 +3,7 @@ use std::{fmt, str::FromStr};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserPasteId {
-    pub user: String,
+    pub user: crate::User,
     pub id: String,
 }
 
@@ -61,7 +61,7 @@ impl PasteId {
         Self::Paste(id)
     }
 
-    pub fn new_user(user: String, id: String) -> Self {
+    pub fn new_user(user: crate::User, id: String) -> Self {
         Self::UserPaste(UserPasteId { user, id })
     }
 
@@ -134,13 +134,21 @@ impl fmt::Display for PasteId {
 }
 
 impl FromStr for PasteId {
-    type Err = ();
+    // TODO: better error
+    type Err = crate::InvalidUser;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let r = s
-            .split_once(':')
-            .map(|(user, id)| Self::new_user(user.to_owned(), id.to_owned()))
-            .unwrap_or_else(|| Self::Paste(s.to_owned()));
+        let r = match s.split_once(':') {
+            Some((user, id)) => {
+                let user = user.parse()?;
+                Self::UserPaste(UserPasteId {
+                    user,
+                    id: id.to_owned(),
+                })
+            }
+            None => Self::Paste(s.to_owned()),
+        };
+
         Ok(r)
     }
 }

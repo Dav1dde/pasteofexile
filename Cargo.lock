@@ -863,6 +863,7 @@ dependencies = [
 name = "shared"
 version = "0.1.0"
 dependencies = [
+ "percent-encoding",
  "serde",
 ]
 
@@ -1345,6 +1346,7 @@ dependencies = [
  "console_error_panic_hook",
  "git-version",
  "js-sys",
+ "percent-encoding",
  "pob",
  "serde",
  "serde_json",

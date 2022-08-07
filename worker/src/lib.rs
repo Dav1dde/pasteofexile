@@ -68,11 +68,11 @@ async fn build_context(
                 (info, Context::not_found(host))
             }
         }
-        User(name) => {
+        User(user) => {
             // TODO: code duplication with api.rs
             let mut pastes = rctx
                 .storage()?
-                .list(format!("user/{name}/pastes/"))
+                .list(&user)
                 .await?
                 .into_iter()
                 .map(|item| {
@@ -81,7 +81,7 @@ async fn build_context(
 
                     PasteSummary {
                         id,
-                        user: Some(name.clone()),
+                        user: Some(user.clone()),
                         title: metadata.title,
                         ascendancy_or_class: metadata.ascendancy_or_class,
                         version: metadata.version.unwrap_or_default(),
@@ -106,7 +106,7 @@ async fn build_context(
                 ..Default::default()
             };
 
-            (info, Context::user(host, name, pastes))
+            (info, Context::user(host, user, pastes))
         }
         UserPaste(user, id) => {
             let id = PasteId::new_user(user, id);

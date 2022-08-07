@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-mod id;
+mod paste;
 
-pub use id::*;
+pub use paste::*;
 
 #[derive(Debug)]
 pub struct ListPaste {
@@ -31,7 +31,7 @@ pub struct PasteMetadata {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PasteSummary {
     pub id: String,
-    pub user: Option<String>,
+    pub user: Option<crate::User>,
     pub title: String,
     pub ascendancy_or_class: String,
     pub version: String,

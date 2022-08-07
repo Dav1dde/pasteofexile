@@ -9,7 +9,10 @@ use crate::{
     Meta, Result,
 };
 use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
-use shared::model::{PasteId, UserPasteId};
+use shared::{
+    model::{PasteId, UserPasteId},
+    User,
+};
 use std::{borrow::Cow, rc::Rc};
 use sycamore::prelude::*;
 
@@ -21,7 +24,7 @@ pub struct Data {
 }
 
 impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
-    type RouteArg = (String, String);
+    type RouteArg = (User, String);
 
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
         let paste = ctx.get_paste().unwrap();

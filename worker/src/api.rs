@@ -9,7 +9,10 @@ use crate::{
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
-use shared::model::{PasteId, PasteMetadata};
+use shared::{
+    model::{PasteId, PasteMetadata},
+    User,
+};
 use worker::{Headers, Response};
 
 macro_rules! validate {
@@ -276,11 +279,11 @@ fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
 }
 
 #[tracing::instrument(skip(rctx))]
-async fn handle_user(rctx: &RequestContext, user: String) -> Result<Response> {
+async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
     // TODO: code duplication with lib.rs
     let mut pastes = rctx
         .storage()?
-        .list(format!("user/{user}/pastes/"))
+        .list(&user)
         .await?
         .into_iter()
         .map(|item| {
@@ -358,7 +361,9 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
         .fetch_profile()
         .await?;
 
-    let user = app::User { name: profile.name };
+    let user = app::User {
+        name: User::new_unchecked(profile.name),
+    };
     let session = rctx.dangerous()?.sign(&user).await?;
 
     // TODO: redirect back to where the user actually came from

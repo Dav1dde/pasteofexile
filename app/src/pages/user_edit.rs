@@ -5,7 +5,7 @@ use crate::{
     utils::find_text,
     Meta, Result,
 };
-use shared::model::UserPasteId;
+use shared::{model::UserPasteId, User};
 use sycamore::prelude::*;
 
 pub struct Data {
@@ -15,7 +15,7 @@ pub struct Data {
 }
 
 impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
-    type RouteArg = (String, String);
+    type RouteArg = (User, String);
 
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
         let paste = ctx.get_paste().unwrap();

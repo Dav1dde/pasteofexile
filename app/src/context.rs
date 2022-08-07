@@ -60,7 +60,7 @@ impl Context {
         }
     }
 
-    pub fn user(host: String, name: String, pastes: Vec<PasteSummary>) -> Self {
+    pub fn user(host: String, name: shared::User, pastes: Vec<PasteSummary>) -> Self {
         Self {
             inner: Rc::new(ContextInner {
                 route: Some(Route::User(name)),

@@ -85,7 +85,12 @@ impl RequestContext {
 
     pub async fn get_sentry_user(&self) -> sentry::User {
         sentry::User {
-            username: self.session().await.ok().flatten().map(|user| user.name),
+            username: self
+                .session()
+                .await
+                .ok()
+                .flatten()
+                .map(|user| user.name.into()),
             ip_address: self.req.headers().get("cf-connecting-ip").ok().flatten(),
             country: self.req.headers().get("cf-ipcountry").ok().flatten(),
         }

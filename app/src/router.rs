@@ -1,29 +1,28 @@
-use crate::ResponseContext;
 use crate::{
     effect, future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Meta,
-    Result,
+    ResponseContext, Result,
 };
+use shared::User;
 use sycamore::component::Component;
 use sycamore::prelude::*;
-use sycamore::DomNode;
 use sycamore_router::{
     HistoryIntegration, Router as DynRouter, RouterProps, StaticRouter, StaticRouterProps,
 };
 use web_sys::Element;
 
-#[derive(Clone, Debug, PartialEq, Eq, sycamore_router::Route)]
+#[derive(Clone, Debug, sycamore_router::Route)]
 #[cfg_attr(feature = "ssr", derive(strum::IntoStaticStr))]
 pub enum Route {
     #[to("/")]
     Index,
     #[to("/<id>")]
-    Paste(<pages::PastePage<DomNode> as RoutedComponent<DomNode>>::RouteArg),
+    Paste(String),
     #[to("/u/<name>")]
-    User(<pages::UserPage<DomNode> as RoutedComponent<DomNode>>::RouteArg),
+    User(User),
     #[to("/u/<name>/<id>")]
-    UserPaste(String, String),
+    UserPaste(User, String),
     #[to("/u/<name>/<id>/edit")]
-    UserEditPaste(String, String),
+    UserEditPaste(User, String),
     #[not_found]
     NotFound,
 }

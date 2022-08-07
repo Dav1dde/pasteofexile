@@ -5,6 +5,7 @@ use crate::{
     utils::hex,
     Error, Result,
 };
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{borrow::Cow, collections::HashMap};
@@ -102,13 +103,14 @@ impl B2 {
         })
     }
 
-    #[tracing::instrument(skip_all, fields(size = content.len()))]
+    #[tracing::instrument(skip(self, content, upload), fields(size = content.len()))]
     pub async fn upload(
         &self,
         settings: &UploadSettings<'_>,
         content: &mut [u8],
         upload: UploadDetails,
     ) -> Result<UploadResponse> {
+        let filename = utf8_percent_encode(settings.filename, NON_ALPHANUMERIC).to_string();
         let sha1 = match settings.sha1 {
             Some(sha1) => Cow::Borrowed(sha1),
             None => Cow::Owned(hex(&sha1(content).await?)),
@@ -117,7 +119,7 @@ impl B2 {
         retry(5, |_| async {
             let mut headers = Headers::new();
             headers.set("Authorization", &upload.authorization_token)?;
-            headers.set("X-Bz-File-Name", settings.filename)?;
+            headers.set("X-Bz-File-Name", &filename)?;
             headers.set("Content-Type", settings.content_type)?;
             headers.set("X-Bz-Content-Sha1", &sha1)?;
             if let Some(metadata) = settings.metadata {

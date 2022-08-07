@@ -1,5 +1,5 @@
 use crate::assets;
-use shared::model::PasteId;
+use shared::{model::PasteId, User};
 use worker::{Method, Request};
 
 #[derive(Debug, Clone)]
@@ -70,15 +70,15 @@ pub enum GetEndpoints {
     #[to("/oembed.json")]
     Oembed,
     #[to("/api/internal/user/<user>")]
-    User(String),
+    User(User),
     #[to("/<id>/raw")]
     Paste(String),
     #[to("/u/<name>/<id>/raw")]
-    UserPaste(String, String),
+    UserPaste(User, String),
     #[to("/<id>/json")]
     PasteJson(String),
     #[to("/u/<name>/<id>/json")]
-    UserPasteJson(String, String),
+    UserPasteJson(User, String),
     /// Path of Building endpoint for importing builds.
     /// This supports the anonymous and user scoped paste IDs.
     /// User scoped paste IDs are used in `pob://` protocol links.
@@ -87,7 +87,7 @@ pub enum GetEndpoints {
     PobPaste(PasteId),
     /// Path of Building endpoint for importing user paste URLs.
     #[to("/pob/u/<name>/<id>")]
-    PobUserPaste(String, String),
+    PobUserPaste(User, String),
     #[to("/login")]
     Login,
     #[to("/oauth2/authorization/poe")]
