@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use worker::Url;
 
 const OAUTH_AUTHORIZE_URL: &str = "https://www.pathofexile.com/oauth/authorize";
+const POE_API_USER_AGENT: &str = "OAuth pobbin/1.0 (contact: ggg@pobb.in)";
 
 pub struct AuthorizationGrant<'a> {
     pub code: Cow<'a, str>,
@@ -104,7 +105,7 @@ impl PoeApi {
     pub async fn fetch_profile(&self) -> crate::Result<Profile> {
         let mut headers = worker::Headers::new();
         headers.set("Authorization", &format!("Bearer {}", self.access_token))?;
-        headers.set("User-Agent", "OAuth pobbin/1.0 (contact: TODO)")?; // TODO
+        headers.set("User-Agent", POE_API_USER_AGENT)?;
 
         let request = worker::Request::new_with_init(
             "https://api.pathofexile.com/profile",
