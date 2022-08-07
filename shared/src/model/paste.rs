@@ -72,7 +72,7 @@ impl PasteId {
         }
     }
 
-    pub fn user(&self) -> Option<&str> {
+    pub fn user(&self) -> Option<&crate::User> {
         match self {
             Self::Paste(_) => None,
             Self::UserPaste(up) => Some(&up.user),

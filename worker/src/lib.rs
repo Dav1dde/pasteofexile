@@ -61,7 +61,7 @@ async fn build_context(
             };
 
             if let Some(paste) = rctx.storage()?.get(&id).await? {
-                info.etag = paste.entity_id.clone();
+                info.etag = Some(paste.entity_id.clone());
                 (info, Context::paste(host, id.to_string(), paste))
             } else {
                 info.etag = Some("not_found".to_owned());
@@ -118,7 +118,7 @@ async fn build_context(
             };
 
             if let Some(paste) = rctx.storage()?.get(&id).await? {
-                info.etag = paste.entity_id.clone();
+                info.etag = Some(paste.entity_id.clone());
                 (info, Context::user_paste(host, id.unwrap_user(), paste))
             } else {
                 info.etag = Some("not_found".to_owned());

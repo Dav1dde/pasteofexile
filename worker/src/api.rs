@@ -84,6 +84,7 @@ struct Oembed<'a> {
     provider_url: &'a str,
 }
 
+#[tracing::instrument(skip(rctx))]
 async fn handle_oembed(rctx: &RequestContext) -> Result<Response> {
     let mut oembed = Oembed {
         provider_name: "Paste of Exile - POBb.in",
@@ -114,7 +115,7 @@ async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Resp
     worker::Response::ok(paste.content)?
         .with_headers(Headers::new())
         .with_content_type("text/plain")?
-        .with_etag_opt(paste.entity_id.as_deref())?
+        .with_etag(&paste.entity_id)?
         .with_cache_control(
             CacheControl::default()
                 .public()
@@ -133,7 +134,7 @@ async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Resp
     worker::Response::from_json(&paste)?
         .with_headers(Headers::new())
         .with_content_type("application/json")?
-        .with_etag_opt(paste.entity_id.as_deref())?
+        .with_etag(&paste.entity_id)?
         .with_cache_control(
             CacheControl::default()
                 .public()
@@ -192,7 +193,7 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
         metadata.title = title;
 
         if let Some(id) = data.id {
-            validate_access!(Some(session.name.as_str()) == id.user());
+            validate_access!(Some(session.name.as_str()) == id.user().map(|user| user.as_str()));
             validate!(is_valid_id(id.id()), "Invalid id");
             validate!(
                 data.custom_id.as_deref() == Some(id.id()),
@@ -337,6 +338,7 @@ async fn handle_login(rctx: &RequestContext) -> Result<Response> {
     Response::redirect_temp(&login_uri)?.with_state_cookie(&state)
 }
 
+#[tracing::instrument(skip(rctx))]
 async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
     let url = rctx.url()?;
 

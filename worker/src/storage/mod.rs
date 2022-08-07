@@ -1,94 +1,50 @@
-use crate::{
-    sentry, utils,
-    utils::{b64_decode, b64_encode, hex},
-    Error, Result,
-};
-use serde::{Deserialize, Serialize};
+use crate::Result;
 use shared::{
     model::{ListPaste, Paste, PasteId, PasteMetadata},
     User,
 };
 
-pub mod b2;
+#[allow(dead_code)]
+mod b2;
+mod b2_client;
+#[allow(dead_code)]
+mod kv;
+mod pastebin;
+mod utils;
+
+pub(crate) use utils::{to_path, to_prefix};
 
 #[cfg(not(feature = "use-kv-storage"))]
-pub type DefaultStorage = B2Storage;
+use b2::B2Storage as DefaultStorage;
 #[cfg(feature = "use-kv-storage")]
-pub type DefaultStorage = KvStorage;
+use kv::KvStorage as DefaultStorage;
 
-#[allow(dead_code)]
-pub struct B2Storage {
-    b2: b2::B2,
+pub struct Storage {
+    storage: DefaultStorage,
 }
 
-fn to_path(id: &PasteId) -> Result<String> {
-    match id {
-        PasteId::Paste(id) => Ok(crate::utils::to_path(id)?),
-        PasteId::UserPaste(up) => Ok(format!("user/{}/pastes/{}", up.user.normalized(), up.id)),
-    }
-}
-
-fn to_prefix(user: &User) -> String {
-    format!("user/{}/pastes/", user.normalized())
-}
-
-#[allow(dead_code)]
-impl B2Storage {
+impl Storage {
     pub fn from_env(env: &worker::Env) -> Result<Self> {
         Ok(Self {
-            b2: b2::B2::from_env(env)?,
+            storage: DefaultStorage::from_env(env)?,
         })
     }
+}
 
-    #[tracing::instrument(skip(self))]
+impl Storage {
     pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
-        let path = to_path(id)?;
-        let mut response = self.b2.download(&path).await?;
-
-        match response.status_code() {
-            200 => {
-                let metadata = response
-                    .headers()
-                    .get("X-Bz-Info-Metadata")
-                    .unwrap()
-                    .map(b64_decode)
-                    .transpose()?
-                    .map(|m| serde_json::from_slice(&m))
-                    .transpose()?;
-
-                let entity_id = response.headers().get("X-Bz-Content-Sha1").unwrap();
-
-                let last_modified = response
-                    .headers()
-                    .get("X-Bz-Upload-Timestamp")
-                    .unwrap()
-                    .and_then(|x| x.parse().ok())
-                    .unwrap_or(0);
-
-                let content = response.text().await?;
-
-                Ok(Some(Paste {
-                    metadata,
-                    last_modified,
-                    entity_id,
-                    content,
-                }))
-            }
-            404 => Ok(None),
-            status => Err(Error::RemoteFailed(
-                status,
-                "failed to get paste".to_owned(),
-            )),
+        if pastebin::could_be_pastebin_id(id) {
+            tracing::info!("fetching from pastebin.com");
+            pastebin::get(id).await
+        } else {
+            self.storage.get(id).await
         }
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
-        let path = to_path(id)?;
-        self.b2.hide(&path).await.map(|_| ())
+        self.storage.delete(id).await
     }
 
-    #[tracing::instrument(skip(self, sha1, data))]
     pub async fn put(
         &self,
         id: &PasteId,
@@ -96,155 +52,9 @@ impl B2Storage {
         data: &mut [u8],
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
-        let path = to_path(id)?;
-        let hex = utils::hex(sha1);
-        let metadata = metadata
-            .map(|m| serde_json::to_string(&m))
-            .transpose()?
-            .map(b64_encode);
-        let settings = b2::UploadSettings {
-            filename: &path,
-            content_type: "text/plain",
-            sha1: Some(&hex),
-            metadata: metadata.as_deref(),
-        };
-
-        let upload = self.b2.get_upload_url().await?;
-        self.b2.upload(&settings, data, upload).await.map(|_| ())
+        self.storage.put(id, sha1, data, metadata).await
     }
 
-    #[tracing::instrument(skip(self, ctx, sha1, data))]
-    pub async fn put_async(
-        self,
-        ctx: &worker::Context,
-        id: &PasteId,
-        sha1: &[u8],
-        mut data: Vec<u8>,
-        metadata: Option<PasteMetadata>,
-    ) -> Result<()> {
-        let path = to_path(id)?;
-        let upload = self.b2.get_upload_url().await?;
-
-        let hex = utils::hex(sha1);
-        let metadata = metadata
-            .map(|m| serde_json::to_string(&m))
-            .transpose()?
-            .map(b64_encode);
-        let future = async move {
-            let settings = b2::UploadSettings {
-                filename: &path,
-                content_type: "text/plain",
-                sha1: Some(&hex),
-                metadata: metadata.as_deref(),
-            };
-
-            if let Err(err) = self.b2.upload(&settings, &mut data, upload).await {
-                tracing::error!("<-- failed to upload paste: {:?}", err);
-                // TODO: is this necessary, tracing should pick it up already from tracing::erorr!
-                sentry::with_sentry(|sentry| sentry.capture_err_level(&err, sentry::Level::Error));
-            } else {
-                tracing::debug!("<-- paste uploaded");
-            }
-        };
-        ctx.wait_until(future);
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
-        let response = self.b2.list_files(&to_prefix(user), 100).await?;
-
-        response
-            .files
-            .into_iter()
-            .map(|f| {
-                Ok(ListPaste {
-                    name: f.file_name,
-                    metadata: f
-                        .file_info
-                        .get("metadata")
-                        .map(b64_decode)
-                        .transpose()?
-                        .map(|m| serde_json::from_slice(&m))
-                        .transpose()?,
-                    last_modified: f.upload_timestamp,
-                })
-            })
-            .collect::<Result<_>>()
-    }
-}
-
-#[derive(Default, Serialize, Deserialize)]
-struct KvMetadata {
-    #[serde(default)]
-    last_modified: u64,
-    #[serde(default)]
-    entity_id: Option<String>,
-    #[serde(flatten)]
-    metadata: Option<PasteMetadata>,
-}
-
-#[allow(dead_code)]
-pub struct KvStorage {
-    kv: worker::kv::KvStore,
-}
-
-#[allow(dead_code)]
-impl KvStorage {
-    pub fn from_env(env: &worker::Env) -> Result<Self> {
-        Ok(Self {
-            kv: env.kv(crate::consts::KV_PASTE_STORAGE)?,
-        })
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
-        let path = to_path(id)?;
-        let (data, metadata) = self
-            .kv
-            .get(&path)
-            .text_with_metadata::<KvMetadata>()
-            .await?;
-
-        let metadata = metadata.unwrap_or_default();
-
-        Ok(data.map(|content| Paste {
-            content,
-            metadata: metadata.metadata,
-            entity_id: metadata.entity_id,
-            last_modified: metadata.last_modified,
-        }))
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn delete(&self, id: &PasteId) -> Result<()> {
-        let path = to_path(id)?;
-        self.kv.delete(&path).await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self, sha1, data))]
-    pub async fn put(
-        &self,
-        id: &PasteId,
-        sha1: &[u8],
-        data: &mut [u8],
-        metadata: Option<PasteMetadata>,
-    ) -> Result<()> {
-        let path = to_path(id)?;
-        self.kv
-            .put_bytes(&path, data)?
-            .metadata(KvMetadata {
-                entity_id: Some(hex(sha1)),
-                last_modified: js_sys::Date::new_0().get_time() as u64,
-                metadata,
-            })?
-            .execute()
-            .await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self, ctx, sha1, data))]
     pub async fn put_async(
         self,
         ctx: &worker::Context,
@@ -253,48 +63,10 @@ impl KvStorage {
         data: Vec<u8>,
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
-        let path = to_path(id)?;
-        let metadata = KvMetadata {
-            entity_id: Some(hex(sha1)),
-            last_modified: js_sys::Date::new_0().get_time() as u64,
-            metadata,
-        };
-        let future = async move {
-            let r = self
-                .kv
-                .put_bytes(&path, &data)
-                .unwrap()
-                .metadata(metadata)
-                .unwrap()
-                .execute()
-                .await;
-
-            if let Err(err) = r {
-                tracing::error!("<-- failed to upload paste: {:?}", err);
-                // TODO: this should not be necessary due to tracing::error generating an event
-                sentry::with_sentry(|sentry| sentry.capture_err(&err.into()));
-            } else {
-                tracing::debug!("<-- paste uploaded");
-            }
-        };
-        ctx.wait_until(future);
-        Ok(())
+        self.storage.put_async(ctx, id, sha1, data, metadata).await
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
-        let response = self.kv.list().prefix(to_prefix(user)).execute().await?;
-
-        response
-            .keys
-            .into_iter()
-            .map(|key| {
-                Ok(ListPaste {
-                    name: key.name,
-                    metadata: key.metadata.map(serde_json::from_value).transpose()?,
-                    last_modified: 0,
-                })
-            })
-            .collect::<Result<_>>()
+        self.storage.list(user).await
     }
 }

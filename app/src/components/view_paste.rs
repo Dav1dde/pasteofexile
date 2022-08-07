@@ -183,7 +183,7 @@ pub fn view_paste(
         }
         (tree_preview)
         (notes)
-        div(class="h-[200px]") {}
+        div(class="h-[150px]") {}
     }
 }
 

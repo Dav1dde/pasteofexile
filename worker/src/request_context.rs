@@ -56,8 +56,8 @@ impl RequestContext {
         }
     }
 
-    pub fn storage(&self) -> crate::Result<crate::storage::DefaultStorage> {
-        crate::storage::DefaultStorage::from_env(&self.env)
+    pub fn storage(&self) -> crate::Result<crate::storage::Storage> {
+        crate::storage::Storage::from_env(&self.env)
     }
 
     pub fn oauth(&self) -> crate::Result<crate::poe_api::Oauth> {

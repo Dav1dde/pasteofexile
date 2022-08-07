@@ -13,10 +13,11 @@ pub struct ListPaste {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Paste {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<PasteMetadata>,
+    #[serde(default, skip_serializing_if = "crate::utils::is_zero")]
     pub last_modified: u64,
-    // TODO: there is no reason for this to be optional
-    pub entity_id: Option<String>,
+    pub entity_id: String,
     pub content: String,
 }
 
