@@ -27,8 +27,7 @@ where
             }
         });
 
-        let parent = span.scope().nth(1);
-        let parent_span_id = parent.and_then(|parent| {
+        let parent_span_id = span.parent().and_then(|parent| {
             let mut extensions = parent.extensions_mut();
             let span = extensions.get_mut::<protocol::Span>()?;
             Some(span.span_id)

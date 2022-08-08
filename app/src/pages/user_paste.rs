@@ -19,7 +19,7 @@ use sycamore::prelude::*;
 pub struct Data {
     id: UserPasteId,
     title: Option<String>,
-    content: String,
+    content: Rc<str>,
     pob: Rc<SerdePathOfBuilding>,
 }
 
@@ -31,7 +31,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         Ok(Data {
             id: UserPasteId { user, id },
             title: paste.metadata().map(|m| m.title.to_owned()),
-            content: paste.content().to_owned(),
+            content: paste.content().clone(),
             pob: paste.path_of_building()?,
         })
     }
@@ -44,7 +44,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         Ok(Data {
             id: UserPasteId { user, id },
             title,
-            content,
+            content: content.into(),
             pob,
         })
     }
@@ -57,7 +57,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
             Ok(Data {
                 id: UserPasteId { user, id },
                 title: paste.metadata.map(|x| x.title),
-                content: paste.content,
+                content: paste.content.into(),
                 pob,
             })
         })

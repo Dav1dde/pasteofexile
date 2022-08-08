@@ -53,7 +53,7 @@ impl Context {
                 host,
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
-                    content: paste.content,
+                    content: paste.content.into(),
                     pob: LazyCell::new(),
                 }),
             }),
@@ -77,7 +77,7 @@ impl Context {
                 host,
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
-                    content: paste.content,
+                    content: paste.content.into(),
                     pob: LazyCell::new(),
                 }),
             }),
@@ -91,7 +91,7 @@ impl Context {
                 host,
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
-                    content: paste.content,
+                    content: paste.content.into(),
                     pob: LazyCell::new(),
                 }),
             }),
@@ -124,12 +124,12 @@ impl Context {
 
 pub struct Paste {
     metadata: Option<PasteMetadata>,
-    content: String,
+    content: Rc<str>,
     pob: LazyCell<Rc<SerdePathOfBuilding>>,
 }
 
 impl Paste {
-    pub fn content(&self) -> &str {
+    pub fn content(&self) -> &Rc<str> {
         &self.content
     }
 

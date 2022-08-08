@@ -1,6 +1,7 @@
 use crate::{memo, memo_cond, session::SessionValue, svg::SPINNER};
 use pob::SerdePathOfBuilding;
 use shared::model::UserPasteId;
+use std::rc::Rc;
 use sycamore::{context::use_context, prelude::*};
 use wasm_bindgen::JsCast;
 
@@ -8,7 +9,7 @@ pub enum CreatePasteProps {
     None,
     Update {
         id: UserPasteId,
-        content: String,
+        content: Rc<str>,
         title: Option<String>,
     },
 }
@@ -16,8 +17,8 @@ pub enum CreatePasteProps {
 impl CreatePasteProps {
     fn content(&self) -> Option<String> {
         match self {
-            // TODO: should be able to get rid of that clone
-            Self::Update { content, .. } => Some(content.clone()),
+            // TODO: should be able to get rid of that clone (not use bind?)
+            Self::Update { content, .. } => Some(content.to_string()),
             _ => None,
         }
     }
@@ -177,7 +178,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
             let custom_id = custom_id.clone();
             let custom_id2 = custom_id.clone();
             view! {
-                div(class="") { "Title" }
+                div() { "Title" }
                 input(
                     class="bg-slate-500 w-full px-2 py-1 rounded-sm outline-none",
                     type="text",
@@ -187,7 +188,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     placeholder=title.get().as_deref().unwrap_or_default(),
                     bind:value=custom_title.clone()) { }
 
-                div(class="") { "Id" }
+                div(title="Id of the build, reusing an Id overwrites the previous build") { "Id" }
                 input(
                     class="bg-slate-500 w-full px-2 py-1 rounded-sm outline-none
                         read-only:text-slate-400 read-only:bg-slate-700",

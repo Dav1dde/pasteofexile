@@ -6,11 +6,12 @@ use crate::{
     Meta, Result,
 };
 use shared::{model::UserPasteId, User};
+use std::rc::Rc;
 use sycamore::prelude::*;
 
 pub struct Data {
     id: UserPasteId,
-    content: String,
+    content: Rc<str>,
     title: Option<String>,
 }
 
@@ -22,7 +23,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
         Ok(Data {
             id: UserPasteId { user, id },
             title: paste.metadata().map(|m| m.title.to_owned()),
-            content: paste.content().to_owned(),
+            content: paste.content().clone(),
         })
     }
 
@@ -32,7 +33,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
 
         Ok(Data {
             id: UserPasteId { user, id },
-            content,
+            content: content.into(),
             title,
         })
     }
@@ -43,7 +44,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
             let paste = crate::api::get_paste(&id).await?;
             Ok(Data {
                 id: id.unwrap_user(),
-                content: paste.content,
+                content: paste.content.into(),
                 title: paste.metadata.map(|x| x.title),
             })
         })

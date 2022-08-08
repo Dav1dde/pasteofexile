@@ -14,7 +14,7 @@ use web_sys::HtmlTextAreaElement;
 pub struct ViewPasteProps {
     pub id: PasteId,
     pub title: Option<String>,
-    pub content: String,
+    pub content: Rc<str>,
     pub pob: Rc<SerdePathOfBuilding>,
 }
 
