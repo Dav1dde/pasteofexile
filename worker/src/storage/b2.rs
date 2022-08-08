@@ -94,8 +94,7 @@ impl B2Storage {
             metadata: metadata.as_deref(),
         };
 
-        let upload = self.b2.get_upload_url().await?;
-        self.b2.upload(&settings, data, upload).await.map(|_| ())
+        self.b2.upload(&settings, data).await.map(|_| ())
     }
 
     #[tracing::instrument(skip(self, ctx, sha1, data))]
@@ -108,7 +107,6 @@ impl B2Storage {
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
-        let upload = self.b2.get_upload_url().await?;
 
         let hex = utils::hex(sha1);
         let metadata = metadata
@@ -123,7 +121,8 @@ impl B2Storage {
                 metadata: metadata.as_deref(),
             };
 
-            if let Err(err) = self.b2.upload(&settings, &mut data, upload).await {
+            if let Err(err) = self.b2.upload(&settings, &mut data).await {
+                // TODO: there might not be an active transaction anymore?
                 tracing::error!("<-- failed to upload paste: {:?}", err);
                 // TODO: is this necessary, tracing should pick it up already from tracing::erorr!
                 sentry::with_sentry(|sentry| sentry.capture_err_level(&err, sentry::Level::Error));

@@ -79,10 +79,13 @@ macro_rules! retry_if {
     ($response:ident, $err:expr, $($status:literal)|+, $map:expr) => {{
         let status_code = $response.status_code();
         if $($status == status_code)||+ {
-            tracing::info!("request failed {}, retrying '{}' if more attempts are available", status_code, $err);
+            tracing::warn!(
+                status_code, err = $err,
+                "request failed {}, retrying '{}' if more attempts are available", status_code, $err
+            );
             Retry::err(Error::RemoteFailed(status_code, $err.into()))
         } else if status_code >= 300 {
-            tracing::info!("request failed {}, not retrying '{}'", status_code, $err);
+            tracing::warn!(status_code, err = $err, "request failed {}, not retrying '{}'", status_code, $err);
             Err(Error::RemoteFailed(status_code, $err.into()))
         } else {
             Retry::ok($map)
@@ -103,12 +106,11 @@ impl B2 {
         })
     }
 
-    #[tracing::instrument(skip(self, content, upload), fields(size = content.len()))]
+    #[tracing::instrument(skip(self, content), fields(size = content.len()))]
     pub async fn upload(
         &self,
         settings: &UploadSettings<'_>,
         content: &mut [u8],
-        upload: UploadDetails,
     ) -> Result<UploadResponse> {
         let filename = utf8_percent_encode(settings.filename, NON_ALPHANUMERIC).to_string();
         let sha1 = match settings.sha1 {
@@ -117,6 +119,8 @@ impl B2 {
         };
 
         retry(5, |_| async {
+            let upload = self.get_upload_url().await?;
+
             let mut headers = Headers::new();
             headers.set("Authorization", &upload.authorization_token)?;
             headers.set("X-Bz-File-Name", &filename)?;
@@ -137,7 +141,7 @@ impl B2 {
             )?;
 
             let mut r = Fetch::Request(request).send().await?;
-            retry_if!(r, "upload", 401 | 503, r.json().await?)
+            retry_if!(r, "upload", 401 | 503 | 521, r.json().await?)
         })
         .await
     }
@@ -153,42 +157,15 @@ impl B2 {
             let request = Request::new(&url, Method::Get)?;
             let response = Fetch::Request(request).send().await?;
             if response.status_code() >= 500 {
-                tracing::info!("download failed {}", response.status_code());
+                tracing::info!(
+                    status_code = response.status_code(),
+                    "download failed {}",
+                    response.status_code()
+                );
                 Retry::err(Error::RemoteFailed(response.status_code(), "upload".into()))
             } else {
                 Retry::ok(response)
             }
-        })
-        .await
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn get_upload_url(&self) -> Result<UploadDetails> {
-        // Retry in case the credentials expired and on the 2nd attempt force new credentials.
-        retry(5, |attempt| async move {
-            let auth = self.credentials.get_auth_details(attempt > 2).await?;
-
-            let mut url = auth.api_url.to_owned();
-            url.push_str("/b2api/v2/b2_get_upload_url");
-
-            let mut headers = Headers::new();
-            headers.set("Authorization", &auth.authorization_token)?;
-
-            let body = JsValue::from_str(&serde_json::to_string(
-                &json!({"bucketId": auth.allowed.bucket_id}),
-            )?);
-            let request = Request::new_with_init(
-                &url,
-                &RequestInit {
-                    method: Method::Post,
-                    headers,
-                    body: Some(body),
-                    ..Default::default()
-                },
-            )?;
-
-            let mut r = Fetch::Request(request).send().await?;
-            retry_if!(r, "upload_url", 401 | 503, r.json().await?)
         })
         .await
     }
@@ -218,7 +195,7 @@ impl B2 {
             )?;
 
             let mut r = Fetch::Request(request).send().await?;
-            retry_if!(r, "list_files", 401 | 503, r.json().await?)
+            retry_if!(r, "list_files", 401 | 503 | 521, r.json().await?)
         })
         .await
     }
@@ -248,7 +225,38 @@ impl B2 {
             )?;
 
             let mut r = Fetch::Request(request).send().await?;
-            retry_if!(r, "list_files", 401 | 503, r.json().await?)
+            retry_if!(r, "list_files", 401 | 503 | 521, r.json().await?)
+        })
+        .await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_upload_url(&self) -> Result<UploadDetails> {
+        // Retry in case the credentials expired and on the 2nd attempt force new credentials.
+        retry(5, |attempt| async move {
+            let auth = self.credentials.get_auth_details(attempt > 2).await?;
+
+            let mut url = auth.api_url.to_owned();
+            url.push_str("/b2api/v2/b2_get_upload_url");
+
+            let mut headers = Headers::new();
+            headers.set("Authorization", &auth.authorization_token)?;
+
+            let body = JsValue::from_str(&serde_json::to_string(
+                &json!({"bucketId": auth.allowed.bucket_id}),
+            )?);
+            let request = Request::new_with_init(
+                &url,
+                &RequestInit {
+                    method: Method::Post,
+                    headers,
+                    body: Some(body),
+                    ..Default::default()
+                },
+            )?;
+
+            let mut r = Fetch::Request(request).send().await?;
+            retry_if!(r, "upload_url", 401 | 503 | 521, r.json().await?)
         })
         .await
     }
@@ -278,12 +286,9 @@ impl Credentials {
             }
         }
 
-        tracing::info!(
-            "--> requesting auth details{}",
-            if force_refresh { ", forced" } else { "" }
-        );
+        tracing::info!(force_refresh, "requesting auth details");
         let auth_details = self.get_new_auth_details().await?;
-        tracing::info!("<-- got auth details");
+        tracing::info!("got new auth detauls");
 
         // TODO: maybe persist creation time with the key?
         self.kv
