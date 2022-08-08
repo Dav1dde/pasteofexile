@@ -4,6 +4,7 @@ use shared::{
     model::{ListPaste, Paste, PasteId, PasteMetadata},
     User,
 };
+use std::rc::Rc;
 
 #[derive(Default, Serialize, Deserialize)]
 struct KvMetadata {
@@ -59,7 +60,7 @@ impl KvStorage {
         &self,
         id: &PasteId,
         sha1: &[u8],
-        data: &mut [u8],
+        data: &[u8],
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
@@ -81,7 +82,7 @@ impl KvStorage {
         ctx: &worker::Context,
         id: &PasteId,
         sha1: &[u8],
-        data: Vec<u8>,
+        data: Rc<[u8]>,
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;

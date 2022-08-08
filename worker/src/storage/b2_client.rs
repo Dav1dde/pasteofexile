@@ -110,7 +110,7 @@ impl B2 {
     pub async fn upload(
         &self,
         settings: &UploadSettings<'_>,
-        content: &mut [u8],
+        content: &[u8],
     ) -> Result<UploadResponse> {
         let filename = utf8_percent_encode(settings.filename, NON_ALPHANUMERIC).to_string();
         let sha1 = match settings.sha1 {

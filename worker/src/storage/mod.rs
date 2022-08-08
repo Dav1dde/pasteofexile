@@ -3,6 +3,7 @@ use shared::{
     model::{ListPaste, Paste, PasteId, PasteMetadata},
     User,
 };
+use std::rc::Rc;
 
 #[allow(dead_code)]
 mod b2;
@@ -49,7 +50,7 @@ impl Storage {
         &self,
         id: &PasteId,
         sha1: &[u8],
-        data: &mut [u8],
+        data: &[u8],
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         self.storage.put(id, sha1, data, metadata).await
@@ -60,7 +61,7 @@ impl Storage {
         ctx: &worker::Context,
         id: &PasteId,
         sha1: &[u8],
-        data: Vec<u8>,
+        data: Rc<[u8]>,
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         self.storage.put_async(ctx, id, sha1, data, metadata).await

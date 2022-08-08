@@ -1,4 +1,5 @@
-use std::cell::RefCell;
+use std::borrow::Cow;
+use std::{cell::RefCell, rc::Rc};
 
 mod client;
 pub(crate) mod converter;
@@ -59,6 +60,17 @@ pub fn start_transaction(ctx: TransactionContext) {
 
 pub fn update_transaction(status: Status) {
     with_sentry_mut(|sentry| sentry.update_transaction(status));
+}
+
+pub fn add_attachment_plain(data: Rc<[u8]>, filename: impl Into<Cow<'static, str>>) {
+    with_sentry_mut(move |sentry| {
+        sentry.add_attachment(protocol::Attachment {
+            buffer: data,
+            filename: filename.into(),
+            content_type: Some("text/plain".into()),
+            ty: Some(protocol::AttachmentType::Attachment),
+        })
+    });
 }
 
 pub fn set_user(user: User) {

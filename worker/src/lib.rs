@@ -175,17 +175,10 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Respon
 async fn main_inner(mut rctx: RequestContext) -> worker::Result<Response> {
     let err: ErrorResponse = match cached(&mut rctx).await {
         Ok(response) => {
-            worker::console_log!(
-                "{:?} {} {}",
-                rctx.method(),
-                rctx.path(),
-                response.status_code()
-            );
             return Ok(response);
         }
         Err(err) => {
             sentry::with_sentry(|sentry| sentry.capture_err(&err));
-
             err.into()
         }
     };

@@ -8,6 +8,7 @@ use shared::{
     model::{ListPaste, Paste, PasteId, PasteMetadata},
     User,
 };
+use std::rc::Rc;
 
 pub struct B2Storage {
     b2: b2_client::B2,
@@ -78,7 +79,7 @@ impl B2Storage {
         &self,
         id: &PasteId,
         sha1: &[u8],
-        data: &mut [u8],
+        data: &[u8],
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
@@ -103,7 +104,7 @@ impl B2Storage {
         ctx: &worker::Context,
         id: &PasteId,
         sha1: &[u8],
-        mut data: Vec<u8>,
+        data: Rc<[u8]>,
         metadata: Option<PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
@@ -121,7 +122,7 @@ impl B2Storage {
                 metadata: metadata.as_deref(),
             };
 
-            if let Err(err) = self.b2.upload(&settings, &mut data).await {
+            if let Err(err) = self.b2.upload(&settings, &data).await {
                 // TODO: there might not be an active transaction anymore?
                 tracing::error!("<-- failed to upload paste: {:?}", err);
                 // TODO: is this necessary, tracing should pick it up already from tracing::erorr!

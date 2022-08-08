@@ -4,24 +4,26 @@ use std::borrow::Cow;
 use std::collections::BTreeMap as Map;
 use std::fmt;
 use std::io::Write;
+use std::rc::Rc;
 
 pub use serde_json::Value;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum EnvelopeItem {
-    Event(Event<'static>),
-    Transaction(Transaction<'static>),
+pub enum EnvelopeItem<'a> {
+    Event(Event<'a>),
+    Transaction(Transaction<'a>),
+    Attachment(&'a Attachment),
 }
 
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct Envelope {
+#[derive(Default, Debug)]
+pub struct Envelope<'a> {
     event_id: Option<uuid::Uuid>,
-    items: Vec<EnvelopeItem>,
+    items: Vec<EnvelopeItem<'a>>,
 }
 
-impl Envelope {
-    pub fn add_item(&mut self, item: EnvelopeItem) {
+impl<'a> Envelope<'a> {
+    pub fn add_item(&mut self, item: EnvelopeItem<'a>) {
         if self.event_id.is_none() {
             if let EnvelopeItem::Event(ref event) = item {
                 self.event_id = Some(event.event_id);
@@ -53,10 +55,16 @@ impl Envelope {
                 EnvelopeItem::Transaction(transaction) => {
                     serde_json::to_writer(&mut item_buf, transaction)?
                 }
+                EnvelopeItem::Attachment(attachment) => {
+                    attachment.to_writer(&mut writer)?;
+                    writeln!(writer)?;
+                    continue;
+                }
             }
             let item_type = match item {
                 EnvelopeItem::Event(_) => "event",
                 EnvelopeItem::Transaction(_) => "transaction",
+                EnvelopeItem::Attachment(_) => unreachable!(),
             };
             writeln!(
                 writer,
@@ -73,16 +81,16 @@ impl Envelope {
     }
 }
 
-impl From<Event<'static>> for Envelope {
-    fn from(event: Event<'static>) -> Self {
+impl<'a> From<Event<'a>> for Envelope<'a> {
+    fn from(event: Event<'a>) -> Self {
         let mut envelope = Self::default();
         envelope.add_item(EnvelopeItem::Event(event));
         envelope
     }
 }
 
-impl From<Transaction<'static>> for Envelope {
-    fn from(transaction: Transaction<'static>) -> Self {
+impl<'a> From<Transaction<'a>> for Envelope<'a> {
+    fn from(transaction: Transaction<'a>) -> Self {
         let mut envelope = Self::default();
         envelope.add_item(EnvelopeItem::Transaction(transaction));
         envelope
@@ -617,4 +625,66 @@ pub struct TraceContext {
     /// Describes the status of the span (e.g. `ok`, `cancelled`, etc.)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<SpanStatus>,
+}
+
+/// The different types an attachment can have.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum AttachmentType {
+    Attachment,
+}
+
+impl Default for AttachmentType {
+    fn default() -> Self {
+        Self::Attachment
+    }
+}
+
+impl AttachmentType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Attachment => "event.attachment",
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Attachment {
+    pub buffer: Rc<[u8]>,
+    pub filename: Cow<'static, str>,
+    pub content_type: Option<Cow<'static, str>>,
+    pub ty: Option<AttachmentType>,
+}
+
+impl Attachment {
+    pub fn to_writer<W>(&self, writer: &mut W) -> std::io::Result<()>
+    where
+        W: std::io::Write,
+    {
+        serde_json::to_writer(
+            &mut *writer,
+            &serde_json::json!({
+                "type": "attachment",
+                "length": self.buffer.len(),
+                "filename": self.filename,
+                "attachment_type": self.ty.unwrap_or_default().as_str(),
+                "content_type": self.content_type.as_deref().unwrap_or("application/octet-stream")
+            }),
+        )?;
+
+        writeln!(writer)?;
+        writer.write_all(&self.buffer)?;
+
+        Ok(())
+    }
+}
+
+impl fmt::Debug for Attachment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Attachment")
+            .field("buffer", &self.buffer.len())
+            .field("filename", &self.filename)
+            .field("content_type", &self.content_type)
+            .field("type", &self.ty)
+            .finish()
+    }
 }

@@ -9,6 +9,7 @@ pub struct Sentry {
     project: String,
     token: String,
     breadcrumbs: Vec<protocol::Breadcrumb>,
+    attachments: Vec<protocol::Attachment>,
     trace_context: Vec<protocol::TraceContext>,
     pub(crate) trace_id: protocol::TraceId,
     user: Option<protocol::User>,
@@ -23,6 +24,8 @@ impl Sentry {
             project: options.project,
             token: options.token,
             breadcrumbs: Vec::new(),
+            attachments: Vec::new(),
+            // TODO: maybe get rid of this and replace capture_err with `tracing::error!`
             trace_context: Vec::new(),
             trace_id: protocol::TraceId::default(),
             user: None,
@@ -64,6 +67,10 @@ impl Sentry {
 
     pub(crate) fn add_breadcrumb(&mut self, breadcrumb: protocol::Breadcrumb) {
         self.breadcrumbs.push(breadcrumb);
+    }
+
+    pub(crate) fn add_attachment(&mut self, attachment: protocol::Attachment) {
+        self.attachments.push(attachment);
     }
 
     pub(crate) fn start_transaction(&mut self, ctx: super::TransactionContext) {
@@ -133,7 +140,12 @@ impl Sentry {
                 .insert("trace".into(), protocol::Context::Trace(tc.clone()));
         }
 
-        if let Err(err) = self.send_envelope(event.into()) {
+        let mut envelope: protocol::Envelope = event.into();
+        for attachment in &self.attachments {
+            envelope.add_item(protocol::EnvelopeItem::Attachment(attachment));
+        }
+
+        if let Err(err) = self.send_envelope(envelope) {
             worker::console_log!("failed to caputre error with sentry: {:?}", err);
         }
     }
@@ -177,9 +189,15 @@ impl Sentry {
             let r = Fetch::Request(request).send().await;
             match r {
                 Err(err) => worker::console_log!("failed to send envelope: {:?}", err),
-                Ok(r) => {
+                Ok(mut r) => {
                     if r.status_code() >= 300 {
-                        worker::console_log!("failed to send envelop: {:?}", r.status_code());
+                        worker::console_log!("failed to send envelope: {:?}", r.status_code());
+                        if cfg!(feature = "debug") {
+                            worker::console_log!(
+                                "response: {}",
+                                r.text().await.unwrap_or_default()
+                            );
+                        }
                     }
                 }
             }

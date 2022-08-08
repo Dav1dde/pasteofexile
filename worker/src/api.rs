@@ -1,9 +1,10 @@
-use std::{borrow::Cow, time::Duration};
+use std::{borrow::Cow, rc::Rc, time::Duration};
 
 use crate::{
     consts, crypto, poe_api,
     request_context::RequestContext,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
+    sentry,
     utils::{self, is_valid_id, CacheControl, ResponseExt},
     Error, Result,
 };
@@ -173,14 +174,15 @@ struct UploadRequest {
 #[tracing::instrument(skip(rctx))]
 async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
     let data = rctx.req_mut().json::<UploadRequest>().await?;
-    let mut content = data.content.into_bytes();
+    let content: Rc<[u8]> = data.content.into_bytes().into();
 
     tracing::info!(?data.id, data.as_user, ?data.title, ?data.custom_id, size = content.len(), "upload");
+    sentry::add_attachment_plain(content.clone(), "pob.txt");
 
     let pob = validate_pob(&content)?;
     let mut metadata = to_metadata(&pob);
 
-    let sha1 = crypto::sha1(&mut content).await?;
+    let sha1 = crypto::sha1(&content).await?;
 
     let id = if data.as_user {
         let session = rctx.session().await?.ok_or(Error::AccessDenied)?;
@@ -221,7 +223,7 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
 
     tracing::debug!("--> uploading paste '{}'", id);
     rctx.storage()?
-        .put(&id, &sha1, &mut content, Some(metadata))
+        .put(&id, &sha1, &content, Some(metadata))
         .await?;
     tracing::debug!("<-- paste uploaded");
 
@@ -234,12 +236,15 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
-    let mut data = rctx.req_mut().bytes().await?;
+    let data: Rc<[u8]> = rctx.req_mut().bytes().await?.into();
+
+    tracing::info!(size = data.len(), "pob upload");
+    sentry::add_attachment_plain(data.clone(), "pob.txt");
 
     let pob = validate_pob(&data)?;
     let metadata = to_metadata(&pob);
 
-    let sha1 = crypto::sha1(&mut data).await?;
+    let sha1 = crypto::sha1(&data).await?;
     let id = PasteId::new_id(utils::hash_to_short_id(&sha1, 9)?);
 
     tracing::debug!("--> uploading paste '{}'", id);
