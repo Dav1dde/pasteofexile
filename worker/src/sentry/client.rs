@@ -1,7 +1,6 @@
 use super::protocol;
-use crate::{Error, Result};
+use crate::{net, Error, Result};
 use git_version::git_version;
-use worker::{Fetch, Headers, Method, RequestInit};
 
 #[derive(Clone)]
 pub struct Sentry {
@@ -104,6 +103,7 @@ impl Sentry {
         transaction.release = Some(git_version!().into());
         transaction.request = self.request.clone();
         transaction.user = self.user.clone();
+        transaction.breadcrumbs = self.breadcrumbs.clone();
         transaction
             .contexts
             .insert("trace".into(), protocol::Context::Trace(trace_context));
@@ -161,41 +161,37 @@ impl Sentry {
     }
 
     fn send_envelope(&self, envelope: protocol::Envelope) -> Result<()> {
-        let mut headers = Headers::new();
-        headers.set("Content-Type", "application/x-sentry-envelope")?;
-        headers.set("User-Agent", "pobb.bin/1.0")?;
-        headers.set(
-            "X-Sentry-Auth",
-            &format!(
-                "Sentry sentry_version=7, sentry_client=pobb.in/1.0, sentry_key={}",
-                self.token,
-            ),
-        )?;
-
         let mut body = Vec::new();
         envelope.to_writer(&mut body)?;
 
-        let request = worker::Request::new_with_init(
-            &format!("https://sentry.io/api/{}/envelope/", self.project),
-            &RequestInit {
-                method: Method::Post,
-                headers,
-                body: Some(unsafe { js_sys::Uint8Array::view(&body) }.into()),
-                ..Default::default()
-            },
-        )?;
+        let auth = format!(
+            "Sentry sentry_version=7, sentry_client=pobb.in/1.0, sentry_key={}",
+            self.token
+        );
+        let url = format!("https://sentry.io/api/{}/envelope/", self.project);
 
         self.ctx.wait_until(async move {
-            let r = Fetch::Request(request).send().await;
-            match r {
+            let response = net::Request::post(url)
+                .header("Content-Type", "application/x-sentry-envelope")
+                .header("User-Agent", "pobb.bin/1.0")
+                .header("X-Sentry-Auth", &auth)
+                .body_u8(&body)
+                .no_sentry()
+                .send()
+                .await;
+
+            match response {
                 Err(err) => worker::console_log!("failed to send envelope: {:?}", err),
-                Ok(mut r) => {
-                    if r.status_code() >= 300 {
-                        worker::console_log!("failed to send envelope: {:?}", r.status_code());
+                Ok(mut response) => {
+                    if response.status_code() >= 300 {
+                        worker::console_log!(
+                            "failed to send envelope: {:?}",
+                            response.status_code()
+                        );
                         if cfg!(feature = "debug") {
                             worker::console_log!(
                                 "response: {}",
-                                r.text().await.unwrap_or_default()
+                                response.text().await.unwrap_or_default()
                             );
                         }
                     }

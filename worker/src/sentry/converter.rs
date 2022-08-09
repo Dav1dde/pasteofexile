@@ -95,8 +95,8 @@ impl Visit for FieldVisitor {
 pub fn breadcrumb_from_event(event: &tracing::Event) -> Breadcrumb {
     let (message, visitor) = extract_event_data(event);
     Breadcrumb {
-        category: Some(event.metadata().target().to_owned()),
-        ty: Some("log".to_string()),
+        category: Some(event.metadata().target().into()),
+        ty: Some("log".into()),
         level: convert_tracing_level(event.metadata().level()),
         message,
         data: visitor.json_values,

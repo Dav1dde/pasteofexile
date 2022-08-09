@@ -10,6 +10,7 @@ mod crypto;
 mod dangerous;
 mod error;
 mod layer;
+mod net;
 mod poe_api;
 mod request_context;
 mod retry;

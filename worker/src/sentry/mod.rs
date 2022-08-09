@@ -9,7 +9,7 @@ mod utils;
 
 pub use self::client::Sentry;
 pub use self::layer::Layer;
-pub use self::protocol::{Level, Request, SpanStatus as Status, User};
+pub use self::protocol::{Breadcrumb, Level, Map, Request, SpanStatus as Status, User, Value};
 
 thread_local!(pub(crate) static SENTRY: RefCell<Option<Sentry>> = RefCell::new(None));
 
@@ -60,6 +60,12 @@ pub fn start_transaction(ctx: TransactionContext) {
 
 pub fn update_transaction(status: Status) {
     with_sentry_mut(|sentry| sentry.update_transaction(status));
+}
+
+pub fn add_breadcrumb(breadcrumb: Breadcrumb) {
+    with_sentry_mut(move |sentry| {
+        sentry.add_breadcrumb(breadcrumb);
+    });
 }
 
 pub fn add_attachment_plain(data: Rc<[u8]>, filename: impl Into<Cow<'static, str>>) {

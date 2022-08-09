@@ -1,12 +1,12 @@
 use super::utils::{ts_rfc3339, ts_rfc3339_opt};
 use serde::Serialize;
 use std::borrow::Cow;
-use std::collections::BTreeMap as Map;
 use std::fmt;
 use std::io::Write;
 use std::rc::Rc;
 
 pub use serde_json::Value;
+pub use std::collections::BTreeMap as Map;
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
@@ -412,6 +412,8 @@ pub struct Transaction<'a> {
     pub request: Option<Request>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user: Option<User>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub breadcrumbs: Vec<Breadcrumb>,
 }
 
 impl<'a> Default for Transaction<'a> {
@@ -431,6 +433,7 @@ impl<'a> Default for Transaction<'a> {
             contexts: Default::default(),
             request: Default::default(),
             user: Default::default(),
+            breadcrumbs: Default::default(),
         }
     }
 }
@@ -552,38 +555,28 @@ pub struct LogEntry {
 #[derive(Default, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Breadcrumb {
     pub timestamp: Timestamp,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Cow<'static, str>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub category: Option<String>,
+    pub category: Option<Cow<'static, str>>,
     pub level: Level,
     /// An optional human readbale message for the breadcrumb.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// Arbitrary breadcrumb data that should be send along.
-    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    #[serde(skip_serializing_if = "Map::is_empty")]
     pub data: Map<String, Value>,
 }
 
-#[derive(Debug, Serialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Serialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum Level {
-    /// Indicates very spammy debug information.
     Debug,
-    /// Informational messages.
+    #[default]
     Info,
-    /// A warning.
     Warning,
-    /// An error.
     Error,
-    /// Similar to error but indicates a critical event that usually causes a shutdown.
     Fatal,
-}
-
-impl Default for Level {
-    fn default() -> Self {
-        Level::Info
-    }
 }
 
 impl fmt::Display for Level {

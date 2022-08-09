@@ -72,7 +72,12 @@ impl Error {
             Self::BadRequest(..) => Level::Info,
             Self::AccessDenied => Level::Info,
             Self::InvalidPoB(..) => Level::Error,
-            Self::Dangerous(..) => Level::Error,
+            Self::Dangerous(err) => match err {
+                DangerousError::BadEncoding => Level::Warning,
+                DangerousError::BadSignature => Level::Warning,
+                DangerousError::Deserialize => Level::Warning,
+                _ => Level::Error,
+            },
             Self::Base64(..) => Level::Error,
             Self::IOError(..) => Level::Error,
             Self::Error(..) => Level::Error,
@@ -124,6 +129,15 @@ impl From<Error> for ErrorResponse {
             },
             err @ Error::AccessDenied => ErrorResponse {
                 code: 403,
+                message: err.to_string(),
+            },
+            Error::Dangerous(err) => ErrorResponse {
+                code: match err {
+                    DangerousError::BadEncoding => 400,
+                    DangerousError::BadSignature => 400,
+                    DangerousError::Deserialize => 400,
+                    _ => 500,
+                },
                 message: err.to_string(),
             },
             err => ErrorResponse {

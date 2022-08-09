@@ -1,6 +1,7 @@
 use crate::{
     consts,
     crypto::sha1,
+    net,
     retry::{retry, Retry},
     utils::hex,
     Error, Result,
@@ -9,9 +10,7 @@ use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{borrow::Cow, collections::HashMap};
-use worker::{
-    kv::KvStore, wasm_bindgen::JsValue, Env, Fetch, Headers, Method, Request, RequestInit,
-};
+use worker::{kv::KvStore, Env};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -121,27 +120,17 @@ impl B2 {
         retry(5, |_| async {
             let upload = self.get_upload_url().await?;
 
-            let mut headers = Headers::new();
-            headers.set("Authorization", &upload.authorization_token)?;
-            headers.set("X-Bz-File-Name", &filename)?;
-            headers.set("Content-Type", settings.content_type)?;
-            headers.set("X-Bz-Content-Sha1", &sha1)?;
-            if let Some(metadata) = settings.metadata {
-                headers.set("X-Bz-Info-Metadata", metadata)?;
-            }
+            let mut response = net::Request::post(&upload.upload_url)
+                .header("Authorization", &upload.authorization_token)
+                .header("X-Bz-File-Name", &filename)
+                .header("Content-Type", settings.content_type)
+                .header("X-Bz-Content-Sha1", &sha1)
+                .header_opt("X-Bz-Info-Metadata", settings.metadata)
+                .body_u8(content)
+                .send()
+                .await?;
 
-            let request = Request::new_with_init(
-                &upload.upload_url,
-                &RequestInit {
-                    method: Method::Post,
-                    headers,
-                    body: Some(unsafe { js_sys::Uint8Array::view(content) }.into()),
-                    ..Default::default()
-                },
-            )?;
-
-            let mut r = Fetch::Request(request).send().await?;
-            retry_if!(r, "upload", 401 | 503 | 521, r.json().await?)
+            retry_if!(response, "upload", 401 | 503 | 521, response.json().await?)
         })
         .await
     }
@@ -154,8 +143,7 @@ impl B2 {
         url.push_str(path);
 
         retry(3, |_| async {
-            let request = Request::new(&url, Method::Get)?;
-            let response = Fetch::Request(request).send().await?;
+            let response = net::Request::get(&url).send().await?;
             if response.status_code() >= 500 {
                 tracing::info!(
                     status_code = response.status_code(),
@@ -178,23 +166,16 @@ impl B2 {
             let mut url = auth.api_url.to_owned();
             url.push_str("/b2api/v2/b2_list_file_names");
 
-            let mut headers = Headers::new();
-            headers.set("Authorization", &auth.authorization_token)?;
+            let mut r = net::Request::post(url)
+                .header("Authorization", &auth.authorization_token)
+                .body(serde_json::to_string(&json!({
+                    "bucketId": auth.allowed.bucket_id,
+                    "prefix": prefix,
+                    "maxFileCount": max_file_count
+                }))?)
+                .send()
+                .await?;
 
-            let body = JsValue::from_str(&serde_json::to_string(
-                &json!({"bucketId": auth.allowed.bucket_id, "prefix": prefix, "maxFileCount": max_file_count}),
-            )?);
-            let request = Request::new_with_init(
-                &url,
-                &RequestInit {
-                    method: Method::Post,
-                    headers,
-                    body: Some(body),
-                    ..Default::default()
-                },
-            )?;
-
-            let mut r = Fetch::Request(request).send().await?;
             retry_if!(r, "list_files", 401 | 503 | 521, r.json().await?)
         })
         .await
@@ -208,23 +189,15 @@ impl B2 {
             let mut url = auth.api_url.to_owned();
             url.push_str("/b2api/v2/b2_hide_file");
 
-            let mut headers = Headers::new();
-            headers.set("Authorization", &auth.authorization_token)?;
+            let mut r = net::Request::post(url)
+                .header("Authorization", &auth.authorization_token)
+                .body(serde_json::to_string(&json!({
+                    "bucketId": auth.allowed.bucket_id,
+                    "fileName": path
+                }))?)
+                .send()
+                .await?;
 
-            let body = JsValue::from_str(&serde_json::to_string(
-                &json!({"bucketId": auth.allowed.bucket_id, "fileName": path}),
-            )?);
-            let request = Request::new_with_init(
-                &url,
-                &RequestInit {
-                    method: Method::Post,
-                    headers,
-                    body: Some(body),
-                    ..Default::default()
-                },
-            )?;
-
-            let mut r = Fetch::Request(request).send().await?;
             retry_if!(r, "list_files", 401 | 503 | 521, r.json().await?)
         })
         .await
@@ -239,23 +212,14 @@ impl B2 {
             let mut url = auth.api_url.to_owned();
             url.push_str("/b2api/v2/b2_get_upload_url");
 
-            let mut headers = Headers::new();
-            headers.set("Authorization", &auth.authorization_token)?;
+            let mut r = net::Request::post(url)
+                .header("Authorization", &auth.authorization_token)
+                .body(serde_json::to_string(&json!({
+                    "bucketId": auth.allowed.bucket_id
+                }))?)
+                .send()
+                .await?;
 
-            let body = JsValue::from_str(&serde_json::to_string(
-                &json!({"bucketId": auth.allowed.bucket_id}),
-            )?);
-            let request = Request::new_with_init(
-                &url,
-                &RequestInit {
-                    method: Method::Post,
-                    headers,
-                    body: Some(body),
-                    ..Default::default()
-                },
-            )?;
-
-            let mut r = Fetch::Request(request).send().await?;
             retry_if!(r, "upload_url", 401 | 503 | 521, r.json().await?)
         })
         .await
@@ -302,24 +266,15 @@ impl Credentials {
 
     #[tracing::instrument(skip(self))]
     async fn get_new_auth_details(&self) -> Result<AuthDetails> {
-        let mut headers = Headers::new();
-        headers.set(
-            "Authorization",
-            &crate::utils::basic_auth(&self.key_id, &self.application_key)?,
-        )?;
+        let authorization = crate::utils::basic_auth(&self.key_id, &self.application_key)?;
 
-        let request = Request::new_with_init(
-            AUTH_DETAILS_URL,
-            &RequestInit {
-                method: Method::Get,
-                headers,
-                ..Default::default()
-            },
-        )?;
+        let mut response = net::Request::get(AUTH_DETAILS_URL)
+            .header("Authorization", &authorization)
+            .send()
+            .await?;
 
-        let mut r = Fetch::Request(request).send().await?;
-        match r.status_code() {
-            200 => Ok(r.json().await?),
+        match response.status_code() {
+            200 => Ok(response.json().await?),
             status => Err(Error::RemoteFailed(status, "auth_details".to_owned())),
         }
     }

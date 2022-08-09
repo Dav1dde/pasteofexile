@@ -19,7 +19,9 @@ use worker::{Headers, Response};
 macro_rules! validate {
     ($e:expr, $msg:expr) => {
         if !$e {
-            return Err(Error::BadRequest($msg.into()));
+            let msg = $msg.into();
+            tracing::warn!(expr = stringify!($e), "validation failed: {}", msg);
+            return Err(Error::BadRequest(msg));
         }
     };
 }
@@ -27,6 +29,7 @@ macro_rules! validate {
 macro_rules! validate_access {
     ($e:expr) => {
         if !$e {
+            tracing::warn!(expr = stringify!($e), "access denied");
             return Err(Error::AccessDenied);
         }
     };
@@ -185,7 +188,10 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
     let sha1 = crypto::sha1(&content).await?;
 
     let id = if data.as_user {
-        let session = rctx.session().await?.ok_or(Error::AccessDenied)?;
+        let session = rctx.session().await?.ok_or_else(|| {
+            tracing::warn!("missing user session");
+            Error::AccessDenied
+        })?;
 
         validate!(data.title.is_some(), "Title is required");
         let title = data.title.unwrap();
@@ -340,6 +346,8 @@ async fn handle_login(rctx: &RequestContext) -> Result<Response> {
         .oauth()?
         .get_login_url(&redirect_uri, &state, consts::OAUTH_SCOPE);
 
+    tracing::info!(%redirect_uri, %state, "redirecting for login");
+
     Response::redirect_temp(&login_uri)?.with_state_cookie(&state)
 }
 
@@ -350,12 +358,19 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
     let grant = match poe_api::AuthorizationGrant::try_from(&url) {
         Ok(grant) => grant,
         // TODO: render error page
-        _ => return Ok(Response::error("no authorization grant", 403)?),
+        _ => {
+            tracing::warn!("missing authorization grant");
+            return Ok(Response::error("no authorization grant", 403)?);
+        }
     };
+
+    tracing::info!(%grant.state, "logging in");
 
     crate::utils::if_debug!({}, {
         use crate::utils::RequestExt;
-        if rctx.cookie("state").unwrap_or_default() != grant.state {
+        let cookie_state = rctx.cookie("state").unwrap_or_default();
+        if cookie_state != grant.state {
+            tracing::warn!(%cookie_state, %grant.state, "grant state does not match cookie state");
             // TODO: render error page
             return Ok(Response::error("invalid session state", 403)?);
         }

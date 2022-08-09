@@ -36,6 +36,7 @@ impl Dangerous {
         Self { secret }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn sign<T: Serialize>(&self, data: &T) -> Result<String>
     where
         T: std::fmt::Debug,
@@ -53,7 +54,7 @@ impl Dangerous {
         Ok(result)
     }
 
-    #[allow(dead_code)] // TODO remove me
+    #[tracing::instrument(skip(self))]
     pub async fn verify<T: DeserializeOwned>(&self, data: &str) -> Result<T> {
         let (payload, signature) = data.rsplit_once('.').ok_or(DangerousError::BadEncoding)?;
 

@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::{net, Error, Result};
 use shared::model::{Paste, PasteId};
 
 pub(crate) fn could_be_pastebin_id(paste: &PasteId) -> bool {
@@ -7,12 +7,9 @@ pub(crate) fn could_be_pastebin_id(paste: &PasteId) -> bool {
 
 #[tracing::instrument]
 pub async fn get(id: &PasteId) -> Result<Option<Paste>> {
-    let request = worker::Request::new(
-        &format!("https://pastebin.com/raw/{}", id.id()),
-        worker::Method::Get,
-    )?;
-
-    let mut response = worker::Fetch::Request(request).send().await?;
+    let mut response = net::Request::get(format!("https://pastebin.com/raw/{}", id.id()))
+        .send()
+        .await?;
 
     let content = match response.status_code() {
         200 => response.text().await?,

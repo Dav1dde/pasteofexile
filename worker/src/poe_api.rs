@@ -1,3 +1,4 @@
+use crate::net;
 use std::borrow::Cow;
 use worker::Url;
 
@@ -47,6 +48,7 @@ impl Oauth {
         }
     }
 
+    #[tracing::instrument(skip(self, redirect_uri))]
     pub fn get_login_url(&self, redirect_uri: &str, state: &str, scope: &str) -> String {
         let params = url::form_urlencoded::Serializer::new(String::new())
             .append_pair("client_id", &self.client_id)
@@ -61,6 +63,7 @@ impl Oauth {
     }
 
     // TODO: better errors
+    #[tracing::instrument(skip(self, code))]
     pub async fn fetch_token(&self, code: &str) -> crate::Result<OauthToken> {
         let payload = url::form_urlencoded::Serializer::new(String::new())
             .append_pair("client_id", &self.client_id)
@@ -69,20 +72,12 @@ impl Oauth {
             .append_pair("code", code)
             .finish();
 
-        let mut headers = worker::Headers::new();
-        headers.set("Content-Type", "application/x-www-form-urlencoded")?;
+        let mut response = net::Request::post("https://www.pathofexile.com/oauth/token")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(&payload)
+            .send()
+            .await?;
 
-        let request = worker::Request::new_with_init(
-            "https://www.pathofexile.com/oauth/token",
-            &worker::RequestInit {
-                method: worker::Method::Post,
-                headers,
-                body: Some(wasm_bindgen::JsValue::from_str(&payload)),
-                ..Default::default()
-            },
-        )?;
-
-        let mut response = worker::Fetch::Request(request).send().await?;
         Ok(response.json().await?)
     }
 }
@@ -102,20 +97,14 @@ impl PoeApi {
     }
 
     // TODO: better errors
+    #[tracing::instrument(skip(self))]
     pub async fn fetch_profile(&self) -> crate::Result<Profile> {
-        let mut headers = worker::Headers::new();
-        headers.set("Authorization", &format!("Bearer {}", self.access_token))?;
-        headers.set("User-Agent", POE_API_USER_AGENT)?;
+        let mut response = net::Request::get("https://api.pathofexile.com/profile")
+            .header("Authorization", &format!("Bearer {}", self.access_token))
+            .header("User-Agent", POE_API_USER_AGENT)
+            .send()
+            .await?;
 
-        let request = worker::Request::new_with_init(
-            "https://api.pathofexile.com/profile",
-            &worker::RequestInit {
-                method: worker::Method::Get,
-                headers,
-                ..Default::default()
-            },
-        )?;
-
-        Ok(worker::Fetch::Request(request).send().await?.json().await?)
+        Ok(response.json().await?)
     }
 }
