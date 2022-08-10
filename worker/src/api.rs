@@ -5,7 +5,7 @@ use crate::{
     request_context::RequestContext,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
     sentry,
-    utils::{self, is_valid_id, CacheControl, ResponseExt},
+    utils::{self, is_valid_id, CacheControl, RequestExt, ResponseExt},
     Error, Result,
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
@@ -336,10 +336,16 @@ async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_login(rctx: &RequestContext) -> Result<Response> {
-    let _url = rctx.url()?;
-    let host = crate::utils::if_debug!("preview.pobb.in", _url.host_str().unwrap());
+    let req_url = rctx.url()?;
+    let host = crate::utils::if_debug!("preview.pobb.in", req_url.host_str().unwrap());
 
-    let state = utils::random_string::<16>()?;
+    let referrer = rctx.referrer();
+    let path = referrer
+        .as_ref()
+        .filter(|url| url.host_str() == req_url.host_str())
+        .map(|url| &url[url::Position::BeforePath..])
+        .unwrap_or("/");
+    let state = format!("{}.{}", utils::random_string::<12>()?, path);
 
     let redirect_uri = format!("https://{host}/oauth2/authorization/poe");
     let login_uri = rctx
@@ -388,8 +394,14 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
     };
     let session = rctx.dangerous()?.sign(&user).await?;
 
-    // TODO: redirect back to where the user actually came from
-    Response::redirect_temp(&format!("/u/{}", user.name))?
+    let redirect = grant
+        .state
+        .split_once('.')
+        .map(|(_, path)| path)
+        .filter(|path| !path.is_empty())
+        .unwrap_or("/");
+
+    Response::redirect_temp(redirect)?
         .with_delete_state_cookie()?
         .with_new_session(&session)
 }

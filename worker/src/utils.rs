@@ -255,6 +255,12 @@ impl ResponseExt for Response {
 }
 
 pub trait RequestExt: Sized {
+    fn header(&self, name: &str) -> Option<String>;
+    fn referrer(&self) -> Option<url::Url> {
+        self.header("Referer")
+            .and_then(|v| url::Url::parse(&v).ok())
+    }
+
     fn cookie(&self, name: &str) -> Option<String>;
     fn session(&self) -> Option<String> {
         self.cookie("session")
@@ -262,6 +268,10 @@ pub trait RequestExt: Sized {
 }
 
 impl RequestExt for Request {
+    fn header(&self, name: &str) -> Option<String> {
+        self.headers().get(name).ok().flatten()
+    }
+
     fn cookie(&self, name: &str) -> Option<String> {
         let cookie = self.headers().get("Cookie").unwrap()?;
 
