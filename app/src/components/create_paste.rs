@@ -1,6 +1,6 @@
 use crate::{memo, memo_cond, session::SessionValue, svg::SPINNER};
 use pob::SerdePathOfBuilding;
-use shared::model::UserPasteId;
+use shared::{model::UserPasteId, validation};
 use std::rc::Rc;
 use sycamore::{context::use_context, prelude::*};
 use wasm_bindgen::JsCast;
@@ -142,7 +142,26 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
     let btn_submit = |_| {};
 
     // TODO: allow pasting of PoBs that cannot be properly parsed but appear to be valid
-    let btn_submit_disabled = memo!(loading, pob, *loading.get() || pob.get().is_none());
+    let btn_submit_disabled = memo!(loading, pob, as_user, custom_title, custom_id, {
+        // TODO: show error/validation messages, this memo probably needs to return a `Validation`
+        // and the button subscribes to memo with `is_valid()` and `error` merges from the
+        // validation as well.
+        if *loading.get() || pob.get().is_none() {
+            return true;
+        }
+        if *as_user.get() {
+            // Empty means auto generated or default
+            let id = custom_id.get().is_empty()
+                || validation::user::is_valid_custom_id(&custom_id.get()).is_valid();
+            let title = custom_title.get().is_empty()
+                || validation::user::is_valid_custom_title(&custom_title.get()).is_valid();
+            if !id || !title {
+                return true;
+            }
+        }
+
+        false
+    });
     let btn_content = memo_cond!(
         loading,
         SPINNER,
@@ -151,7 +170,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
 
     let on_input = cloned!(error => move |_| error.set("".to_owned()));
 
-    let on_custom_id = |event: web_sys::Event| {
+    let on_custom_id = cloned!(custom_id => move |event: web_sys::Event| {
         let event = event.unchecked_into::<web_sys::InputEvent>();
         if event.is_composing() {
             return;
@@ -168,7 +187,8 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
             .filter(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_'))
             .collect::<String>();
         target.set_value(&value);
-    };
+        custom_id.set(value);
+    });
 
     let as_user_content = memo_cond!(
         as_user,
@@ -176,7 +196,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
             let title = raw_title.clone();
             let title2 = (*raw_title.get()).clone().unwrap_or_default();
             let custom_id = custom_id.clone();
-            let custom_id2 = custom_id.clone();
+            let on_custom_id = on_custom_id.clone();
             view! {
                 div() { "Title" }
                 input(
@@ -198,8 +218,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     pattern="[a-zA-Z0-9-_]*",
                     placeholder="<auto generated>",
                     readonly=is_update,
-                    value=custom_id2.get(),
-                    bind:value=custom_id,
+                    value=custom_id.get(),
                     on:input=on_custom_id) { }
             }
         },

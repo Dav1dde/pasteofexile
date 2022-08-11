@@ -5,14 +5,14 @@ use crate::{
     request_context::RequestContext,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
     sentry,
-    utils::{self, is_valid_id, CacheControl, RequestExt, ResponseExt},
+    utils::{self, CacheControl, RequestExt, ResponseExt},
     Error, Result,
 };
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
 use shared::{
     model::{PasteId, PasteMetadata},
-    User,
+    validation, User,
 };
 use worker::{Headers, Response};
 
@@ -22,6 +22,18 @@ macro_rules! validate {
             let msg = $msg.into();
             tracing::warn!(expr = stringify!($e), "validation failed: {}", msg);
             return Err(Error::BadRequest(msg));
+        }
+    };
+}
+
+macro_rules! validate_v {
+    ($e:expr) => {
+        match $e {
+            validation::Validation::Valid => (),
+            validation::Validation::Invalid(msg) => {
+                tracing::warn!(expr = stringify!($e), "validation failed: {}", msg);
+                return Err(Error::BadRequest(msg.into()));
+            }
         }
     };
 }
@@ -195,14 +207,13 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
 
         validate!(data.title.is_some(), "Title is required");
         let title = data.title.unwrap();
-        validate!(title.len() < 90, "Title too long");
-        validate!(title.len() > 5, "Title too short");
+        validate_v!(validation::user::is_valid_custom_title(&title));
 
         metadata.title = title;
 
         if let Some(id) = data.id {
             validate_access!(Some(session.name.as_str()) == id.user().map(|user| user.as_str()));
-            validate!(is_valid_id(id.id()), "Invalid id");
+            validate_v!(validation::user::is_valid_custom_id(id.id()));
             validate!(
                 data.custom_id.as_deref() == Some(id.id()),
                 "Custom id does not match paste id"
@@ -214,15 +225,16 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
                 Some(id) => id,
                 None => utils::random_string::<9>()?,
             };
-            validate!(is_valid_id(&id), "Invalid id");
+            validate_v!(validation::user::is_valid_custom_id(&id));
 
             PasteId::new_user(session.name, id)
         }
     } else {
         validate_access!(data.id.is_none());
         // TODO: should unused fields (like title) be validated?
+        // Currently not validated becuse frontend may send old values
         // validate!(data.title.is_none(), "Cannot set title");
-        validate!(data.custom_id.is_none(), "Cannot set custom id");
+        // validate!(data.custom_id.is_none(), "Cannot set custom id");
 
         PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
     };

@@ -10,9 +10,9 @@ macro_rules! memo {
             $x
         }))
     };
-    ($signal1:ident, $signal2:ident, $x:expr) => {
-        create_memo(cloned!(($signal1, $signal2) => move || {
-            $x
+    ($($signal:ident),+, { $($token:tt)+ }) => {
+        create_memo(cloned!($($signal),+ => move || {
+            $($token)+
         }))
     };
 }

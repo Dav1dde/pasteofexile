@@ -1,3 +1,4 @@
+use shared::validation;
 use std::fmt;
 use std::time::Duration;
 use worker::wasm_bindgen::JsCast;
@@ -61,19 +62,14 @@ pub fn hash_to_short_id(hash: &[u8], bytes: usize) -> Result<String> {
         .ok_or_else(|| "Hash too small for id".into())
 }
 
-pub fn is_valid_id(id: &str) -> bool {
-    id.len() >= 5
-        && id.len() < 90
-        && id
-            .bytes()
-            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'-'))
-}
-
 pub fn to_path(id: &str) -> Result<String> {
-    if !is_valid_id(id) {
-        return Err("invalid id".into());
-    }
-    let mut result = String::with_capacity(4 + id.len());
+    validation::is_valid_id(id).ok()?;
+
+    // Invariants for the following unsafe code, should already be checked by the validation
+    assert!(id.len() >= 3, "Id too short");
+    assert!(id.is_ascii(), "Id not ascii");
+
+    let mut result = String::with_capacity(2 + id.len());
     result.push_str(unsafe { id.get_unchecked(0..1) });
     result.push('/');
     result.push_str(unsafe { id.get_unchecked(1..2) });
@@ -288,17 +284,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_is_valid_id() {
-        assert!(!is_valid_id(""));
-        assert!(!is_valid_id("a"));
-        assert!(!is_valid_id("abcd"));
-        assert!(!is_valid_id(
-            "abcdefghijklmnopqrstuvwxyz123456789012345678901234567890\
-            abcdefghijklmnopqrstuvwxyz123456789012345678901234567890"
-        ));
-        assert!(is_valid_id("abcde"));
-        assert!(is_valid_id("AZ09az-_"));
-        assert!(is_valid_id("-AZ09az-_"));
+    fn test_to_path() {
+        assert!(to_path("").is_err());
+        assert!(to_path("a").is_err());
+        assert!(to_path("aa").is_err());
+        assert!(to_path("aaa").is_err());
+        assert_eq!(to_path("aaaaa").unwrap(), "a/a/aaa");
     }
 
     #[test]
