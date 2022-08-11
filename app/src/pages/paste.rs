@@ -27,7 +27,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
             id,
             title: paste.metadata().map(|m| m.title.to_owned()),
             content: paste.content().clone(),
-            pob: paste.path_of_building()?,
+            pob: Rc::new(paste.to_path_of_building()?),
         })
     }
 

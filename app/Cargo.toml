@@ -47,7 +47,6 @@ tracing-subscriber = { version = "0.3", optional = true }
 tracing-wasm = { version = "0.2", optional = true }
 
 cfg-if = "1"
-lazycell = "1"
 anyhow = "1"
 thiserror = "1"
 strum = { version = "0.24", features = ["derive"], optional = true }

@@ -1,5 +1,4 @@
 use crate::Route;
-use lazycell::LazyCell;
 use pob::SerdePathOfBuilding;
 use shared::model::{PasteMetadata, PasteSummary, UserPasteId};
 use std::rc::Rc;
@@ -54,7 +53,6 @@ impl Context {
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
                     content: paste.content.into(),
-                    pob: LazyCell::new(),
                 }),
             }),
         }
@@ -78,7 +76,6 @@ impl Context {
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
                     content: paste.content.into(),
-                    pob: LazyCell::new(),
                 }),
             }),
         }
@@ -92,7 +89,6 @@ impl Context {
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
                     content: paste.content.into(),
-                    pob: LazyCell::new(),
                 }),
             }),
         }
@@ -125,7 +121,6 @@ impl Context {
 pub struct Paste {
     metadata: Option<PasteMetadata>,
     content: Rc<str>,
-    pob: LazyCell<Rc<SerdePathOfBuilding>>,
 }
 
 impl Paste {
@@ -137,10 +132,10 @@ impl Paste {
         self.metadata.as_ref()
     }
 
-    pub fn path_of_building(&self) -> anyhow::Result<Rc<SerdePathOfBuilding>> {
-        self.pob
-            .try_borrow_with(|| Ok(Rc::new(SerdePathOfBuilding::from_export(&self.content)?)))
-            .map(|x| x.clone())
+    pub fn to_path_of_building(&self) -> crate::Result<SerdePathOfBuilding> {
+        // TODO: this is lazy when it shouldn't be or doesn't have to be
+        // it's useful for the moment because it triggers the error handling in route.rs
+        Ok(SerdePathOfBuilding::from_export(&self.content)?)
     }
 }
 

@@ -2,6 +2,7 @@ use crate::pob;
 use ::pob::SerdePathOfBuilding;
 use std::borrow::Cow;
 
+const TITLE_PREFIX: &str = "POBb.in -";
 const TITLE_INDEX: &str = "POBb.in - Share your Path of Exile build";
 const TITLE_NOT_FOUND: &str = "POBb.in - Not Found";
 const TITLE_SERVER_ERROR: &str = "POBb.in - Server Error";
@@ -65,6 +66,16 @@ impl Meta {
     pub(crate) fn server_error() -> Self {
         Self {
             title: TITLE_SERVER_ERROR.into(),
+            description: DESCRIPTION.into(),
+            image: "".into(),
+            color: DEFAULT_COLOR,
+            oembed: "/oembed.json".into(),
+        }
+    }
+
+    pub(crate) fn error(message: &'static str) -> Self {
+        Self {
+            title: format!("{TITLE_PREFIX} {message}").into(),
             description: DESCRIPTION.into(),
             image: "".into(),
             color: DEFAULT_COLOR,

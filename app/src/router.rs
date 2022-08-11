@@ -109,6 +109,7 @@ enum Page<G: Html> {
     UserEditPaste(<pages::UserEditPastePage<G> as Component<G>>::Props),
     NotFound,
     ServerError,
+    InvalidBuildCode,
 }
 
 impl<G: Html> Page<G> {
@@ -130,6 +131,7 @@ impl<G: Html> Page<G> {
 
         match page {
             Self::NotFound => ResponseContext::set_status_code(404),
+            Self::InvalidBuildCode => ResponseContext::set_status_code(400),
             Self::ServerError => ResponseContext::set_status_code(500),
             _ => (),
         }
@@ -230,11 +232,14 @@ impl<G: Html> Page<G> {
             Err(err) => err,
         };
 
-        tracing::info!("encountered error: {:?}", err);
+        tracing::warn!("encountered error: {:?}", err);
         // TODO: error context on these errors,
         // e.g. not found page displaying the resource type
         match err {
             Error::NotFound(_, _) => Self::NotFound,
+            // TODO: rethink this, if this happens because of a pastebin.com build this is fine and
+            // a 400 status code, if this happens on an uploaded paste, this is a problem.
+            Error::PobError(_) => Self::InvalidBuildCode,
             _ => Self::ServerError,
         }
     }
@@ -248,12 +253,14 @@ impl<G: Html> Page<G> {
             Self::UserEditPaste(ref props) => pages::UserEditPastePage::<G>::meta(props),
             Self::NotFound => Ok(Meta::not_found()),
             Self::ServerError => Ok(Meta::server_error()),
+            Self::InvalidBuildCode => Ok(Meta::error("Invalid build code")),
         }
     }
 
     fn store(&self) -> Option<&'static str> {
         match self {
             Self::NotFound => Some("not_found"),
+            Self::InvalidBuildCode => Some("invalid_build_code"),
             Self::ServerError => Some("server_error"),
             _ => None,
         }
@@ -262,6 +269,7 @@ impl<G: Html> Page<G> {
     fn restore<'a>(previous: impl Into<Option<&'a str>>) -> Option<Self> {
         match previous.into()? {
             "not_found" => Some(Self::NotFound),
+            "invalid_build_code" => Some(Self::InvalidBuildCode),
             "server_error" => Some(Self::ServerError),
             _ => None,
         }
@@ -290,6 +298,9 @@ fn render<G: Html>(page: Page<G>) -> View<G> {
         },
         Page::ServerError => view! {
             "Unknown Error"
+        },
+        Page::InvalidBuildCode => view! {
+            "Invalid build code"
         },
     }
 }
