@@ -32,7 +32,8 @@ impl<'a> Request<'a> {
     }
 
     pub fn header(mut self, name: &str, value: &str) -> Self {
-        debug_assert!(self.init.headers.set(name, value).is_ok());
+        let r = self.init.headers.set(name, value);
+        debug_assert!(r.is_ok());
         self
     }
 
