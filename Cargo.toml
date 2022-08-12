@@ -5,6 +5,7 @@ members = [
     "shared",
     "worker"
 ]
+exclude = ["snapshot"]
 
 [profile.release]
 panic = 'abort'
