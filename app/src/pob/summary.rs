@@ -41,6 +41,27 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
         )
         .add_to(&mut elements);
 
+    if pob.stat_at_least(Stat::Strength, 500.0) {
+        Element::new("Str")
+            .color("text-rose-500")
+            .stat_int(pob.stat_parse(Stat::Strength))
+            .add_to(&mut elements);
+    }
+
+    if pob.stat_at_least(Stat::Dexterity, 500.0) {
+        Element::new("Dex")
+            .color("text-lime-400")
+            .stat_int(pob.stat_parse(Stat::Dexterity))
+            .add_to(&mut elements);
+    }
+
+    if pob.stat_at_least(Stat::Intelligence, 500.0) {
+        Element::new("Int")
+            .color("text-blue-400")
+            .stat_int(pob.stat_parse(Stat::Intelligence))
+            .add_to(&mut elements);
+    }
+
     if let Some(ehp) = pob.stat_parse(Stat::TotalEhp) {
         Element::new("eHP")
             .title("Total effective Health Pool")
