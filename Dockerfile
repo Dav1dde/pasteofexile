@@ -1,9 +1,9 @@
-FROM rust:1.58
+FROM rust:1.63
 
 WORKDIR /pasteofexile
 RUN cargo install --root /usr/local -- trunk wasm-pack worker-build wrangler
 
-FROM rust:1.58
+FROM rust:1.63
 COPY --from=0 /usr/local/bin/* /usr/local/bin/
 
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
