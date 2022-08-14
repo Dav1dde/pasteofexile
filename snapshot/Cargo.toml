@@ -9,6 +9,7 @@ pob = { path = "../pob/" }
 clap = { version = "3.2", features = ["derive"] }
 serde = "1"
 csv = "1"
-zip = "0.6"
+zip = { version = "0.6", features = ["time"] }
+time = { version = "0.3", features = ["serde", "serde-human-readable"] }
 anyhow = "1"
 
