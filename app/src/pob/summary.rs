@@ -176,11 +176,12 @@ pub fn offense(pob: &SerdePathOfBuilding) -> Vec<Element> {
 
     // TODO: real minion support
     let is_minion = pob.minion_stat(Stat::CombinedDps).is_some();
-    let dps = if is_minion {
-        pob.minion_stat_parse(Stat::CombinedDps)
-    } else {
-        pob.stat_parse(Stat::CombinedDps)
-    };
+
+    let dps = pob.stat_parse(Stat::FullDps).or_else(|| match is_minion {
+        true => pob.minion_stat_parse(Stat::CombinedDps),
+        false => pob.stat_parse(Stat::CombinedDps),
+    });
+
     let speed = if is_minion {
         pob.minion_stat_parse(Stat::Speed)
     } else {
