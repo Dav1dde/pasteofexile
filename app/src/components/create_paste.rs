@@ -96,7 +96,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
     #[cfg(not(feature = "ssr"))]
     let paste_id = props.paste_id().cloned();
     #[cfg(not(feature = "ssr"))]
-    let btn_submit = cloned!((loading, value, error, as_user, title, custom_title, custom_id, paste_id) => move |_| {
+    let btn_submit = cloned!(loading, value, error, as_user, title, custom_title, custom_id, paste_id => move |_| {
         use wasm_bindgen_futures::spawn_local;
         use crate::api;
 
@@ -112,7 +112,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         let title = title.get();
         let custom_title = custom_title.get();
         let custom_id = custom_id.get();
-        let future = cloned!((loading, error, paste_id) => async move {
+        let future = cloned!(loading, error, paste_id => async move {
             let id = paste_id.map(|e| e.clone().into());
             let title = if custom_title.is_empty() { &*title } else { &*custom_title };
 
@@ -200,7 +200,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
             view! {
                 div() { "Title" }
                 input(
-                    class="bg-slate-500 w-full px-2 py-1 rounded-sm outline-none",
+                    class="input",
                     type="text",
                     maxlength=90,
                     minlength=3,
@@ -210,8 +210,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
 
                 div(title="Id of the build, reusing an Id overwrites the previous build") { "Id" }
                 input(
-                    class="bg-slate-500 w-full px-2 py-1 rounded-sm outline-none
-                        read-only:text-slate-400 read-only:bg-slate-700",
+                    class="input",
                     type="text",
                     maxlength=90,
                     minlength=3,
@@ -250,7 +249,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                 class="dark:bg-slate-500 bg-slate-200 block w-full mt-1 py-2 px-3
                     rounded-sm shadow-sm focus:outline-none dark:text-slate-300 text-slate-700
                     resize-none text-sm break-all",
-                style="height: 60vh; max-height: 650px",
+                style="height: 50vh; max-height: 650px",
                 data-marker-content=""
             ) {
                 (value2.get())
@@ -276,9 +275,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                 button(
                     on:click=btn_submit,
                     disabled=*btn_submit_disabled.get(),
-                    class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2
-                        text-sm rounded-lg font-semibold text-white disabled:opacity-50
-                        disabled:cursor-not-allowed flex",
+                    class="btn btn-primary min-w-[100px]",
                     dangerously_set_inner_html=&btn_content.get()
                 ) {
                 }

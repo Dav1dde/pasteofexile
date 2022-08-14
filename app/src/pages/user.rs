@@ -162,12 +162,7 @@ fn summary_to_view<G: GenericNode + Html>(
                     a(
                         href=open_in_pob_url,
                         title="Open build in Path of Building",
-                        class="
-                            bg-sky-500 hover:bg-sky-700 hover:cursor-pointer
-                            w-fit px-6 py-2 text-sm rounded-lg
-                            font-semibold text-white
-                            disabled:opacity-50 disabled:cursor-not-allowed inline-flex hidden sm:block
-                        "
+                        class="btn btn-primary"
                      ) { "Open in PoB" }
 
                     PasteToolbox(toolbox)

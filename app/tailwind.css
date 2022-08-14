@@ -3,6 +3,26 @@
 @tailwind utilities;
 @tailwind variants;
 
+@layer components {
+    .btn {
+        @apply hover:cursor-pointer px-6 py-2 inline-flex rounded-lg text-sm font-semibold
+            disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-primary {
+        @apply bg-sky-600 hover:bg-sky-500 text-slate-200 hover:text-slate-50;
+    }
+
+    .btn-secondary {
+        @apply bg-slate-500 hover:bg-slate-600 text-slate-200;
+    }
+
+    .input {
+        @apply bg-slate-500 w-full px-2 py-1 rounded-sm outline-none
+            read-only:text-slate-400 read-only:bg-slate-700;
+    }
+}
+
 .dark {
     color-scheme: dark;
 }

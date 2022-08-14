@@ -166,7 +166,7 @@ pub fn view_paste(
                     a(
                         href=open_in_pob_url,
                         title="Open build in Path of Building, requires up to date PoB",
-                        class="bg-sky-500 hover:bg-sky-700 hover:cursor-pointer px-6 py-2 text-sm rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex"
+                        class="btn btn-primary"
                     ) { "Open" }
                 }
             }
