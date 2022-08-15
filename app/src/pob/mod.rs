@@ -48,7 +48,9 @@ pub fn hp_pool<T: PathOfBuilding>(pob: &T) -> u32 {
     }
 
     if pob.has_keystone(Keystone::MindOverMatter) {
-        let mom_percent = 0.35; // TODO figure out exact %
+        // TODO figure out exact mom%
+        // With 3.19 currently the only source of mom% is mom, so this is accurate for now.
+        let mom_percent = 0.4;
 
         let mut mana = pob.stat_parse(Stat::ManaUnreserved).unwrap_or(0);
         if pob.has_keystone(Keystone::EldritchBattery) {

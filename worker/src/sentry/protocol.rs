@@ -364,7 +364,7 @@ impl From<u16> for SpanStatus {
 pub struct Transaction<'a> {
     /// The ID of the event
     #[serde(serialize_with = "super::utils::serialize_id")]
-    pub event_id: uuid::Uuid, // TODO uuid
+    pub event_id: uuid::Uuid,
     /// The transaction name.
     #[serde(
         rename = "transaction",
