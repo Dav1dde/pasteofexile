@@ -145,6 +145,10 @@ impl From<Error> for ErrorResponse {
                 },
                 message: err.to_string(),
             },
+            Error::InvalidId(message) => ErrorResponse {
+                code: 404,
+                message: message.to_owned(),
+            },
             err => ErrorResponse {
                 code: 500,
                 message: err.to_string(),
