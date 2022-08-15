@@ -30,8 +30,8 @@ pub fn import_pastebin() -> View<G> {
     view! {
         div(class="flex flex-col gap-y-1") {
             div(class="dark:text-slate-200 text-slate-800") { "Import from pastebin.com" }
-            form(class="flex items-center gap-3") {
-                input(class="input flex-1", bind:value=value) {}
+            form(class="flex flex-wrap items-center justify-end gap-3") {
+                input(class="input flex-1 basis-[14rem]", bind:value=value) {}
                 button(
                     class="btn btn-primary min-w-[100px]",
                     type="submit",
