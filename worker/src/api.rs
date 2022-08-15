@@ -401,6 +401,8 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
         .fetch_profile()
         .await?;
 
+    sentry::update_username(&profile.name);
+
     let user = app::User {
         name: User::new_unchecked(profile.name),
     };

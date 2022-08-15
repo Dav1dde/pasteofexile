@@ -37,6 +37,10 @@ impl Sentry {
         self.user = user.into();
     }
 
+    pub fn user_mut(&mut self) -> Option<&mut protocol::User> {
+        self.user.as_mut()
+    }
+
     pub fn set_request(&mut self, request: impl Into<Option<protocol::Request>>) {
         self.request = request.into();
     }

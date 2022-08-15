@@ -83,6 +83,14 @@ pub fn set_user(user: User) {
     with_sentry_mut(|sentry| sentry.set_user(user));
 }
 
+pub fn update_username(name: impl Into<String>) {
+    with_sentry_mut(|sentry| {
+        if let Some(user) = sentry.user_mut() {
+            user.username = Some(name.into());
+        }
+    });
+}
+
 pub fn set_request(request: Request) {
     with_sentry_mut(|sentry| sentry.set_request(request));
 }
