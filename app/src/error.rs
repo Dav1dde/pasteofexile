@@ -23,7 +23,4 @@ pub enum Error {
 
     #[error(transparent)]
     PobError(#[from] pob::Error),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
 }

@@ -47,7 +47,7 @@ impl SessionValue {
 
 impl Session {
     #[cfg(not(feature = "ssr"))]
-    fn from_document() -> anyhow::Result<Self> {
+    fn from_document() -> Result<Self, Box<dyn std::error::Error>> {
         let session = crate::utils::document::<web_sys::HtmlDocument>()
             .cookie()
             .unwrap()
@@ -63,7 +63,7 @@ impl Session {
 
         let (session, _) = match session.split_once('.') {
             Some((session, sig)) => (session, sig),
-            None => anyhow::bail!("invalid format, missing signature"),
+            None => return Err("invalid format, missing signature".into()),
         };
 
         let session = base64::decode_config(session, base64::URL_SAFE_NO_PAD)?;
