@@ -123,11 +123,11 @@ async fn build_context(
                 ..Default::default()
             };
 
-            // TODO code duplication with Paste(id)
+            // TODO code duplication with Paste(id)?
             match rctx.storage()?.get(&id).await {
                 Ok(Some(paste)) => {
                     info.etag = Some(paste.entity_id.clone());
-                    (info, Context::paste(host, id.to_string(), paste))
+                    (info, Context::user_paste(host, id.unwrap_user(), paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
                     info.etag = Some("not_found".to_owned());
