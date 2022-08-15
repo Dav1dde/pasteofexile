@@ -18,8 +18,7 @@ pub fn login_status() -> View<G> {
 
         match &*session.get() {
             Session::None => {
-                // view! { a(class="text-sky-500 dark:text-sky-400", href="/login") { "Login" } }
-                view! { div() {} }
+                view! { a(class="text-sky-500 dark:text-sky-400", href="/login") { "Login" } }
             }
             Session::LoggedIn(user) => {
                 let name = user.name.clone();
