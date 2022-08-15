@@ -1,3 +1,4 @@
+// TODO this should probably be Validation<T> e.g. Validation<InvalidId>
 pub enum Validation {
     Valid,
     Invalid(&'static str),

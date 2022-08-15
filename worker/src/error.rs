@@ -31,6 +31,9 @@ pub enum Error {
     // error, XML
     InvalidPoB(String, String),
 
+    #[error("{0}")]
+    InvalidId(&'static str),
+
     #[error(transparent)]
     Dangerous(#[from] DangerousError),
 
@@ -55,6 +58,7 @@ impl Error {
             Self::BadRequest(..) => "BadRequest",
             Self::AccessDenied => "AccessDenied",
             Self::InvalidPoB(..) => "InvalidPoB",
+            Self::InvalidId(..) => "InvalidId",
             Self::Dangerous(..) => "DangerousError",
             Self::Base64(..) => "Base64",
             Self::IOError(..) => "IOError",
@@ -71,6 +75,7 @@ impl Error {
             Self::Worker(..) => Level::Error,
             Self::BadRequest(..) => Level::Info,
             Self::AccessDenied => Level::Info,
+            Self::InvalidId(..) => Level::Info,
             Self::InvalidPoB(..) => Level::Error,
             Self::Dangerous(err) => match err {
                 DangerousError::BadEncoding => Level::Warning,

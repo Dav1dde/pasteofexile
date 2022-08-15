@@ -61,12 +61,17 @@ async fn build_context(
                 ..Default::default()
             };
 
-            if let Some(paste) = rctx.storage()?.get(&id).await? {
-                info.etag = Some(paste.entity_id.clone());
-                (info, Context::paste(host, id.to_string(), paste))
-            } else {
-                info.etag = Some("not_found".to_owned());
-                (info, Context::not_found(host))
+            // TODO code duplication with UserPaste(id)
+            match rctx.storage()?.get(&id).await {
+                Ok(Some(paste)) => {
+                    info.etag = Some(paste.entity_id.clone());
+                    (info, Context::paste(host, id.to_string(), paste))
+                }
+                Err(Error::InvalidId(..)) | Ok(None) => {
+                    info.etag = Some("not_found".to_owned());
+                    (info, Context::not_found(host))
+                }
+                Err(err) => return Err(err),
             }
         }
         User(user) => {
@@ -118,12 +123,17 @@ async fn build_context(
                 ..Default::default()
             };
 
-            if let Some(paste) = rctx.storage()?.get(&id).await? {
-                info.etag = Some(paste.entity_id.clone());
-                (info, Context::user_paste(host, id.unwrap_user(), paste))
-            } else {
-                info.etag = Some("not_found".to_owned());
-                (info, Context::not_found(host))
+            // TODO code duplication with Paste(id)
+            match rctx.storage()?.get(&id).await {
+                Ok(Some(paste)) => {
+                    info.etag = Some(paste.entity_id.clone());
+                    (info, Context::paste(host, id.to_string(), paste))
+                }
+                Err(Error::InvalidId(..)) | Ok(None) => {
+                    info.etag = Some("not_found".to_owned());
+                    (info, Context::not_found(host))
+                }
+                Err(err) => return Err(err),
             }
         }
         UserEditPaste(user, id) => {

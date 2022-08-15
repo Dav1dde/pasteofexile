@@ -1,3 +1,4 @@
+use crate::Error;
 use shared::validation;
 use std::fmt;
 use std::time::Duration;
@@ -62,8 +63,11 @@ pub fn hash_to_short_id(hash: &[u8], bytes: usize) -> Result<String> {
         .ok_or_else(|| "Hash too small for id".into())
 }
 
-pub fn to_path(id: &str) -> Result<String> {
-    validation::is_valid_id(id).ok()?;
+pub fn to_path(id: &str) -> crate::Result<String> {
+    validation::is_valid_id(id).ok().map_err(|msg| {
+        tracing::warn!(id, msg, "invalid id, cannot convert to path");
+        Error::InvalidId(msg)
+    })?;
 
     // Invariants for the following unsafe code, should already be checked by the validation
     assert!(id.len() >= 3, "Id too short");
