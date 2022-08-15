@@ -62,7 +62,10 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
             .add_to(&mut elements);
     }
 
-    if let Some(ehp) = pob.stat_parse(Stat::TotalEhp) {
+    if let Some(ehp) = pob
+        .stat_parse(Stat::TotalEhp)
+        .filter(|&ehp: &f32| ehp.is_finite())
+    {
         Element::new("eHP")
             .title("Total effective Health Pool")
             .color(AMBER_50)
@@ -177,10 +180,13 @@ pub fn offense(pob: &SerdePathOfBuilding) -> Vec<Element> {
     // TODO: real minion support
     let is_minion = pob.minion_stat(Stat::CombinedDps).is_some();
 
-    let dps = pob.stat_parse(Stat::FullDps).or_else(|| match is_minion {
-        true => pob.minion_stat_parse(Stat::CombinedDps),
-        false => pob.stat_parse(Stat::CombinedDps),
-    });
+    let dps = pob
+        .stat_parse(Stat::FullDps)
+        .filter(|&dps: &f32| dps.is_finite() && dps > 0.0)
+        .or_else(|| match is_minion {
+            true => pob.minion_stat_parse(Stat::CombinedDps),
+            false => pob.stat_parse(Stat::CombinedDps),
+        });
 
     let speed = if is_minion {
         pob.minion_stat_parse(Stat::Speed)
