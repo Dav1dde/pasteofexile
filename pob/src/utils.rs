@@ -13,7 +13,16 @@ fn decode(data: &str) -> Result<Vec<u8>> {
 
 fn deflate(inp: &[u8]) -> Result<String> {
     let mut deflater = ZlibDecoder::new(inp);
-    let mut s = String::new();
-    deflater.read_to_string(&mut s).map_err(Error::Deflate)?;
-    Ok(s)
+    let mut buf = Vec::new();
+    deflater.read_to_end(&mut buf).map_err(Error::Deflate)?;
+
+    match String::from_utf8(buf) {
+        Ok(s) => Ok(s),
+        Err(e) => {
+            use encoding::{all::WINDOWS_1252, DecoderTrap, Encoding};
+            WINDOWS_1252
+                .decode(&e.into_bytes(), DecoderTrap::Strict)
+                .map_err(Error::StringDecode)
+        }
+    }
 }

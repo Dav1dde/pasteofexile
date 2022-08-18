@@ -12,3 +12,4 @@ serde = { version = "1", features = [ "derive" ] }
 serde_with = "1"
 quick-xml = { version = "0.22", features = [ "serialize" ] }
 thiserror = "1"
+encoding = "0.2"
