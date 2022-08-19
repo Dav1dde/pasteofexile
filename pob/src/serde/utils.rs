@@ -32,3 +32,7 @@ macro_rules! or_nil_impl {
 }
 
 or_nil_impl!(u8_or_nil, u8);
+
+pub(crate) const fn default_true() -> bool {
+    true
+}

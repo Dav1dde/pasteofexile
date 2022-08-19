@@ -239,6 +239,7 @@ fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill {
                 skill_id: g.skill_id.as_deref(),
                 level: g.level,
                 quality: g.quality,
+                is_enabled: g.enabled,
                 is_active: g.is_active(),
                 is_support: g.is_support(),
                 is_selected,

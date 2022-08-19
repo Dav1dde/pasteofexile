@@ -134,6 +134,8 @@ pub(crate) struct Gem {
     pub name: String,
     pub skill_id: Option<String>,
     pub gem_id: Option<String>,
+    #[serde(default = "super::utils::default_true")]
+    pub enabled: bool,
     #[serde(default)]
     pub level: u8,
     #[serde(default)]

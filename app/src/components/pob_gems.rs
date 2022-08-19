@@ -127,20 +127,27 @@ fn has_active_gem(skill: &Skill) -> bool {
 }
 
 fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
-    let num_gems = skill.gems.len();
     let gems = skill
         .gems
         .into_iter()
-        .enumerate()
-        .map(|(i, gem)| {
+        .filter(|gem| gem.is_enabled)
+        .with_position()
+        .map(|gem| {
+            let is_only = matches!(gem, itertools::Position::Only(_));
+            let is_first = matches!(gem, itertools::Position::First(_));
+            let is_last = matches!(gem, itertools::Position::Last(_));
+            let gem = gem.into_inner();
+
             let name = gem.name.to_owned();
             let class = match (gem.is_selected, gem.is_active) {
                 (true, _) => "truncate font-bold dark:text-amber-50 text-slate-800",
                 (_, true) => "truncate dark:text-stone-100 text-slate-800",
                 (false, false) => {
-                    if i == 0 {
+                    if is_only {
+                        "truncate"
+                    } else if is_first {
                         "truncate gem-first"
-                    } else if i == num_gems - 1 {
+                    } else if is_last {
                         "truncate gem-last"
                     } else {
                         "truncate gem-middle"

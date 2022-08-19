@@ -68,6 +68,7 @@ pub struct Gem<'a> {
     pub skill_id: Option<&'a str>,
     pub level: u8,
     pub quality: u8,
+    pub is_enabled: bool,
     pub is_active: bool,
     pub is_support: bool,
     pub is_selected: bool,
