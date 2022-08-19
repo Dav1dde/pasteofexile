@@ -155,6 +155,10 @@ impl Sentry {
     }
 
     fn do_capture_err(&self, err: &Error, level: protocol::Level) {
+        if matches!(level, protocol::Level::Debug) {
+            return;
+        }
+
         let event = protocol::Event {
             message: Some(err.to_string()),
             level,
