@@ -265,7 +265,7 @@ pub fn config(pob: &SerdePathOfBuilding) -> Vec<Element> {
     effect!(
         Config::EnemyBrittled,
         Config::BrittleEffect,
-        5.0,
+        2.0,
         "{}% Brittle"
     );
     effect!(Config::EnemySapped, Config::SapEffect, 6.0, "{}% Sap");
