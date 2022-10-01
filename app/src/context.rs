@@ -53,6 +53,7 @@ impl Context {
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
                     content: paste.content.into(),
+                    last_modified: paste.last_modified,
                 }),
             }),
         }
@@ -75,6 +76,7 @@ impl Context {
                 host,
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
+                    last_modified: paste.last_modified,
                     content: paste.content.into(),
                 }),
             }),
@@ -89,6 +91,7 @@ impl Context {
                 inner: Inner::Paste(Paste {
                     metadata: paste.metadata,
                     content: paste.content.into(),
+                    last_modified: paste.last_modified,
                 }),
             }),
         }
@@ -120,12 +123,17 @@ impl Context {
 
 pub struct Paste {
     metadata: Option<PasteMetadata>,
+    last_modified: u64,
     content: Rc<str>,
 }
 
 impl Paste {
     pub fn content(&self) -> &Rc<str> {
         &self.content
+    }
+
+    pub fn last_modified(&self) -> u64 {
+        self.last_modified
     }
 
     pub fn metadata(&self) -> Option<&PasteMetadata> {

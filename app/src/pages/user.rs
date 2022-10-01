@@ -3,7 +3,7 @@ use crate::{
     future::LocalBoxFuture,
     memo_cond,
     router::RoutedComponent,
-    utils::{find_attribute, if_browser, pretty_date},
+    utils::{find_attribute, if_browser, pretty_date_ts},
     Meta, Result,
 };
 use shared::{
@@ -29,7 +29,7 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
     }
 
     fn from_hydration(name: Self::RouteArg, element: web_sys::Element) -> Result<Data> {
-        let ssr = find_attribute(&element, "data-ssr").unwrap_or_default();
+        let ssr = find_attribute::<String>(&element, "data-ssr").unwrap_or_default();
         // TODO: maybe custom encoding instead of base64, just swap " and @ (a different character)
         let ssr = base64::decode_config(ssr, base64::URL_SAFE_NO_PAD).expect("b64 decode");
         let ssr = String::from_utf8(ssr).expect("utf8");
@@ -131,12 +131,7 @@ fn summary_to_view<G: GenericNode + Html>(
     };
     let open_in_pob_url = id.to_pob_open_url();
 
-    let now = js_sys::Date::new_0().get_time();
-    let diff_in_ms = if summary.last_modified > 0 {
-        (now - summary.last_modified as f64) as i64
-    } else {
-        -1
-    };
+    let last_modified = summary.last_modified;
 
     let summary2 = summary.clone();
     let summary3 = summary.clone();
@@ -168,7 +163,7 @@ fn summary_to_view<G: GenericNode + Html>(
                     PasteToolbox(toolbox)
 
                     div(class="text-right text-sm text-slate-400") {
-                        (pretty_date(diff_in_ms))
+                        (pretty_date_ts(last_modified))
                     }
                 }
             }

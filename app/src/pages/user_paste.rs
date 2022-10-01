@@ -5,7 +5,7 @@ use crate::{
     meta, pob,
     router::RoutedComponent,
     svg,
-    utils::find_text,
+    utils::{find_attribute, find_text},
     Meta, Result,
 };
 use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
@@ -20,6 +20,7 @@ pub struct Data {
     id: UserPasteId,
     title: Option<String>,
     content: Rc<str>,
+    last_modified: u64,
     pob: Rc<SerdePathOfBuilding>,
 }
 
@@ -32,6 +33,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
             id: UserPasteId { user, id },
             title: paste.metadata().map(|m| m.title.to_owned()),
             content: paste.content().clone(),
+            last_modified: paste.last_modified(),
             pob: Rc::new(paste.to_path_of_building()?),
         })
     }
@@ -39,12 +41,14 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
     fn from_hydration((user, id): Self::RouteArg, element: web_sys::Element) -> Result<Data> {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
+        let last_modified = find_attribute(&element, "data-last-modified").unwrap_or_default();
 
         let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
         Ok(Data {
             id: UserPasteId { user, id },
             title,
             content: content.into(),
+            last_modified,
             pob,
         })
     }
@@ -58,6 +62,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
                 id: UserPasteId { user, id },
                 title: paste.metadata.map(|x| x.title),
                 content: paste.content.into(),
+                last_modified: paste.last_modified,
                 pob,
             })
         })
@@ -104,6 +109,7 @@ pub fn user_paste_page(
         id,
         title,
         content,
+        last_modified,
         pob,
     }: Data,
 ) -> View<G> {
@@ -121,6 +127,7 @@ pub fn user_paste_page(
         id: id.into(),
         title,
         content,
+        last_modified,
         pob,
     };
 
@@ -132,7 +139,7 @@ pub fn user_paste_page(
 
     view! {
         div(class="flex justify-between") {
-            a(href=back_to_user, class="flex items-center mb-12 text-sky-400") {
+            a(href=back_to_user, class="flex items-center mb-4 text-sky-400") {
                 span(dangerously_set_inner_html=svg::BACK, class="h-[16px] mr-2")
                     span() { (name) } "'s builds"
             }

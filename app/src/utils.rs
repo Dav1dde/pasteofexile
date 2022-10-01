@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -128,12 +130,21 @@ pub fn find_text(element: &web_sys::Element, selector: &str) -> Option<String> {
         .and_then(|e| e.text_content())
 }
 
-pub fn find_attribute(element: &web_sys::Element, attribute: &str) -> Option<String> {
+pub fn find_attribute<T: FromStr>(element: &web_sys::Element, attribute: &str) -> Option<T> {
     element
         .query_selector(&format!("[{attribute}]"))
         .ok()
         .flatten()
         .and_then(|e| e.get_attribute(attribute))
+        .and_then(|v| v.parse().ok())
+}
+
+pub fn pretty_date_ts(ts: u64) -> String {
+    let now = js_sys::Date::new_0().get_time();
+    pretty_date(match ts > 0 {
+        true => (now - ts as f64) as i64,
+        false => -1,
+    })
 }
 
 pub fn pretty_date(diff_in_ms: i64) -> String {

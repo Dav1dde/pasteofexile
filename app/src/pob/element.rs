@@ -158,7 +158,7 @@ impl<'a> Element<'a> {
 
             renderer.push(Fragment::with_formatting(
                 Formatting::class(color),
-                value.to_owned(),
+                value.clone(),
             ));
 
             if !is_last {
