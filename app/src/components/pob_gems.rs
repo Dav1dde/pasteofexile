@@ -1,14 +1,13 @@
-use crate::{components::PobColoredText, pob::formatting::strip_colors};
+use crate::{build::Build, components::PobColoredText, pob::formatting::strip_colors};
 use itertools::Itertools;
-use pob::{PathOfBuilding, SerdePathOfBuilding, Skill};
-use std::rc::Rc;
+use pob::{PathOfBuilding, Skill};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlSelectElement};
 
 #[component(PobGems<G>)]
-pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
-    let mut skill_sets = pob.skill_sets();
+pub fn pob_gems(build: Build) -> View<G> {
+    let mut skill_sets = build.skill_sets();
 
     if skill_sets.is_empty() {
         return view! { div() { } };
@@ -36,11 +35,11 @@ pub fn pob_gems(pob: Rc<SerdePathOfBuilding>) -> View<G> {
     }
     let select = View::new_fragment(select);
 
-    let on_input = cloned!((pob, content) => move |event: Event| {
+    let on_input = cloned!((build, content) => move |event: Event| {
         let id = event.target().unwrap().unchecked_into::<HtmlSelectElement>()
             .value().parse::<u16>().unwrap_or(u16::MAX);
 
-        if let Some(ss) = pob.skill_sets().into_iter().find(|ss| ss.id == id) {
+        if let Some(ss) = build.skill_sets().into_iter().find(|ss| ss.id == id) {
             content.set(render_skills(ss.skills));
         }
     });

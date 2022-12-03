@@ -17,8 +17,30 @@ pub struct Paste {
     pub metadata: Option<PasteMetadata>,
     #[serde(default, skip_serializing_if = "crate::utils::is_zero")]
     pub last_modified: u64,
-    pub entity_id: String,
     pub content: String,
+    /// A list of node description to display per tree spec.
+    ///
+    /// List is in the same order as the tree specs.
+    #[serde(default)]
+    pub nodes: Vec<Nodes>,
+}
+
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+pub struct Nodes {
+    pub keystones: Vec<Node>,
+    pub masteries: Vec<Node>,
+}
+
+impl Nodes {
+    pub fn is_empty(&self) -> bool {
+        self.keystones.is_empty() && self.masteries.is_empty()
+    }
+}
+
+#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Node {
+    pub name: String,
+    pub stats: Vec<String>,
 }
 
 #[derive(Default, Debug, Deserialize, Serialize)]

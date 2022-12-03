@@ -1,4 +1,4 @@
-use crate::serde::utils::u8_or_nil;
+use crate::serde::utils::{lua_table, u8_or_nil};
 use serde::de;
 use serde::Deserialize;
 use serde_with::{rust::StringWithSeparator, CommaSeparator};
@@ -181,6 +181,8 @@ pub(crate) struct Spec {
     pub title: Option<String>,
     #[serde(default, with = "StringWithSeparator::<CommaSeparator>")]
     pub nodes: Vec<u32>,
+    #[serde(default, deserialize_with = "lua_table")]
+    pub mastery_effects: Vec<(u32, u32)>,
     #[serde(default, rename = "URL")]
     pub url: Option<String>,
     #[serde(default, rename = "treeVersion")]

@@ -141,16 +141,16 @@ async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Resp
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Response> {
-    let paste = rctx
-        .storage()?
-        .get(&id)
+    let (meta, paste) = rctx
+        .pastes()?
+        .get_paste(&id)
         .await?
         .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
 
     worker::Response::from_json(&paste)?
         .with_headers(Headers::new())
         .with_content_type("application/json")?
-        .with_etag(&paste.entity_id)?
+        .with_etag(&meta.etag)?
         .with_cache_control(
             CacheControl::default()
                 .public()
@@ -304,41 +304,10 @@ fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
-    // TODO: code duplication with lib.rs
-    let mut pastes = rctx
-        .storage()?
-        .list(&user)
-        .await?
-        .into_iter()
-        .map(|item| {
-            let metadata = item.metadata.unwrap_or_default();
-            let id = item.name.rsplit_once('/').unwrap().1.to_owned();
-
-            // TODO: properly do this
-            // TODO: code duplication with lib.rs
-            shared::model::PasteSummary {
-                id,
-                user: Some(user.clone()),
-                title: metadata.title,
-                ascendancy_or_class: metadata.ascendancy_or_class,
-                version: metadata.version.unwrap_or_default(),
-                main_skill_name: metadata.main_skill_name.unwrap_or_default(),
-                last_modified: item.last_modified,
-            }
-        })
-        .collect::<Vec<_>>();
-    pastes.sort_unstable_by(|a, b| b.last_modified.cmp(&a.last_modified));
-
-    // We can calculate the etag based on the latest entry and the total amount of entries.
-    // If something was deleted or added the count changes, if something was deleted and
-    // added to keep the count equal, the latest last modified changed.
-    let etag = pastes
-        .first()
-        .map(|f| format!("{}-{}", pastes.len(), f.last_modified))
-        .unwrap_or_else(|| "empty".to_owned());
+    let (meta, pastes) = rctx.pastes()?.list_pastes(&user).await?;
 
     Response::from_json(&pastes)?
-        .with_etag(&etag)?
+        .with_etag(&meta.etag)?
         .with_cache_control(
             CacheControl::default()
                 .public()

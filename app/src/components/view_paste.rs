@@ -1,12 +1,12 @@
 use crate::{
     async_callback,
+    build::Build,
     components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
     memo,
     pob::{self, Element},
 };
-use ::pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
+use ::pob::{PathOfBuilding, PathOfBuildingExt};
 use shared::model::PasteId;
-use std::rc::Rc;
 use sycamore::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
@@ -14,9 +14,8 @@ use web_sys::HtmlTextAreaElement;
 pub struct ViewPasteProps {
     pub id: PasteId,
     pub title: Option<String>,
-    pub content: Rc<str>,
     pub last_modified: u64,
-    pub pob: Rc<SerdePathOfBuilding>,
+    pub build: Build,
 }
 
 #[allow(dead_code)]
@@ -44,20 +43,19 @@ pub fn view_paste(
     ViewPasteProps {
         id,
         title,
-        content,
         last_modified,
-        pob,
+        build,
     }: ViewPasteProps,
 ) -> View<G> {
-    let title = title.unwrap_or_else(|| pob::title(&*pob));
+    let title = title.unwrap_or_else(|| pob::title(&*build));
 
-    let version = pob.max_tree_version().unwrap_or_default();
+    let version = build.max_tree_version().unwrap_or_default();
     let since = crate::utils::pretty_date_ts(last_modified);
     let date = js_sys::Date::new(&JsValue::from_f64(last_modified as f64)).to_string();
 
     let open_in_pob_url = id.to_pob_open_url();
 
-    let notes = pob.notes().to_owned();
+    let notes = build.notes().to_owned();
     let notes = if !notes.is_empty() {
         view! {
             div(class="flex-auto") {
@@ -70,11 +68,11 @@ pub fn view_paste(
     } else {
         View::empty()
     };
-    let tree_preview = if has_displayable_tree(&pob) {
+    let tree_preview = if has_displayable_tree(build.pob()) {
         view! {
             div(class="basis-full") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
-                PobTreePreview(Rc::clone(&pob))
+                PobTreePreview(build.clone())
             }
         }
     } else {
@@ -124,10 +122,10 @@ pub fn view_paste(
     let btn_copy_name = memo!(copy_state, copy_state.get().name());
     let btn_copy_disabled = memo!(copy_state, *copy_state.get() != CopyState::Ready);
 
-    let core_stats = pob::summary::core_stats(&pob);
-    let defense = pob::summary::defense(&pob);
-    let offense = pob::summary::offense(&pob);
-    let config = pob::summary::config(&pob);
+    let core_stats = pob::summary::core_stats(build.pob());
+    let defense = pob::summary::defense(build.pob());
+    let offense = pob::summary::offense(build.pob());
+    let config = pob::summary::config(build.pob());
 
     let summary = vec![core_stats, defense, offense, config]
         .into_iter()
@@ -136,8 +134,11 @@ pub fn view_paste(
         .collect();
     let summary = View::new_fragment(summary);
 
-    let src = crate::assets::ascendancy_image(pob.ascendancy_or_class_name()).unwrap_or_default();
+    let src =
+        crate::assets::ascendancy_image(build.pob().ascendancy_or_class_name()).unwrap_or_default();
 
+    // TODO: this is terrible but it is what it is for now | sycmore-0.8
+    let content = build.content().to_owned();
     view! {
         div(class="text-right text-sm text-slate-500", title=date, data-last-modified=last_modified) { (since) }
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
@@ -157,7 +158,7 @@ pub fn view_paste(
                 textarea(
                     ref=content_ref,
                     on:click=select_all,
-                    class="flex-auto resize-none text-sm break-all outline-none max-h-40 min-h-[5rem] dark:bg-slate-600 bg-slate-200 dark:text-slate-300 text-slate-700 rounded-sm shadow-sm pl-1",
+                    class="flex-auto resize-none text-sm break-all outline-none max-h-40 min-h-[5rem] dark:bg-slate-600 bg-slate-200 dark:text-slate-400 text-slate-700 rounded-sm shadow-sm pl-1",
                     data-marker-content="",
                     readonly=true
                 ) {
@@ -181,11 +182,11 @@ pub fn view_paste(
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
             div(class="flex-auto w-full lg:w-auto") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
-                PobGems(pob.clone())
+                PobGems(build.clone())
             }
             div(class="flex-1") {
                 h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
-                PobTreeTable(pob.clone())
+                PobTreeTable(build)
             }
         }
         (tree_preview)
@@ -203,7 +204,7 @@ fn render<G: GenericNode>(elements: Vec<Element>) -> View<G> {
     )
 }
 
-fn has_displayable_tree(pob: &SerdePathOfBuilding) -> bool {
+fn has_displayable_tree(pob: &impl PathOfBuilding) -> bool {
     let specs = pob.tree_specs();
 
     specs.len() > 1

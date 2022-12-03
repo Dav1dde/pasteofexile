@@ -2,6 +2,7 @@ use sycamore::prelude::*;
 
 mod api;
 mod assets;
+mod build;
 mod components;
 mod context;
 mod error;

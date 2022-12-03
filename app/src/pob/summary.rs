@@ -1,10 +1,10 @@
 use crate::pob::{self, Element};
-use ::pob::{Config, Keystone, PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding, Stat};
+use ::pob::{Config, Keystone, PathOfBuilding, PathOfBuildingExt, Stat};
 
 static AMBER_50: &str = "dark:text-amber-50 text-slate-800";
 
 // TODO: accept any PathOfBuilding
-pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
+pub fn core_stats(pob: &impl PathOfBuilding) -> Vec<Element> {
     let mut elements = Vec::with_capacity(5);
 
     Element::new("Life")
@@ -82,7 +82,7 @@ pub fn core_stats(pob: &SerdePathOfBuilding) -> Vec<Element> {
     elements
 }
 
-pub fn defense(pob: &SerdePathOfBuilding) -> Vec<Element> {
+pub fn defense(pob: &impl PathOfBuilding) -> Vec<Element> {
     let mut elements = Vec::with_capacity(5);
 
     Element::new("Resistances")
@@ -174,7 +174,7 @@ pub fn defense(pob: &SerdePathOfBuilding) -> Vec<Element> {
     elements
 }
 
-pub fn offense(pob: &SerdePathOfBuilding) -> Vec<Element> {
+pub fn offense(pob: &impl PathOfBuilding) -> Vec<Element> {
     let mut elements = Vec::with_capacity(5);
 
     // TODO: real minion support
@@ -232,7 +232,7 @@ pub fn offense(pob: &SerdePathOfBuilding) -> Vec<Element> {
     elements
 }
 
-pub fn config(pob: &SerdePathOfBuilding) -> Vec<Element> {
+pub fn config(pob: &impl PathOfBuilding) -> Vec<Element> {
     let mut configs = Vec::with_capacity(5);
 
     let boss = pob.config(Config::Boss);

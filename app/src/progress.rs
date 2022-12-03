@@ -52,7 +52,6 @@ impl State {
         if *self.progress.get() == 0 {
             self.worker.set(None);
 
-            let progress = self.progress.clone();
             let width = self.width.clone();
             width.set(100.0);
 

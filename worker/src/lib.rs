@@ -1,4 +1,4 @@
-use shared::model::{PasteId, PasteSummary, UserPasteId};
+use shared::model::{PasteId, UserPasteId};
 use std::time::Duration;
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
@@ -11,6 +11,7 @@ mod dangerous;
 mod error;
 mod layer;
 mod net;
+mod pastes;
 mod poe_api;
 mod request_context;
 mod retry;
@@ -62,9 +63,9 @@ async fn build_context(
             };
 
             // TODO code duplication with UserPaste(id)
-            match rctx.storage()?.get(&id).await {
-                Ok(Some(paste)) => {
-                    info.etag = Some(paste.entity_id.clone());
+            match rctx.pastes()?.get_paste(&id).await {
+                Ok(Some((meta, paste))) => {
+                    info.etag = Some(meta.etag);
                     (info, Context::paste(host, id.to_string(), paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
@@ -75,40 +76,11 @@ async fn build_context(
             }
         }
         User(user) => {
-            // TODO: code duplication with api.rs
-            let mut pastes = rctx
-                .storage()?
-                .list(&user)
-                .await?
-                .into_iter()
-                .map(|item| {
-                    let metadata = item.metadata.unwrap_or_default();
-                    let id = item.name.rsplit_once('/').unwrap().1.to_owned();
-
-                    PasteSummary {
-                        id,
-                        user: Some(user.clone()),
-                        title: metadata.title,
-                        ascendancy_or_class: metadata.ascendancy_or_class,
-                        version: metadata.version.unwrap_or_default(),
-                        main_skill_name: metadata.main_skill_name.unwrap_or_default(),
-                        last_modified: item.last_modified,
-                    }
-                })
-                .collect::<Vec<_>>();
-            pastes.sort_unstable_by(|a, b| b.last_modified.cmp(&a.last_modified));
-
-            // We can calculate the etag based on the latest entry and the total amount of entries.
-            // If something was deleted or added the count changes, if something was deleted and
-            // added to keep the count equal, the latest last modified changed.
-            let etag = pastes
-                .first()
-                .map(|f| format!("{}-{}", pastes.len(), f.last_modified))
-                .unwrap_or_else(|| "empty".to_owned());
+            let (meta, pastes) = rctx.pastes()?.list_pastes(&user).await?;
 
             let info = ResponseInfo {
                 cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
-                etag: Some(etag),
+                etag: Some(meta.etag),
                 ..Default::default()
             };
 
@@ -124,9 +96,9 @@ async fn build_context(
             };
 
             // TODO code duplication with Paste(id)?
-            match rctx.storage()?.get(&id).await {
-                Ok(Some(paste)) => {
-                    info.etag = Some(paste.entity_id.clone());
+            match rctx.pastes()?.get_paste(&id).await {
+                Ok(Some((meta, paste))) => {
+                    info.etag = Some(meta.etag);
                     (info, Context::user_paste(host, id.unwrap_user(), paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {

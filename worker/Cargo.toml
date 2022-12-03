@@ -14,6 +14,7 @@ use-kv-storage = []
 [dependencies]
 app = { path = "../app", features = ["ssr"], default-features = false }
 pob = { path = "../pob/" }
+poe-tree = { path = "../poe-tree/" }
 shared = { path = "../shared/" }
 
 worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "5a24cc5d", package = "worker" }

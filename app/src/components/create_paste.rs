@@ -1,7 +1,6 @@
 use crate::{memo, memo_cond, session::SessionValue, svg::SPINNER};
 use pob::SerdePathOfBuilding;
 use shared::{model::UserPasteId, validation};
-use std::rc::Rc;
 use sycamore::{context::use_context, prelude::*};
 use wasm_bindgen::JsCast;
 
@@ -9,7 +8,7 @@ pub enum CreatePasteProps {
     None,
     Update {
         id: UserPasteId,
-        content: Rc<str>,
+        content: String,
         title: Option<String>,
     },
 }

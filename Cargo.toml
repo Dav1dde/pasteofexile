@@ -2,6 +2,7 @@
 members = [
     "app",
     "pob",
+    "poe-tree",
     "shared",
     "worker"
 ]

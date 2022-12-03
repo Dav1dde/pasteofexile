@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use serde::{de::DeserializeOwned, Serialize};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -137,6 +138,33 @@ pub fn find_attribute<T: FromStr>(element: &web_sys::Element, attribute: &str) -
         .flatten()
         .and_then(|e| e.get_attribute(attribute))
         .and_then(|v| v.parse().ok())
+}
+
+pub fn deserialize_attribute<T: DeserializeOwned>(
+    element: &web_sys::Element,
+    attribute: &str,
+) -> Option<T> {
+    let attr = element
+        .query_selector(&format!("[{attribute}]"))
+        .ok()
+        .flatten()
+        .and_then(|e| e.get_attribute(attribute))?;
+
+    // TODO: maybe custom encoding instead of base64, just swap " and @ (a different character)
+    let data = base64::decode_config(attr, base64::URL_SAFE_NO_PAD).expect("b64 decode");
+    let data = String::from_utf8(data).expect("utf8");
+
+    serde_json::from_str(&data).expect("deserialize")
+}
+
+pub fn serialize_for_attribute<T: Serialize + ?Sized>(value: &T) -> String {
+    if_browser!(
+        String::new(),
+        base64::encode_config(
+            serde_json::to_string(&value).expect("serialize in for attribute"),
+            base64::URL_SAFE_NO_PAD,
+        )
+    )
 }
 
 pub fn pretty_date_ts(ts: u64) -> String {

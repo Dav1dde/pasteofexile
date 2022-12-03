@@ -35,7 +35,7 @@ impl SerdePathOfBuilding {
                 .max_by_key(|(_, s)| s.gems.len())?;
             index = i + 1;
         }
-        self.pob.skills.active_skills().get(index as usize - 1)
+        self.pob.skills.active_skills().get(index - 1)
     }
 
     fn has_keystone_on_gear(&self, keystone: Keystone) -> bool {
@@ -188,6 +188,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                 url: spec.url.as_deref(),
                 version: spec.version.as_deref(),
                 nodes: &spec.nodes,
+                mastery_effects: &spec.mastery_effects,
                 active: self.pob.tree.active_spec as usize == i + 1,
             })
             .collect()
@@ -265,6 +266,7 @@ mod tests {
     static V316_EMPTY: &str = include_str!("../../test/316_empty.xml");
     static V316_POISON_OCC: &str = include_str!("../../test/316_poison_occ.xml");
     static V318_SKILLSET: &str = include_str!("../../test/318_skillset.xml");
+    static V319_MASTERY_EFFECTS: &str = include_str!("../../test/319_mastery_effects.xml");
 
     #[test]
     fn parse_v316_empty() {
@@ -320,5 +322,13 @@ mod tests {
         assert_eq!(Some("Arc SS"), pob.skill_sets()[0].title);
 
         // TODO: assert skill sets, expose skill sets
+    }
+
+    #[test]
+    fn parse_v319_mastery_effects() {
+        let pob = SerdePathOfBuilding::from_xml(V319_MASTERY_EFFECTS).unwrap();
+
+        let spec = pob.tree_specs().pop().unwrap();
+        assert_eq!(spec.mastery_effects, &[(12382, 47642), (8732, 12119)]);
     }
 }

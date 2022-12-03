@@ -1,6 +1,7 @@
 use crate::Result;
+use serde::{Deserialize, Serialize};
 use shared::{
-    model::{ListPaste, Paste, PasteId, PasteMetadata},
+    model::{ListPaste, PasteId, PasteMetadata},
     User,
 };
 use std::rc::Rc;
@@ -20,6 +21,16 @@ use b2::B2Storage as DefaultStorage;
 #[cfg(feature = "use-kv-storage")]
 use kv::KvStorage as DefaultStorage;
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct StoredPaste {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<PasteMetadata>,
+    #[serde(default)]
+    pub last_modified: u64,
+    pub entity_id: String,
+    pub content: String,
+}
+
 pub struct Storage {
     storage: DefaultStorage,
 }
@@ -33,7 +44,7 @@ impl Storage {
 }
 
 impl Storage {
-    pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
+    pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         if pastebin::could_be_pastebin_id(id) {
             tracing::info!("fetching from pastebin.com");
             pastebin::get(id).await

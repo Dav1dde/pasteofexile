@@ -1,11 +1,10 @@
-use crate::components::PobColoredText;
-use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec};
-use std::rc::Rc;
+use crate::{build::Build, components::PobColoredText};
+use pob::{PathOfBuilding, TreeSpec};
 use sycamore::prelude::*;
 
 #[component(PobTreeTable<G>)]
-pub fn pob_tree_table(pob: Rc<SerdePathOfBuilding>) -> View<G> {
-    let rows = pob
+pub fn pob_tree_table(build: Build) -> View<G> {
+    let rows = build
         .tree_specs()
         .into_iter()
         // TODO: reject pastes that do not go to this domain

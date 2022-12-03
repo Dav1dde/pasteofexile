@@ -1,5 +1,5 @@
 use crate::pob;
-use ::pob::SerdePathOfBuilding;
+use ::pob::PathOfBuilding;
 use std::borrow::Cow;
 
 const TITLE_PREFIX: &str = "POBb.in -";
@@ -90,7 +90,7 @@ impl Default for Meta {
     }
 }
 
-pub(crate) fn get_paste_summary(pob: &SerdePathOfBuilding) -> Vec<String> {
+pub(crate) fn get_paste_summary(pob: &impl PathOfBuilding) -> Vec<String> {
     let core_stats = pob::summary::core_stats(pob);
     let defense = pob::summary::defense(pob);
     let offense = pob::summary::offense(pob);

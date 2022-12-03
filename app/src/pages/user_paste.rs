@@ -1,40 +1,41 @@
 use crate::{
+    build::Build,
     components::{PasteToolbox, PasteToolboxProps, ViewPaste, ViewPasteProps},
     effect,
     future::LocalBoxFuture,
     meta, pob,
     router::RoutedComponent,
     svg,
-    utils::{find_attribute, find_text},
+    utils::{deserialize_attribute, find_attribute, find_text, serialize_for_attribute},
     Meta, Result,
 };
-use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
+use ::pob::PathOfBuildingExt;
 use shared::{
     model::{PasteId, UserPasteId},
     User,
 };
-use std::{borrow::Cow, rc::Rc};
+use std::{borrow::Cow, convert::TryInto};
 use sycamore::prelude::*;
 
 pub struct Data {
     id: UserPasteId,
     title: Option<String>,
-    content: Rc<str>,
     last_modified: u64,
-    pob: Rc<SerdePathOfBuilding>,
+    build: Build,
 }
 
 impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
     type RouteArg = (User, String);
 
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
-        let paste = ctx.get_paste().unwrap();
+        let mut paste = ctx.into_paste().unwrap();
+        let title = paste.metadata.take().map(|m| m.title);
+
         Ok(Data {
             id: UserPasteId { user, id },
-            title: paste.metadata().map(|m| m.title.to_owned()),
-            content: paste.content().clone(),
-            last_modified: paste.last_modified(),
-            pob: Rc::new(paste.to_path_of_building()?),
+            title,
+            last_modified: paste.last_modified,
+            build: paste.try_into()?,
         })
     }
 
@@ -42,35 +43,35 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
         let last_modified = find_attribute(&element, "data-last-modified").unwrap_or_default();
+        let nodes = deserialize_attribute(&element, "data-nodes").unwrap_or_default();
 
-        let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
+        let build = Build::new(content, nodes)?;
         Ok(Data {
             id: UserPasteId { user, id },
             title,
-            content: content.into(),
             last_modified,
-            pob,
+            build,
         })
     }
 
     fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
         Box::pin(async move {
             // TODO: get rid of these clones
-            let paste = crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
-            let pob = Rc::new(SerdePathOfBuilding::from_export(&paste.content)?);
+            let mut paste =
+                crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
+            let title = paste.metadata.take().map(|x| x.title);
+
             Ok(Data {
                 id: UserPasteId { user, id },
-                title: paste.metadata.map(|x| x.title),
-                content: paste.content.into(),
+                title,
                 last_modified: paste.last_modified,
-                pob,
+                build: paste.try_into()?,
             })
         })
     }
 
     fn meta(arg: &Data) -> Result<Meta> {
-        let pob: &SerdePathOfBuilding = &arg.pob;
-
+        let pob = arg.build.pob();
         let config = pob::TitleConfig { no_level: true };
 
         let title: Cow<str> = arg
@@ -108,15 +109,16 @@ pub fn user_paste_page(
     Data {
         id,
         title,
-        content,
         last_modified,
-        pob,
+        build,
     }: Data,
 ) -> View<G> {
     let deleted = Signal::new(false);
 
     let back_to_user = id.to_user_url();
     let navigate_after_delete = back_to_user.clone();
+
+    let data_nodes = serialize_for_attribute(build.nodes());
 
     let toolbox = PasteToolboxProps {
         id: id.clone(),
@@ -126,9 +128,8 @@ pub fn user_paste_page(
     let props = ViewPasteProps {
         id: id.into(),
         title,
-        content,
         last_modified,
-        pob,
+        build,
     };
 
     effect!(deleted, {
@@ -138,6 +139,7 @@ pub fn user_paste_page(
     });
 
     view! {
+        div(data-nodes=data_nodes) {}
         div(class="flex justify-between") {
             a(href=back_to_user, class="flex items-center mb-4 text-sky-400") {
                 span(dangerously_set_inner_html=svg::BACK, class="h-[16px] mr-2")

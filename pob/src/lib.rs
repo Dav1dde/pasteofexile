@@ -40,6 +40,7 @@ pub struct TreeSpec<'a> {
     pub url: Option<&'a str>,
     pub version: Option<&'a str>,
     pub nodes: &'a [u32],
+    pub mastery_effects: &'a [(u32, u32)],
 
     /// Whether the tree spec is active/selected
     pub active: bool,

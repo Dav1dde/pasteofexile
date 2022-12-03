@@ -1,13 +1,11 @@
 use crate::{
-    effect, future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Meta,
+    future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Meta,
     ResponseContext, Result,
 };
 use shared::User;
 use sycamore::component::Component;
 use sycamore::prelude::*;
-use sycamore_router::{
-    HistoryIntegration, Router as DynRouter, RouterProps, StaticRouter, StaticRouterProps,
-};
+use sycamore_router::{HistoryIntegration, Router as DynRouter, RouterProps};
 use web_sys::Element;
 
 #[derive(Clone, Debug, sycamore_router::Route)]
@@ -55,11 +53,11 @@ pub fn router(ctx: Option<Context>) -> View<G> {
 
     route
         .map(|route| {
-            view! {
-                StaticRouter(StaticRouterProps::new(
-                    route, move |route: Route| switch(Signal::new(route).handle(), ctx.clone())
-                ))
-            }
+            // Fix hydration. During SSR there is no router component, while there is one
+            // at and after hydration. Artificially introduce a component without actually
+            // using a component.
+            // Can't use the `StaticRouter` because then we'd have to clone the context.
+            sycamore::utils::hydrate::hydrate_component(|| switch(Signal::new(route).handle(), ctx))
         })
         .unwrap_or_else(|| {
             view! {
@@ -77,26 +75,26 @@ fn switch<G: Html>(route: ReadSignal<Route>, ctx: Option<Context>) -> View<G> {
     let view = Signal::new(View::empty());
     let store = Signal::new("");
 
-    effect!(view, store, {
-        let route = route.get();
-        let ctx = ctx.clone();
+    if let Some(ctx) = ctx {
+        let page = Page::from_context(ctx);
+        // During SSR store the page, so we can recover it during hydration
+        if let Some(s) = page.store() {
+            store.set(s);
+        }
+        view.set(render(page));
+    } else {
+        if is_hydrating() {
+            view.set(render(Page::from_hydration(&route.get())));
+        }
 
-        if let Some(ctx) = ctx {
-            let page = Page::from_context(ctx);
-            // During SSR store the page, so we can recover it during hydration
-            if let Some(s) = page.store() {
-                store.set(s);
-            }
-            view.set(render(page));
-        } else if is_hydrating() {
-            view.set(render(Page::from_hydration(&route)));
-        } else {
-            #[cfg(not(feature = "ssr"))]
+        crate::effect!(view, {
+            let route = route.get();
+
             sycamore::futures::spawn_local_in_scope(cloned!(view => async move {
                 view.set(render(Page::from_dynamic(&route).await))
             }));
-        }
-    });
+        });
+    }
 
     view! { div(data-route=*store.get()) { (view.get().as_ref().clone()) } }
 }
@@ -184,7 +182,6 @@ impl<G: Html> Page<G> {
         Self::resolve(page)
     }
 
-    #[cfg(not(feature = "ssr"))]
     async fn from_dynamic(route: &Route) -> Self {
         use crate::try_block_async;
 

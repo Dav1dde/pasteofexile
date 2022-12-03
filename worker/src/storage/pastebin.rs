@@ -1,12 +1,14 @@
 use crate::{net, Error, Result};
-use shared::model::{Paste, PasteId};
+use shared::model::PasteId;
+
+use super::StoredPaste;
 
 pub(crate) fn could_be_pastebin_id(paste: &PasteId) -> bool {
     paste.user().is_none() && paste.id().len() == 8
 }
 
 #[tracing::instrument]
-pub async fn get(id: &PasteId) -> Result<Option<Paste>> {
+pub async fn get(id: &PasteId) -> Result<Option<StoredPaste>> {
     let mut response = net::Request::get(format!("https://pastebin.com/raw/{}", id.id()))
         .send()
         .await?;
@@ -17,7 +19,7 @@ pub async fn get(id: &PasteId) -> Result<Option<Paste>> {
         code => return Err(Error::RemoteFailed(code, "pastebin.com get failed".into())),
     };
 
-    Ok(Some(Paste {
+    Ok(Some(StoredPaste {
         content,
         entity_id: format!("pastebin-{id}"),
         last_modified: 0,

@@ -6,24 +6,23 @@ use crate::{
     Meta, Result,
 };
 use shared::{model::UserPasteId, User};
-use std::rc::Rc;
 use sycamore::prelude::*;
 
 pub struct Data {
     id: UserPasteId,
-    content: Rc<str>,
     title: Option<String>,
+    content: String,
 }
 
 impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
     type RouteArg = (User, String);
 
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
-        let paste = ctx.get_paste().unwrap();
+        let paste = ctx.into_paste().unwrap();
         Ok(Data {
             id: UserPasteId { user, id },
-            title: paste.metadata().map(|m| m.title.to_owned()),
-            content: paste.content().clone(),
+            title: paste.metadata.map(|m| m.title),
+            content: paste.content,
         })
     }
 
@@ -33,7 +32,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
 
         Ok(Data {
             id: UserPasteId { user, id },
-            content: content.into(),
+            content,
             title,
         })
     }
@@ -44,7 +43,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
             let paste = crate::api::get_paste(&id).await?;
             Ok(Data {
                 id: id.unwrap_user(),
-                content: paste.content.into(),
+                content: paste.content,
                 title: paste.metadata.map(|x| x.title),
             })
         })

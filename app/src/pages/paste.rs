@@ -1,35 +1,36 @@
 use crate::{
+    build::Build,
     components::{ViewPaste, ViewPasteProps},
     future::LocalBoxFuture,
     meta, pob,
     router::RoutedComponent,
-    utils::{find_attribute, find_text},
+    utils::{deserialize_attribute, find_attribute, find_text, serialize_for_attribute},
     Meta, Result,
 };
-use ::pob::{PathOfBuildingExt, SerdePathOfBuilding};
+use ::pob::PathOfBuildingExt;
 use shared::model::PasteId;
-use std::rc::Rc;
+use std::convert::TryInto;
 use sycamore::prelude::*;
 
 pub struct Data {
     id: String,
     title: Option<String>,
-    content: Rc<str>,
     last_modified: u64,
-    pob: Rc<SerdePathOfBuilding>,
+    build: Build,
 }
 
 impl<G: Html> RoutedComponent<G> for PastePage<G> {
     type RouteArg = String;
 
     fn from_context(id: Self::RouteArg, ctx: crate::Context) -> Result<Data> {
-        let paste = ctx.get_paste().unwrap();
+        let mut paste = ctx.into_paste().unwrap();
+        let title = paste.metadata.take().map(|m| m.title);
+
         Ok(Data {
             id,
-            title: paste.metadata().map(|m| m.title.to_owned()),
-            content: paste.content().clone(),
-            last_modified: paste.last_modified(),
-            pob: Rc::new(paste.to_path_of_building()?),
+            title,
+            last_modified: paste.last_modified,
+            build: paste.try_into()?,
         })
     }
 
@@ -37,35 +38,34 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
         let last_modified = find_attribute(&element, "data-last-modified").unwrap_or_default();
+        let nodes = deserialize_attribute(&element, "data-nodes").unwrap_or_default();
 
-        let pob = Rc::new(SerdePathOfBuilding::from_export(&content)?);
+        let build = Build::new(content, nodes)?;
         Ok(Data {
             id,
             title,
-            content: content.into(),
             last_modified,
-            pob,
+            build,
         })
     }
 
     fn from_dynamic<'a>(id: Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
         Box::pin(async move {
             // TODO: get rid of this clone, there needs to be a better way to pass this around
-            let paste = crate::api::get_paste(&PasteId::new_id(id.clone())).await?;
-            let pob = Rc::new(SerdePathOfBuilding::from_export(&paste.content)?);
-            let title = paste.metadata.map(|x| x.title);
+            let mut paste = crate::api::get_paste(&PasteId::new_id(id.clone())).await?;
+            let title = paste.metadata.take().map(|x| x.title);
+
             Ok(Data {
                 id,
                 title,
-                content: paste.content.into(),
                 last_modified: paste.last_modified,
-                pob,
+                build: paste.try_into()?,
             })
         })
     }
 
     fn meta(arg: &Data) -> Result<Meta> {
-        let pob: &SerdePathOfBuilding = &arg.pob;
+        let pob = arg.build.pob();
 
         let config = pob::TitleConfig { no_level: true };
         let mut title = arg
@@ -100,19 +100,19 @@ pub fn paste_page(
     Data {
         id,
         title,
-        content,
         last_modified,
-        pob,
+        build,
     }: Data,
 ) -> View<G> {
+    let data_nodes = serialize_for_attribute(build.nodes());
     let props = ViewPasteProps {
         id: PasteId::new_id(id),
         title,
-        content,
         last_modified,
-        pob,
+        build,
     };
     view! {
+        div(data-nodes=data_nodes) {}
         ViewPaste(props)
     }
 }

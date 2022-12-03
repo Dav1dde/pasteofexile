@@ -56,6 +56,12 @@ impl RequestContext {
         }
     }
 
+    pub fn pastes(&self) -> crate::Result<crate::pastes::Pastes> {
+        Ok(crate::pastes::Pastes {
+            storage: self.storage()?,
+        })
+    }
+
     pub fn storage(&self) -> crate::Result<crate::storage::Storage> {
         crate::storage::Storage::from_env(&self.env)
     }

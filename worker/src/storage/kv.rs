@@ -1,10 +1,12 @@
 use crate::{sentry, utils::hex, Result};
 use serde::{Deserialize, Serialize};
 use shared::{
-    model::{ListPaste, Paste, PasteId, PasteMetadata},
+    model::{ListPaste, PasteId, PasteMetadata},
     User,
 };
 use std::rc::Rc;
+
+use super::StoredPaste;
 
 #[derive(Default, Serialize, Deserialize)]
 struct KvMetadata {
@@ -30,7 +32,7 @@ impl KvStorage {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
+    pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         let path = super::to_path(id)?;
         let (data, metadata) = self
             .kv
@@ -40,7 +42,7 @@ impl KvStorage {
 
         let metadata = metadata.unwrap_or_default();
 
-        Ok(data.map(|content| Paste {
+        Ok(data.map(|content| StoredPaste {
             content,
             metadata: metadata.metadata,
             entity_id: metadata.entity_id.unwrap_or_default(),

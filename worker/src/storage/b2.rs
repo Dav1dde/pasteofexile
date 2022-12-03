@@ -1,11 +1,11 @@
-use super::b2_client;
+use super::{b2_client, StoredPaste};
 use crate::{
     sentry, utils,
     utils::{b64_decode, b64_encode},
     Error, Result,
 };
 use shared::{
-    model::{ListPaste, Paste, PasteId, PasteMetadata},
+    model::{ListPaste, PasteId, PasteMetadata},
     User,
 };
 use std::rc::Rc;
@@ -22,7 +22,7 @@ impl B2Storage {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn get(&self, id: &PasteId) -> Result<Option<Paste>> {
+    pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         let path = super::to_path(id)?;
         let mut response = self.b2.download(&path).await?;
 
@@ -53,7 +53,7 @@ impl B2Storage {
 
                 let content = response.text().await?;
 
-                Ok(Some(Paste {
+                Ok(Some(StoredPaste {
                     metadata,
                     last_modified,
                     entity_id,
