@@ -1,6 +1,7 @@
 use serde::de;
 use serde::Deserialize;
-use serde_with::{rust::StringWithSeparator, CommaSeparator};
+use serde_with::serde_as;
+use serde_with::{formats::CommaSeparator, StringWithSeparator};
 
 use crate::serde::utils::{lua_table, u8_or_nil};
 
@@ -175,12 +176,13 @@ pub(crate) struct Tree {
     pub specs: Vec<Spec>,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Spec {
     #[serde(default)]
     pub title: Option<String>,
-    #[serde(default, with = "StringWithSeparator::<CommaSeparator>")]
+    #[serde_as(as = "StringWithSeparator::<CommaSeparator, u32>")]
     pub nodes: Vec<u32>,
     #[serde(default, deserialize_with = "lua_table")]
     pub mastery_effects: Vec<(u32, u32)>,
