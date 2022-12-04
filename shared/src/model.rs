@@ -27,7 +27,9 @@ pub struct Paste {
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct Nodes {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub keystones: Vec<Node>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub masteries: Vec<Node>,
 }
 
@@ -40,6 +42,7 @@ impl Nodes {
 #[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Node {
     pub name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub stats: Vec<String>,
 }
 
