@@ -1,6 +1,7 @@
+use std::{convert::TryFrom, rc::Rc};
+
 use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec};
 use shared::model::Nodes;
-use std::{convert::TryFrom, rc::Rc};
 
 #[derive(Clone)]
 pub struct Build(Rc<Inner>);

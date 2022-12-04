@@ -1,4 +1,5 @@
 use std::{borrow::Cow, marker::PhantomData};
+
 use sycamore::prelude::*;
 use thousands::Separable;
 
@@ -50,7 +51,7 @@ impl<'a> Element<'a> {
 
     pub fn stat_float(mut self, value: Option<f32>) -> Self {
         self.stat = value
-            .map(|value| format!("{:0.2}", value).separate_with_commas())
+            .map(|value| format!("{value:0.2}").separate_with_commas())
             .map(Cow::Owned);
         self
     }
@@ -71,7 +72,7 @@ impl<'a> Element<'a> {
     }
 
     pub fn stat_percent_float(mut self, value: Option<f32>) -> Self {
-        self.percent = value.map(|value| format!("{:.2}", value)).map(Cow::Owned);
+        self.percent = value.map(|value| format!("{value:.2}")).map(Cow::Owned);
         self
     }
 
@@ -117,11 +118,11 @@ impl<'a> Element<'a> {
     fn render_stat<R: Renderer>(self, mut renderer: R) -> Option<<R as Renderer>::Output> {
         let (stat, percent) = match (self.stat, self.percent) {
             (Some(stat), percent) => {
-                let percent = percent
-                    .map(|sup| Fragment::with_type(FragmentType::Super, format!("{}%", sup)));
+                let percent =
+                    percent.map(|sup| Fragment::with_type(FragmentType::Super, format!("{sup}%")));
                 (stat.into_owned(), percent)
             }
-            (None, Some(percent)) => (format!("{}%", percent), None),
+            (None, Some(percent)) => (format!("{percent}%"), None),
             _ => return None,
         };
 

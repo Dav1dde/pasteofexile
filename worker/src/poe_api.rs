@@ -1,6 +1,8 @@
-use crate::net;
 use std::borrow::Cow;
+
 use worker::Url;
+
+use crate::net;
 
 const OAUTH_AUTHORIZE_URL: &str = "https://www.pathofexile.com/oauth/authorize";
 const POE_API_USER_AGENT: &str = "OAuth pobbin/1.0 (contact: ggg@pobb.in)";

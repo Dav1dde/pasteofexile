@@ -1,7 +1,9 @@
-use crate::{consts, request_context::RequestContext, utils::ResponseExt, Error, Result};
 use std::borrow::Cow;
+
 use wasm_bindgen::prelude::*;
 use worker::Response;
+
+use crate::{consts, request_context::RequestContext, utils::ResponseExt, Error, Result};
 
 pub async fn try_handle(rctx: &RequestContext) -> Result<Option<Response>> {
     if is_asset_path(&rctx.path()) {

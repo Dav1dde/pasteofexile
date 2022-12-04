@@ -259,9 +259,8 @@ fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill {
 
 #[cfg(test)]
 mod tests {
-    use crate::{PathOfBuilding, PathOfBuildingExt};
-
     use super::*;
+    use crate::{PathOfBuilding, PathOfBuildingExt};
 
     static V316_EMPTY: &str = include_str!("../../test/316_empty.xml");
     static V316_POISON_OCC: &str = include_str!("../../test/316_poison_occ.xml");

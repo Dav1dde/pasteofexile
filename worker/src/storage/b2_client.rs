@@ -1,3 +1,10 @@
+use std::{borrow::Cow, collections::HashMap};
+
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use worker::{kv::KvStore, Env};
+
 use crate::{
     consts,
     crypto::sha1,
@@ -6,11 +13,6 @@ use crate::{
     utils::hex,
     Error, Result,
 };
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::{borrow::Cow, collections::HashMap};
-use worker::{kv::KvStore, Env};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

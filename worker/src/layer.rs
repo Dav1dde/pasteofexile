@@ -28,7 +28,7 @@ impl<S: Subscriber> layer::Layer<S> for Layer {
         worker::console_log!(
             "[+ {:>5}] <{}> {:>5}: {}",
             now - last,
-            format_args!("{}:{}", target, line),
+            format_args!("{target}:{line}"),
             level,
             message
         );

@@ -1,6 +1,8 @@
-use crate::pob;
-use ::pob::PathOfBuilding;
 use std::borrow::Cow;
+
+use ::pob::PathOfBuilding;
+
+use crate::pob;
 
 const TITLE_PREFIX: &str = "POBb.in -";
 const TITLE_INDEX: &str = "POBb.in - Share your Path of Exile build";
@@ -104,7 +106,7 @@ pub(crate) fn get_paste_summary(pob: &impl PathOfBuilding) -> Vec<String> {
                 .collect::<Vec<_>>()
         })
         .map(|line| line.join("\u{318d}"))
-        .map(|line| format!("\u{27A4} {}", line))
+        .map(|line| format!("\u{27A4} {line}"))
         .collect()
 }
 

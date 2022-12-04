@@ -1,7 +1,7 @@
-use crate::{net, Error, Result};
 use shared::model::PasteId;
 
 use super::StoredPaste;
+use crate::{net, Error, Result};
 
 pub(crate) fn could_be_pastebin_id(paste: &PasteId) -> bool {
     paste.user().is_none() && paste.id().len() == 8

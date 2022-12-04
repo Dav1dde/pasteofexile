@@ -1,3 +1,9 @@
+use ::pob::{PathOfBuilding, PathOfBuildingExt};
+use shared::model::PasteId;
+use sycamore::prelude::*;
+use wasm_bindgen::{JsCast, JsValue};
+use web_sys::HtmlTextAreaElement;
+
 use crate::{
     async_callback,
     build::Build,
@@ -5,11 +11,6 @@ use crate::{
     memo,
     pob::{self, Element},
 };
-use ::pob::{PathOfBuilding, PathOfBuildingExt};
-use shared::model::PasteId;
-use sycamore::prelude::*;
-use wasm_bindgen::{JsCast, JsValue};
-use web_sys::HtmlTextAreaElement;
 
 pub struct ViewPasteProps {
     pub id: PasteId,

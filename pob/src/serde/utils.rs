@@ -1,8 +1,9 @@
-use serde::de;
-use serde::Deserializer;
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
+
+use serde::de;
+use serde::Deserializer;
 
 macro_rules! or_nil_impl {
     ($name:ident, $t:ty) => {

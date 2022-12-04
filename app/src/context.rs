@@ -1,5 +1,6 @@
-use crate::Route;
 use shared::model::{Nodes, PasteMetadata, PasteSummary, UserPasteId};
+
+use crate::Route;
 
 pub struct Context {
     route: Option<Route>,

@@ -1,5 +1,6 @@
-use crate::utils::if_browser;
 use sycamore::prelude::*;
+
+use crate::utils::if_browser;
 
 #[cfg(not(feature = "ssr"))]
 thread_local!(static PROGRESS: State = State::new());

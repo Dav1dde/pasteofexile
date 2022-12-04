@@ -1,6 +1,7 @@
-use super::protocol::Timestamp;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+
+use super::protocol::Timestamp;
 
 pub fn serialize_id<S: serde::Serializer>(
     uuid: &uuid::Uuid,
@@ -10,9 +11,11 @@ pub fn serialize_id<S: serde::Serializer>(
 }
 
 pub mod ts_rfc3339 {
-    use super::*;
-    use serde::{de, ser};
     use std::fmt;
+
+    use serde::{de, ser};
+
+    use super::*;
 
     pub fn serialize<S>(st: &Timestamp, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -25,8 +28,7 @@ pub mod ts_rfc3339 {
         {
             Some(formatted) => serializer.serialize_str(&formatted),
             None => Err(ser::Error::custom(format!(
-                "invalid `Timestamp` instance: {:?}",
-                st
+                "invalid `Timestamp` instance: {st:?}"
             ))),
         }
     }
@@ -44,17 +46,17 @@ pub mod ts_rfc3339 {
         where
             E: de::Error,
         {
-            let dt = OffsetDateTime::parse(v, &Rfc3339).map_err(|e| E::custom(format!("{}", e)))?;
-            let secs =
-                u64::try_from(dt.unix_timestamp()).map_err(|e| E::custom(format!("{}", e)))?;
+            let dt = OffsetDateTime::parse(v, &Rfc3339).map_err(|e| E::custom(format!("{e}")))?;
+            let secs = u64::try_from(dt.unix_timestamp()).map_err(|e| E::custom(format!("{e}")))?;
             Ok(Timestamp::from_secs(secs))
         }
     }
 }
 
 pub mod ts_rfc3339_opt {
-    use super::*;
     use serde::ser;
+
+    use super::*;
 
     pub fn serialize<S>(st: &Option<Timestamp>, serializer: S) -> Result<S::Ok, S::Error>
     where

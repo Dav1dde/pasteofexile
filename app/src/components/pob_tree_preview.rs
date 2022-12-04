@@ -1,13 +1,15 @@
-use crate::build::Build;
-use crate::components::PobColoredText;
-use crate::{memo, Prefetch, ResponseContext};
+use std::{any::TypeId, cell::RefCell, rc::Rc};
+
 use itertools::Itertools;
 use pob::TreeSpec;
 use shared::model::{Node, Nodes};
-use std::{any::TypeId, cell::RefCell, rc::Rc};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlElement, HtmlSelectElement, PointerEvent};
+
+use crate::build::Build;
+use crate::components::PobColoredText;
+use crate::{memo, Prefetch, ResponseContext};
 
 #[derive(Debug)]
 struct Tree {
@@ -338,7 +340,7 @@ impl<G: GenericNode> TouchState<G> {
         if let Some(zoom) = self.zoom {
             let _ = element
                 .style()
-                .set_property("background-size", &format!("{}%", zoom));
+                .set_property("background-size", &format!("{zoom}%"));
         }
     }
 }

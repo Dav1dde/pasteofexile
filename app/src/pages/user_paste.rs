@@ -1,3 +1,12 @@
+use std::{borrow::Cow, convert::TryInto};
+
+use ::pob::PathOfBuildingExt;
+use shared::{
+    model::{PasteId, UserPasteId},
+    User,
+};
+use sycamore::prelude::*;
+
 use crate::{
     build::Build,
     components::{PasteToolbox, PasteToolboxProps, ViewPaste, ViewPasteProps},
@@ -9,13 +18,6 @@ use crate::{
     utils::{deserialize_attribute, find_attribute, find_text, serialize_for_attribute},
     Meta, Result,
 };
-use ::pob::PathOfBuildingExt;
-use shared::{
-    model::{PasteId, UserPasteId},
-    User,
-};
-use std::{borrow::Cow, convert::TryInto};
-use sycamore::prelude::*;
 
 pub struct Data {
     id: UserPasteId,

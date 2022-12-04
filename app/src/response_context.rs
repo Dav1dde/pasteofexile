@@ -1,5 +1,6 @@
-use crate::{meta::Prefetch, Meta};
 use std::cell::RefCell;
+
+use crate::{meta::Prefetch, Meta};
 
 thread_local! {
     static RESPONSE_CONTEXT: RefCell<Option<ResponseContext>> = RefCell::new(None);

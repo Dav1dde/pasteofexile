@@ -1,10 +1,12 @@
-use crate::Result;
+use std::rc::Rc;
+
 use serde::{Deserialize, Serialize};
 use shared::{
     model::{ListPaste, PasteId, PasteMetadata},
     User,
 };
-use std::rc::Rc;
+
+use crate::Result;
 
 #[allow(dead_code)]
 mod b2;
@@ -14,12 +16,11 @@ mod kv;
 mod pastebin;
 mod utils;
 
-pub(crate) use utils::{to_path, to_prefix};
-
 #[cfg(not(feature = "use-kv-storage"))]
 use b2::B2Storage as DefaultStorage;
 #[cfg(feature = "use-kv-storage")]
 use kv::KvStorage as DefaultStorage;
+pub(crate) use utils::{to_path, to_prefix};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct StoredPaste {

@@ -1,5 +1,6 @@
-use crate::{Meta, Prefetch};
 use sycamore::prelude::*;
+
+use crate::{Meta, Prefetch};
 
 pub struct HeadArgs {
     pub meta: Meta,

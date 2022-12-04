@@ -1,5 +1,6 @@
-use crate::{memo, memo_cond, svg};
 use sycamore::prelude::*;
+
+use crate::{memo, memo_cond, svg};
 
 #[component(ImportPastebin<G>)]
 pub fn import_pastebin() -> View<G> {

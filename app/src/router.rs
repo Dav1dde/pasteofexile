@@ -1,12 +1,13 @@
-use crate::{
-    future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Meta,
-    ResponseContext, Result,
-};
 use shared::User;
 use sycamore::component::Component;
 use sycamore::prelude::*;
 use sycamore_router::{HistoryIntegration, Router as DynRouter, RouterProps};
 use web_sys::Element;
+
+use crate::{
+    future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Meta,
+    ResponseContext, Result,
+};
 
 #[derive(Clone, Debug, sycamore_router::Route)]
 #[cfg_attr(feature = "ssr", derive(strum::IntoStaticStr))]

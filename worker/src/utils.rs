@@ -1,10 +1,12 @@
-use crate::Error;
-use shared::validation;
 use std::fmt;
 use std::time::Duration;
+
+use shared::validation;
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
 use worker::{js_sys, worker_sys, Request, Response, Result};
+
+use crate::Error;
 
 macro_rules! if_debug {
     ($debug:expr, $otherwise:expr) => {{
@@ -30,11 +32,11 @@ pub fn b64_decode<T: AsRef<[u8]>>(input: T) -> crate::Result<Vec<u8>> {
 }
 
 pub fn hex(data: &[u8]) -> String {
-    data.iter().map(|x| format!("{:02X}", x)).collect()
+    data.iter().map(|x| format!("{x:02X}")).collect()
 }
 
 pub fn hex_lower(data: &[u8]) -> String {
-    data.iter().map(|x| format!("{:02x}", x)).collect()
+    data.iter().map(|x| format!("{x:02x}")).collect()
 }
 
 pub fn btoa(s: &str) -> Result<String> {

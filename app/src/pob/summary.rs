@@ -1,5 +1,6 @@
-use crate::pob::{self, Element};
 use ::pob::{Config, Keystone, PathOfBuilding, PathOfBuildingExt, Stat};
+
+use crate::pob::{self, Element};
 
 static AMBER_50: &str = "dark:text-amber-50 text-slate-800";
 

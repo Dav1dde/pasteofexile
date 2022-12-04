@@ -1,5 +1,6 @@
-use shared::model::{PasteId, UserPasteId};
 use std::time::Duration;
+
+use shared::model::{PasteId, UserPasteId};
 use worker::{event, Cache, Context, Env, Headers, Method, Request, Response};
 
 mod api;
@@ -20,9 +21,10 @@ mod sentry;
 mod storage;
 mod utils;
 
-pub use self::error::{Error, ErrorResponse, Result};
 use request_context::RequestContext;
 use utils::{CacheControl, ResponseExt};
+
+pub use self::error::{Error, ErrorResponse, Result};
 
 struct ResponseInfo {
     cache_control: CacheControl,

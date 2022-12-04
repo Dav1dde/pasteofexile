@@ -1,12 +1,13 @@
-use super::utils::{ts_rfc3339, ts_rfc3339_opt};
-use serde::Serialize;
 use std::borrow::Cow;
+pub use std::collections::BTreeMap as Map;
 use std::fmt;
 use std::io::Write;
 use std::rc::Rc;
 
+use serde::Serialize;
 pub use serde_json::Value;
-pub use std::collections::BTreeMap as Map;
+
+use super::utils::{ts_rfc3339, ts_rfc3339_opt};
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
@@ -43,7 +44,7 @@ impl<'a> Envelope<'a> {
         // write the headers:
         let event_id = self.event_id.as_ref();
         match event_id {
-            Some(uuid) => writeln!(writer, r#"{{"event_id":"{}"}}"#, uuid)?,
+            Some(uuid) => writeln!(writer, r#"{{"event_id":"{uuid}"}}"#)?,
             _ => writeln!(writer, "{{}}")?,
         }
 

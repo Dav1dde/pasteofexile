@@ -1,3 +1,9 @@
+use std::convert::TryInto;
+
+use ::pob::PathOfBuildingExt;
+use shared::model::PasteId;
+use sycamore::prelude::*;
+
 use crate::{
     build::Build,
     components::{ViewPaste, ViewPasteProps},
@@ -7,10 +13,6 @@ use crate::{
     utils::{deserialize_attribute, find_attribute, find_text, serialize_for_attribute},
     Meta, Result,
 };
-use ::pob::PathOfBuildingExt;
-use shared::model::PasteId;
-use std::convert::TryInto;
-use sycamore::prelude::*;
 
 pub struct Data {
     id: String,
@@ -75,7 +77,7 @@ impl<G: Html> RoutedComponent<G> for PastePage<G> {
             .unwrap_or_else(|| pob::title_with_config(pob, &config))
             .into();
         if let Some(version) = pob.max_tree_version() {
-            title = format!("{} [{}]", title, version).into();
+            title = format!("{title} [{version}]").into();
         }
 
         let description = meta::get_paste_summary(pob).join("\n").into();

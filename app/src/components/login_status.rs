@@ -1,10 +1,11 @@
+use sycamore::{context::use_context, prelude::*};
+use web_sys::Event;
+
 use crate::{
     memo,
     session::{Session, SessionValue},
     svg,
 };
-use sycamore::{context::use_context, prelude::*};
-use web_sys::Event;
 
 #[component(LoginStatus<G>)]
 pub fn login_status() -> View<G> {

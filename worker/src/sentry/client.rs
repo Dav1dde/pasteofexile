@@ -1,6 +1,7 @@
+use git_version::git_version;
+
 use super::protocol;
 use crate::{net, Error, Result};
-use git_version::git_version;
 
 #[derive(Clone)]
 pub struct Sentry {

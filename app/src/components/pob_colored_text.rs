@@ -1,5 +1,6 @@
-use crate::pob::formatting::{Color, ColoredText};
 use sycamore::prelude::*;
+
+use crate::pob::formatting::{Color, ColoredText};
 
 #[component(PobColoredText<G>)]
 pub fn pob_tree_table(text: String) -> View<G> {
@@ -13,7 +14,7 @@ fn render_fragment<G: GenericNode>((color, text): (Color, &str)) -> View<G> {
 
     match color {
         Color::Hex(hex) => {
-            let style = format!("color: #{}", hex);
+            let style = format!("color: #{hex}");
             view! { span(style=style) { (text) } }
         }
         Color::Named(name) => {

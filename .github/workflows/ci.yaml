@@ -43,14 +43,10 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
+          components: rustfmt
           override: true
-      - uses: Swatinem/rust-cache@v1
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - run: cargo +nightly fmt --all -- --check
 
   clippy:
     name: Clippy
@@ -60,12 +56,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
+          components: clippy
           override: true
       - uses: Swatinem/rust-cache@v1
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-features -- -D warnings
+      - run: cargo +nightly clippy --all-features -- -D warnings
 

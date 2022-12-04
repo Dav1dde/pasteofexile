@@ -1,7 +1,9 @@
-use crate::sentry;
 use std::borrow::Cow;
+
 use wasm_bindgen::JsValue;
 pub use worker::Method;
+
+use crate::sentry;
 
 pub struct Request<'a> {
     url: Cow<'a, str>,

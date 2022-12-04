@@ -1,6 +1,7 @@
-use crate::{build::Build, components::PobColoredText};
 use pob::{PathOfBuilding, TreeSpec};
 use sycamore::prelude::*;
+
+use crate::{build::Build, components::PobColoredText};
 
 #[component(PobTreeTable<G>)]
 pub fn pob_tree_table(build: Build) -> View<G> {
@@ -33,7 +34,7 @@ pub fn pob_tree_table(build: Build) -> View<G> {
             };
 
             let (nodes, level) = resolve_level(spec.nodes.len());
-            let description = format!("Level {} ({} passives)", level, nodes);
+            let description = format!("Level {level} ({nodes} passives)");
             view! {
                 div(class=if spec.active { "font-bold" } else { "" }) { (title) }
                 div(class="mb-3 sm:mb-0") { (description) }

@@ -1,6 +1,7 @@
-use super::protocol;
 use tracing::{span, Subscriber};
 use tracing_subscriber::{layer, registry::LookupSpan};
+
+use super::protocol;
 
 pub struct Layer {}
 
@@ -23,7 +24,7 @@ where
             if target.is_empty() {
                 op.to_string()
             } else {
-                format!("{}::{}", target, op)
+                format!("{target}::{op}")
             }
         });
 

@@ -89,9 +89,9 @@ pub mod user {
         #[test]
         fn test_title_length() {
             for i in 0..200 {
-                let s = std::iter::repeat('a').take(i).collect::<String>();
+                let s = "a".repeat(i);
                 let v = is_valid_custom_title(&s);
-                assert!(if i >= 5 && i <= 90 {
+                assert!(if (5..=90).contains(&i) {
                     v.is_valid()
                 } else {
                     !v.is_valid()
@@ -107,9 +107,9 @@ pub mod user {
         #[test]
         fn test_id_length() {
             for i in 0..200 {
-                let s = std::iter::repeat('a').take(i).collect::<String>();
+                let s = "a".repeat(i);
                 let v = is_valid_custom_id(&s);
-                assert!(if i >= 5 && i <= 90 {
+                assert!(if (5..=90).contains(&i) {
                     v.is_valid()
                 } else {
                     !v.is_valid()

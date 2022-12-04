@@ -1,12 +1,13 @@
-use crate::{sentry, utils::hex, Result};
+use std::rc::Rc;
+
 use serde::{Deserialize, Serialize};
 use shared::{
     model::{ListPaste, PasteId, PasteMetadata},
     User,
 };
-use std::rc::Rc;
 
 use super::StoredPaste;
+use crate::{sentry, utils::hex, Result};
 
 #[derive(Default, Serialize, Deserialize)]
 struct KvMetadata {

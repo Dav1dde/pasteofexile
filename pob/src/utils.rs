@@ -1,6 +1,8 @@
-use crate::{Error, Result};
-use flate2::bufread::ZlibDecoder;
 use std::io::Read;
+
+use flate2::bufread::ZlibDecoder;
+
+use crate::{Error, Result};
 
 pub fn decompress(data: &str) -> Result<String> {
     let data = decode(data)?;

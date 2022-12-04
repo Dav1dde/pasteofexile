@@ -1,6 +1,8 @@
-use crate::crypto;
-use serde::{de::DeserializeOwned, Serialize};
 use std::fmt;
+
+use serde::{de::DeserializeOwned, Serialize};
+
+use crate::crypto;
 
 #[derive(Debug)]
 pub enum DangerousError {

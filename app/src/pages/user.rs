@@ -1,3 +1,11 @@
+use std::rc::Rc;
+
+use shared::{
+    model::{PasteSummary, UserPasteId},
+    User,
+};
+use sycamore::prelude::*;
+
 use crate::{
     components::{PasteToolbox, PasteToolboxProps},
     future::LocalBoxFuture,
@@ -6,12 +14,6 @@ use crate::{
     utils::{deserialize_attribute, pretty_date_ts, serialize_for_attribute},
     Meta, Result,
 };
-use shared::{
-    model::{PasteSummary, UserPasteId},
-    User,
-};
-use std::rc::Rc;
-use sycamore::prelude::*;
 
 pub struct Data {
     name: User,

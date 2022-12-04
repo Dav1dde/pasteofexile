@@ -1,9 +1,10 @@
-use crate::{build::Build, components::PobColoredText, pob::formatting::strip_colors};
 use itertools::Itertools;
 use pob::{PathOfBuilding, Skill};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlSelectElement};
+
+use crate::{build::Build, components::PobColoredText, pob::formatting::strip_colors};
 
 #[component(PobGems<G>)]
 pub fn pob_gems(build: Build) -> View<G> {

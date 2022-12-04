@@ -1,6 +1,7 @@
-use crate::assets;
 use shared::{model::PasteId, User};
 use worker::{Method, Request};
+
+use crate::assets;
 
 #[derive(Debug, Clone)]
 pub enum Route {

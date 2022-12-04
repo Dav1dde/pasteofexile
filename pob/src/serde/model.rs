@@ -1,7 +1,8 @@
-use crate::serde::utils::{lua_table, u8_or_nil};
 use serde::de;
 use serde::Deserialize;
 use serde_with::{rust::StringWithSeparator, CommaSeparator};
+
+use crate::serde::utils::{lua_table, u8_or_nil};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct PathOfBuilding {

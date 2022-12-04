@@ -85,8 +85,9 @@ pub fn strip_colors(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use Color::*;
+
+    use super::*;
 
     #[test]
     fn test_no_element() {

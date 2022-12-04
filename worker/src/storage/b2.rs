@@ -1,14 +1,16 @@
+use std::rc::Rc;
+
+use shared::{
+    model::{ListPaste, PasteId, PasteMetadata},
+    User,
+};
+
 use super::{b2_client, StoredPaste};
 use crate::{
     sentry, utils,
     utils::{b64_decode, b64_encode},
     Error, Result,
 };
-use shared::{
-    model::{ListPaste, PasteId, PasteMetadata},
-    User,
-};
-use std::rc::Rc;
 
 pub struct B2Storage {
     b2: b2_client::B2,

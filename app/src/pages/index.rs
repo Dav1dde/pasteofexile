@@ -1,5 +1,6 @@
-use crate::components::{CreatePaste, CreatePasteProps, ImportPastebin};
 use sycamore::prelude::*;
+
+use crate::components::{CreatePaste, CreatePasteProps, ImportPastebin};
 
 #[component(IndexPage<G>)]
 pub fn index_page() -> View<G> {

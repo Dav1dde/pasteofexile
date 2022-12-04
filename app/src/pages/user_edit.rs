@@ -1,3 +1,6 @@
+use shared::{model::UserPasteId, User};
+use sycamore::prelude::*;
+
 use crate::{
     components::{CreatePaste, CreatePasteProps},
     future::LocalBoxFuture,
@@ -5,8 +8,6 @@ use crate::{
     utils::find_text,
     Meta, Result,
 };
-use shared::{model::UserPasteId, User};
-use sycamore::prelude::*;
 
 pub struct Data {
     id: UserPasteId,

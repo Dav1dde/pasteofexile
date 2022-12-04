@@ -1,5 +1,13 @@
 use std::{borrow::Cow, rc::Rc, time::Duration};
 
+use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
+use serde::{Deserialize, Serialize};
+use shared::{
+    model::{PasteId, PasteMetadata},
+    validation, User,
+};
+use worker::{Headers, Response};
+
 use crate::{
     consts, crypto, poe_api,
     request_context::RequestContext,
@@ -8,13 +16,6 @@ use crate::{
     utils::{self, CacheControl, RequestExt, ResponseExt},
     Error, Result,
 };
-use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
-use serde::{Deserialize, Serialize};
-use shared::{
-    model::{PasteId, PasteMetadata},
-    validation, User,
-};
-use worker::{Headers, Response};
 
 macro_rules! validate {
     ($e:expr, $msg:expr) => {
