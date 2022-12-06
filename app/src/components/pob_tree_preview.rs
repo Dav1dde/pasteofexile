@@ -113,9 +113,9 @@ pub fn pob_tree_preview(build: Build) -> View<G> {
                 on:pointerup=on_move_end.clone(),
                 on:pointerleave=on_move_end.clone(),
                 on:pointercancel=on_move_end,
-                ) {
+            ) {
                 div(ref=node_ref,
-                    class="h-full w-full bg-center bg-no-repeat bg-[length:125%] touch-none
+                    class="h-full w-full bg-center bg-no-repeat touch-none
                     transition-[background-image] duration-1000 will-change-[background-image]",
                     style=style) {
                 }
