@@ -60,7 +60,7 @@ pub fn view_paste(
     let notes = if !notes.is_empty() {
         view! {
             div(class="flex-auto") {
-                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
                 pre(class="text-xs break-words whitespace-pre-line font-mono sm:ml-3") {
                     PobColoredText(notes)
                 }
@@ -72,7 +72,7 @@ pub fn view_paste(
     let tree_preview = if has_displayable_tree(build.pob()) {
         view! {
             div(class="basis-full") {
-                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
                 PobTreePreview(build.clone())
             }
         }
@@ -147,6 +147,7 @@ pub fn view_paste(
                 h1(class="flex items-center text-xl mb-1 dark:text-slate-100 text-slate-900") {
                     img(src=src,
                         class="asc-image rounded-full mr-3 -ml-2",
+                        alt="Ascendancy Thumbnail",
                         onerror="this.style.display='none'") {}
                     span(class="pt-[3px]", data-marker-title="") { (title) }
                     sup(class="ml-1") {
@@ -161,6 +162,7 @@ pub fn view_paste(
                     on:click=select_all,
                     class="flex-auto resize-none text-sm break-all outline-none max-h-40 min-h-[5rem] dark:bg-slate-600 bg-slate-200 dark:text-slate-400 text-slate-700 rounded-sm shadow-sm pl-1",
                     data-marker-content="",
+                    aria-label="Path of Building buildcode",
                     readonly=true
                 ) {
                     (content)
@@ -182,11 +184,11 @@ pub fn view_paste(
         }
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
             div(class="flex-auto w-full lg:w-auto") {
-                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
                 PobGems(build.clone())
             }
             div(class="flex-1") {
-                h3(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
                 PobTreeTable(build)
             }
         }

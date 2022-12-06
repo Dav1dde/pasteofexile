@@ -137,6 +137,7 @@ fn summary_to_view<G: GenericNode + Html>(
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
                     class="asc-image rounded-full",
+                    alt="Ascendancy Thumbnail",
                     onerror="this.style.visibility='hidden'") {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
                     span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary2.version) } }

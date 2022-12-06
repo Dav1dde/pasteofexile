@@ -205,8 +205,10 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     maxlength=90,
                     minlength=3,
                     value=title2,
+                    aria-label="Title",
                     placeholder=title.get().as_deref().unwrap_or_default(),
-                    bind:value=custom_title.clone()) { }
+                    bind:value=custom_title.clone(),
+                ) {}
 
                 div(title="Id of the build, reusing an Id overwrites the previous build") { "Id" }
                 input(
@@ -215,6 +217,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     maxlength=90,
                     minlength=3,
                     pattern="[a-zA-Z0-9-_]*",
+                    aria-label="Build ID",
                     placeholder="<auto generated>",
                     readonly=is_update,
                     value=custom_id.get(),
@@ -250,7 +253,8 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     rounded-sm shadow-sm focus:outline-none dark:text-slate-300 text-slate-700
                     resize-none text-sm break-all",
                 style="height: 50vh; max-height: 650px",
-                data-marker-content=""
+                data-marker-content="",
+                aria-label="Path of Building buildcode",
             ) {
                 (value2.get())
             }

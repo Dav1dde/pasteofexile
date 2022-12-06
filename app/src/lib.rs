@@ -81,7 +81,8 @@ pub fn app(ctx: Option<Context>) -> View<G> {
                        shadow-lg shadow-slate-100/50 py-2 px-4 lg:px-8") {
                     div() { "pobb.in isn't affiliated with or endorsed by Grinding Gear Games in any way" }
                     a(href="https://github.com/Dav1dde/pasteofexile", target="_blank",
-                      class="w-4 h-4", dangerously_set_inner_html=svg::GITHUB) {}
+                      class="w-4 h-4", aria-label="Source code on GitHub",
+                      dangerously_set_inner_html=svg::GITHUB) {}
                 }
             }
         })
