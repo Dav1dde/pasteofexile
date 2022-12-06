@@ -85,7 +85,7 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
             .filter(|node| node.kind.is_keystone())
             .map(|node| Node {
                 name: node.name.to_owned(),
-                stats: Vec::new(), // unused in the frontend for Keystones
+                stats: stats_to_owned(node.stats),
             })
             .collect::<Vec<_>>();
         keystones.sort_unstable_by(|a, b| a.name.cmp(&b.name));
@@ -113,4 +113,8 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
     }
 
     data
+}
+
+fn stats_to_owned(stats: &[&str]) -> Vec<String> {
+    stats.iter().map(|&s| s.to_owned()).collect()
 }

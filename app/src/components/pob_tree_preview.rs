@@ -159,9 +159,10 @@ pub fn render_nodes<G: GenericNode + Html>(nodes: &Nodes) -> View<G> {
 
 fn render_keystone<G: GenericNode + Html>(node: &Node) -> View<G> {
     let name = node.name.to_owned();
+    let stats = node.stats.iter().join("\n");
 
     view! {
-        div(class="bg-slate-900 rounded-xl px-4 py-3") {
+        div(class="bg-slate-900 rounded-xl px-4 py-3", title=stats) {
             div(class="text-stone-200 text-sm md:text-base") { (name) }
         }
     }
