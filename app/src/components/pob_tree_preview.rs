@@ -39,8 +39,6 @@ pub fn pob_tree_preview(build: Build) -> View<G> {
         for tree in trees.iter() {
             if tree.active {
                 ResponseContext::preload(Prefetch::Image(tree.image_url.clone()));
-            } else {
-                ResponseContext::prefetch(Prefetch::Image(tree.image_url.clone()));
             }
         }
     }
