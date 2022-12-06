@@ -88,8 +88,17 @@ fn switch<G: Html>(route: ReadSignal<Route>, ctx: Option<Context>) -> View<G> {
             view.set(render(Page::from_hydration(&route.get())));
         }
 
+        // Always set up the effect even if hydrating to make sure
+        // the reactive scope is tracked correctly.
         crate::effect!(view, {
             let route = route.get();
+
+            // Don't actually have to fetch data, it's already there.
+            // Could also check if the view changed, but this might be trouble
+            // if you actually want to refresh the site/route.
+            if is_hydrating() {
+                return;
+            }
 
             sycamore::futures::spawn_local_in_scope(cloned!(view => async move {
                 view.set(render(Page::from_dynamic(&route).await))
