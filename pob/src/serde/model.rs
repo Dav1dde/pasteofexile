@@ -182,6 +182,7 @@ pub(crate) struct Tree {
 pub(crate) struct Spec {
     #[serde(default)]
     pub title: Option<String>,
+    #[serde(default)]
     #[serde_as(as = "StringWithSeparator::<CommaSeparator, u32>")]
     pub nodes: Vec<u32>,
     #[serde(default, deserialize_with = "lua_table")]
