@@ -152,7 +152,10 @@ impl B2 {
                     "download failed {}",
                     response.status_code()
                 );
-                Retry::err(Error::RemoteFailed(response.status_code(), "upload".into()))
+                Retry::err(Error::RemoteFailed(
+                    response.status_code(),
+                    "download".into(),
+                ))
             } else {
                 Retry::ok(response)
             }

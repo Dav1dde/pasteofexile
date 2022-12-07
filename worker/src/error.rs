@@ -7,7 +7,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("The requested '{0}' with does not exist")]
+    #[error("The requested '{0}' does not exist")]
     NotFound(&'static str, String),
 
     #[error("Request failed {0}: {1}")]
