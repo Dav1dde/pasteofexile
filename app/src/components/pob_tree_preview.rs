@@ -345,14 +345,17 @@ impl<G: GenericNode> TouchState<G> {
 }
 
 fn get_background_size(element: &HtmlElement) -> f32 {
-    web_sys::window()
+    let bg_size = web_sys::window()
         .unwrap()
         .get_computed_style(element)
         .unwrap()
         .unwrap()
         .get_property_value("background-size")
-        .unwrap()
-        .replace('%', "")
-        .parse()
-        .unwrap()
+        .unwrap();
+
+    if bg_size.is_empty() {
+        return 100.0;
+    }
+
+    bg_size.replace('%', "").parse().unwrap()
 }
