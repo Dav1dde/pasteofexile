@@ -59,10 +59,22 @@ fn process_file(
 ) -> anyhow::Result<()> {
     let pob = pob::SerdePathOfBuilding::from_export(content)?;
 
+    let (user, name) = if let Some(path) = file.name().strip_prefix("user/") {
+        let mut parts = path.split('/');
+        let user = parts.next().ok_or_else(|| anyhow::anyhow!("could not parse user"))?;
+        if parts.next() != Some("pastes") {
+            anyhow::bail!("invalid pattern, expected directory pastes");
+        }
+        let name = parts.next().ok_or_else(|| anyhow::anyhow!("could not parse file for user"))?;
+        (Some(user), name.to_owned())
+    } else {
+        (None, file.name().replace('/', ""))
+    };
+
     let version = pob.max_tree_version();
     let row = Row {
-        name: &file.name().replace('/', ""),
-        user: None,
+        name: &name,
+        user,
         class: pob.class_name(),
         ascendancy: pob.ascendancy_name(),
         main_skill: pob.main_skill_name(),
