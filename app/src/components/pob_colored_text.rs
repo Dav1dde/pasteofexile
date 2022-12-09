@@ -9,19 +9,26 @@ pub fn pob_tree_table(text: String) -> View<G> {
     View::new_fragment(t)
 }
 
+pub enum Style {
+    Class(&'static str),
+    Style(String),
+    None,
+}
+
+pub fn color_to_style(color: Color<'_>) -> Style {
+    match color {
+        Color::Hex(hex) => Style::Style(format!("color: #{hex}")),
+        Color::Named(name) => Style::Class(name_to_class(name)),
+        Color::None => Style::None,
+    }
+}
+
 fn render_fragment<G: GenericNode>((color, text): (Color, &str)) -> View<G> {
     let text = text.to_owned();
-
-    match color {
-        Color::Hex(hex) => {
-            let style = format!("color: #{hex}");
-            view! { span(style=style) { (text) } }
-        }
-        Color::Named(name) => {
-            let class = name_to_class(name);
-            view! { span(class=class) { (text) } }
-        }
-        Color::None => view! { span { (text) } },
+    match color_to_style(color) {
+        Style::Class(class) => view! { span(class=class) { (text) } },
+        Style::Style(style) => view! { span(style=style) { (text) } },
+        Style::None => view! { span { (text) } },
     }
 }
 

@@ -1,10 +1,12 @@
 use itertools::Itertools;
 use pob::{PathOfBuilding, Skill};
 use sycamore::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{Event, HtmlSelectElement};
 
-use crate::{build::Build, components::PobColoredText, pob::formatting::strip_colors};
+use crate::{
+    build::Build,
+    components::{PobColoredSelect, PobColoredSelectProps, PobColoredText},
+    pob::formatting::strip_colors,
+};
 
 #[component(PobGems<G>)]
 pub fn pob_gems(build: Build) -> View<G> {
@@ -23,24 +25,18 @@ pub fn pob_gems(build: Build) -> View<G> {
 
     let content = Signal::new(view! {});
 
-    let mut select = Vec::new();
-    for ss in skill_sets.iter() {
-        let id = ss.id;
-        let selected = ss.is_selected;
-        let title = ss
-            .title
-            .map(|s| s.to_owned())
-            .unwrap_or_else(|| id.to_string());
-        let view = view! { option(value=id, selected=selected) { span { (title) } } };
-        select.push(view)
-    }
-    let select = View::new_fragment(select);
-
-    let on_input = cloned!((build, content) => move |event: Event| {
-        let id = event.target().unwrap().unchecked_into::<HtmlSelectElement>()
-            .value().parse::<u16>().unwrap_or(u16::MAX);
-
-        if let Some(ss) = build.skill_sets().into_iter().find(|ss| ss.id == id) {
+    let options = skill_sets
+        .iter()
+        .map(|ss| {
+            ss.title
+                .map(|s| s.to_owned())
+                .unwrap_or_else(|| ss.id.to_string())
+        })
+        .collect();
+    let selected = skill_sets.iter().position(|ss| ss.is_selected);
+    let on_change = cloned!((build, content) => move |index| {
+        let Some(index) = index else { return };
+        if let Some(ss) = build.skill_sets().into_iter().nth(index) {
             content.set(render_skills(ss.skills));
         }
     });
@@ -50,7 +46,12 @@ pub fn pob_gems(build: Build) -> View<G> {
     }
 
     view! {
-        select(class="sm:ml-3 mt-1 mb-2 px-1", on:input=on_input) { (select) }
+        PobColoredSelect(PobColoredSelectProps {
+            options,
+            selected,
+            on_change,
+        })
+
         div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
             div() {
             (&*content.get())

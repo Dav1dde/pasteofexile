@@ -8,6 +8,7 @@ use sycamore::prelude::*;
 
 use crate::{
     components::{PasteToolbox, PasteToolboxProps},
+    consts::IMG_ONERROR_INVISIBLE,
     future::LocalBoxFuture,
     memo_cond,
     router::RoutedComponent,
@@ -138,7 +139,7 @@ fn summary_to_view<G: GenericNode + Html>(
                 img(src=image,
                     class="asc-image rounded-full",
                     alt="Ascendancy Thumbnail",
-                    onerror="this.style.visibility='hidden'") {}
+                    onerror=IMG_ONERROR_INVISIBLE) {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
                     span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary2.version) } }
                     span() { (summary3.main_skill_name) }

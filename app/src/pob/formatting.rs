@@ -1,7 +1,8 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum Color<'a> {
     Hex(&'a str),
     Named(u8),
+    #[default]
     None,
 }
 
@@ -83,6 +84,12 @@ pub fn strip_colors(text: &str) -> String {
     ColoredText::new(text).map(|(_, text)| text).collect()
 }
 
+pub fn only_first_color(text: &str) -> (Color<'_>, String) {
+    let mut ct = ColoredText::new(text).peekable();
+    let color = ct.peek().map(|(c, _)| *c).unwrap_or(Color::None);
+    (color, ct.map(|(_, text)| text).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use Color::*;
@@ -143,6 +150,16 @@ mod tests {
     #[test]
     fn test_strip_colors() {
         let x = strip_colors("foo^1bar^x001122 baz^brokenx");
+        assert_eq!(x, "foobar baz^brokenx");
+    }
+
+    #[test]
+    fn test_only_first_color() {
+        let (color, x) = only_first_color("foo^1bar^x001122 baz^brokenx");
+        assert_eq!(color, Color::None);
+        assert_eq!(x, "foobar baz^brokenx");
+        let (color, x) = only_first_color("^1foo^1bar^x001122 baz^brokenx");
+        assert_eq!(color, Color::Named(1));
         assert_eq!(x, "foobar baz^brokenx");
     }
 }

@@ -8,6 +8,7 @@ use crate::{
     async_callback,
     build::Build,
     components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
+    consts::IMG_ONERROR_HIDDEN,
     memo,
     pob::{self, Element},
 };
@@ -148,7 +149,7 @@ pub fn view_paste(
                     img(src=src,
                         class="asc-image rounded-full mr-3 -ml-2",
                         alt="Ascendancy Thumbnail",
-                        onerror="this.style.display='none'") {}
+                        onerror=IMG_ONERROR_HIDDEN) {}
                     span(class="pt-[3px]", data-marker-title="") { (title) }
                     sup(class="ml-1") {
                         span { (version) }

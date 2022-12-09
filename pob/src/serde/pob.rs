@@ -151,7 +151,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .any(|gem| gem.name == skill)
     }
 
-    fn skill_sets(&self) -> Vec<crate::SkillSet> {
+    fn skill_sets(&self) -> Vec<crate::SkillSet<'_>> {
         let main_socket_group = self.pob.build.main_socket_group as usize; // starts at 1
 
         // Old PoB, emulate skill sets (all skills in one fake skill set)

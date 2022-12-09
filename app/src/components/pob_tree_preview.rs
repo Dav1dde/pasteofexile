@@ -5,10 +5,10 @@ use pob::TreeSpec;
 use shared::model::{Node, Nodes};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{Event, HtmlElement, HtmlSelectElement, PointerEvent};
+use web_sys::{Event, HtmlElement, PointerEvent};
 
 use crate::build::Build;
-use crate::components::PobColoredText;
+use crate::components::{PobColoredSelect, PobColoredSelectProps};
 use crate::{memo, Prefetch, ResponseContext};
 
 #[derive(Debug)]
@@ -196,32 +196,15 @@ where
         return view! {};
     }
 
-    let select = trees
-        .iter()
-        .enumerate()
-        .map(|(i, t)| {
-            let name = t.name.clone();
-            let active = t.active;
-            view! { option(value=i, selected=active) { span { PobColoredText(name) } } }
-        })
-        .collect::<Vec<_>>();
-    let select = View::new_fragment(select);
-
-    let on_input = move |event: web_sys::Event| {
-        let event = event.unchecked_into::<web_sys::InputEvent>();
-        let element = event
-            .target()
-            .unwrap()
-            .unchecked_into::<HtmlSelectElement>();
-
-        let index = element.selected_index();
-        if index >= 0 && index < trees.len() as i32 {
-            on_change(&trees[index as usize]);
-        }
-    };
+    let options = trees.iter().map(|t| t.name.clone()).collect();
+    let selected = trees.iter().position(|t| t.active);
 
     view! {
-        select(class="sm:ml-3 mt-1 px-1", on:input=on_input) { (select) }
+        PobColoredSelect(PobColoredSelectProps {
+            options,
+            selected,
+            on_change: move |index| if let Some(index) = index { on_change(&trees[index]) },
+        })
     }
 }
 
