@@ -3,74 +3,62 @@ use shared::model::{Nodes, PasteMetadata, PasteSummary, UserPasteId};
 use crate::Route;
 
 pub struct Context {
-    route: Option<Route>,
-    host: String,
+    route: Result<Route, crate::Error>,
     inner: Inner,
 }
 
 impl Context {
-    pub fn empty() -> Self {
+    pub fn error(err: crate::Error) -> Self {
         Self {
-            route: None,
-            host: "".to_owned(),
+            route: Err(err),
             inner: Inner::None,
         }
     }
 
-    pub fn index(host: String) -> Self {
+    pub fn index() -> Self {
         Self {
-            route: Some(Route::Index),
-            host,
+            route: Ok(Route::Index),
             inner: Inner::None,
         }
     }
 
-    pub fn not_found(host: String) -> Self {
+    pub fn not_found() -> Self {
         Self {
-            route: Some(Route::NotFound),
-            host,
+            route: Ok(Route::NotFound),
             inner: Inner::None,
         }
     }
 
-    pub fn paste(host: String, name: String, paste: shared::model::Paste) -> Self {
+    pub fn paste(name: String, paste: shared::model::Paste) -> Self {
         Self {
-            route: Some(Route::Paste(name)),
-            host,
+            route: Ok(Route::Paste(name)),
             inner: paste.into(),
         }
     }
 
-    pub fn user(host: String, name: shared::User, pastes: Vec<PasteSummary>) -> Self {
+    pub fn user(name: shared::User, pastes: Vec<PasteSummary>) -> Self {
         Self {
-            route: Some(Route::User(name)),
-            host,
+            route: Ok(Route::User(name)),
             inner: Inner::User(pastes),
         }
     }
 
-    pub fn user_paste(host: String, up: UserPasteId, paste: shared::model::Paste) -> Self {
+    pub fn user_paste(up: UserPasteId, paste: shared::model::Paste) -> Self {
         Self {
-            route: Some(Route::UserPaste(up.user, up.id)),
-            host,
+            route: Ok(Route::UserPaste(up.user, up.id)),
             inner: paste.into(),
         }
     }
 
-    pub fn user_paste_edit(host: String, up: UserPasteId, paste: shared::model::Paste) -> Self {
+    pub fn user_paste_edit(up: UserPasteId, paste: shared::model::Paste) -> Self {
         Self {
-            route: Some(Route::UserEditPaste(up.user, up.id)),
-            host,
+            route: Ok(Route::UserEditPaste(up.user, up.id)),
             inner: paste.into(),
         }
     }
 
-    pub fn route(&self) -> Option<&Route> {
+    pub fn route(&self) -> Result<&Route, &crate::Error> {
         self.route.as_ref()
-    }
-
-    pub fn host(&self) -> &str {
-        &self.host
     }
 
     // TODO: I dont like this get_* naming

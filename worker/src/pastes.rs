@@ -18,9 +18,8 @@ impl Pastes {
     pub async fn get_paste(&self, id: &PasteId) -> crate::Result<Option<(Meta, Paste)>> {
         let Some(stored) = self.storage.get(id).await? else { return Ok(None) };
 
-        let pob = SerdePathOfBuilding::from_export(&stored.content).map_err(|e| {
-            crate::Error::InvalidPoB(format!("invalid pob stored: {e}"), String::new())
-        })?;
+        let pob = SerdePathOfBuilding::from_export(&stored.content)
+            .map_err(|e| crate::Error::InvalidPoB(e, String::new()))?;
 
         let paste = Paste {
             metadata: stored.metadata,

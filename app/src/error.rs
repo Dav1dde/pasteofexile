@@ -23,4 +23,7 @@ pub enum Error {
 
     #[error(transparent)]
     PobError(#[from] pob::Error),
+
+    #[error("{0}")]
+    ServerError(String),
 }

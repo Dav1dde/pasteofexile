@@ -291,7 +291,7 @@ fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
     // Generic 401, probably just actually bad data
     let s = pob::decompress(s).map_err(|e| Error::BadRequest(e.to_string()))?;
     // More specific error for a separate Sentry categoy
-    SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e.to_string(), s))
+    SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e, s))
 }
 
 fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {

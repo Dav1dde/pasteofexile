@@ -48,11 +48,10 @@ async fn build_context(
     route: app::Route,
 ) -> Result<(ResponseInfo, app::Context)> {
     // TODO: refactor this context garbage, maybe make it into a trait?
-    let host = rctx.url()?.host_str().unwrap().to_owned();
     use app::{Context, Route::*};
     let (info, ctx) = match route {
-        Index => (ResponseInfo::default(), Context::index(host)),
-        NotFound => (ResponseInfo::default(), Context::not_found(host)),
+        Index => (ResponseInfo::default(), Context::index()),
+        NotFound => (ResponseInfo::default(), Context::not_found()),
         Paste(id) => {
             let id = PasteId::new_id(id);
             // TODO: handle 404
@@ -68,11 +67,11 @@ async fn build_context(
             match rctx.pastes()?.get_paste(&id).await {
                 Ok(Some((meta, paste))) => {
                     info.etag = Some(meta.etag);
-                    (info, Context::paste(host, id.to_string(), paste))
+                    (info, Context::paste(id.to_string(), paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
                     info.etag = Some("not_found".to_owned());
-                    (info, Context::not_found(host))
+                    (info, Context::not_found())
                 }
                 Err(err) => return Err(err),
             }
@@ -86,7 +85,7 @@ async fn build_context(
                 ..Default::default()
             };
 
-            (info, Context::user(host, user, pastes))
+            (info, Context::user(user, pastes))
         }
         UserPaste(user, id) => {
             let id = PasteId::new_user(user, id);
@@ -101,11 +100,11 @@ async fn build_context(
             match rctx.pastes()?.get_paste(&id).await {
                 Ok(Some((meta, paste))) => {
                     info.etag = Some(meta.etag);
-                    (info, Context::user_paste(host, id.unwrap_user(), paste))
+                    (info, Context::user_paste(id.unwrap_user(), paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
                     info.etag = Some("not_found".to_owned());
-                    (info, Context::not_found(host))
+                    (info, Context::not_found())
                 }
                 Err(err) => return Err(err),
             }
@@ -116,7 +115,7 @@ async fn build_context(
                 ..Default::default()
             };
 
-            (info, Context::not_found(host))
+            (info, Context::not_found())
         }
     };
 
@@ -202,7 +201,14 @@ async fn try_main(rctx: &mut RequestContext) -> Result<Response> {
 }
 
 async fn try_handle_app(rctx: &RequestContext, route: app::Route) -> Result<Response> {
-    let (info, ctx) = build_context(rctx, route).await?;
+    let (info, ctx) = build_context(rctx, route).await.unwrap_or_else(|err| {
+        let err = match err {
+            Error::InvalidPoB(err, _) => app::Error::PobError(err),
+            err => app::Error::ServerError(err.to_string()),
+        };
+
+        (ResponseInfo::default(), app::Context::error(err))
+    });
 
     if let Some(location) = info.redirect {
         return Response::redirect_perm(&location);

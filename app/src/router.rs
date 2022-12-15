@@ -50,60 +50,66 @@ pub trait RoutedComponent<G: Html>: Component<G> {
 
 #[component(Router<G>)]
 pub fn router(ctx: Option<Context>) -> View<G> {
-    let route = ctx.as_ref().and_then(|ctx| ctx.route().cloned());
-
-    route
-        .map(|route| {
-            // Fix hydration. During SSR there is no router component, while there is one
-            // at and after hydration. Artificially introduce a component without actually
-            // using a component.
-            // Can't use the `StaticRouter` because then we'd have to clone the context.
-            sycamore::utils::hydrate::hydrate_component(|| switch(Signal::new(route).handle(), ctx))
-        })
-        .unwrap_or_else(|| {
-            view! {
-                DynRouter(RouterProps::new(HistoryIntegration::new(), switch_none))
-            }
-        })
+    ctx.map(|ctx| {
+        // Fix hydration. During SSR there is no router component, while there is one
+        // at and after hydration. Artificially introduce a component without actually
+        // using a component.
+        // Can't use the `StaticRouter` because then we'd have to clone the context.
+        sycamore::utils::hydrate::hydrate_component(|| switch(Switch::Static(ctx)))
+    })
+    .unwrap_or_else(|| {
+        view! {
+            DynRouter(RouterProps::new(HistoryIntegration::new(), switch_browser))
+        }
+    })
 }
 
-fn switch_none<G: Html>(route: ReadSignal<Route>) -> View<G> {
-    switch(route, None)
+#[allow(clippy::large_enum_variant)]
+enum Switch {
+    Static(Context),
+    Dynamic(ReadSignal<Route>),
 }
 
-fn switch<G: Html>(route: ReadSignal<Route>, ctx: Option<Context>) -> View<G> {
+fn switch_browser<G: Html>(route: ReadSignal<Route>) -> View<G> {
+    switch(Switch::Dynamic(route))
+}
+
+fn switch<G: Html>(switch: Switch) -> View<G> {
     // TODO: loading view?
     let view = Signal::new(View::empty());
     let store = Signal::new("");
 
-    if let Some(ctx) = ctx {
-        let page = Page::from_context(ctx);
-        // During SSR store the page, so we can recover it during hydration
-        if let Some(s) = page.store() {
-            store.set(s);
+    match switch {
+        Switch::Static(ctx) => {
+            let page = Page::from_context(ctx);
+            // During SSR store the page, so we can recover it during hydration
+            if let Some(s) = page.store() {
+                store.set(s);
+            }
+            view.set(render(page));
         }
-        view.set(render(page));
-    } else {
-        if is_hydrating() {
-            view.set(render(Page::from_hydration(&route.get())));
-        }
-
-        // Always set up the effect even if hydrating to make sure
-        // the reactive scope is tracked correctly.
-        crate::effect!(view, {
-            let route = route.get();
-
-            // Don't actually have to fetch data, it's already there.
-            // Could also check if the view changed, but this might be trouble
-            // if you actually want to refresh the site/route.
+        Switch::Dynamic(route) => {
             if is_hydrating() {
-                return;
+                view.set(render(Page::from_hydration(&route.get())));
             }
 
-            sycamore::futures::spawn_local_in_scope(cloned!(view => async move {
-                view.set(render(Page::from_dynamic(&route).await))
-            }));
-        });
+            // Always set up the effect even if hydrating to make sure
+            // the reactive scope is tracked correctly.
+            crate::effect!(view, {
+                let route = route.get();
+
+                // Don't actually have to fetch data, it's already there.
+                // Could also check if the view changed, but this might be trouble
+                // if you actually want to refresh the site/route.
+                if is_hydrating() {
+                    return;
+                }
+
+                sycamore::futures::spawn_local_in_scope(cloned!(view => async move {
+                    view.set(render(Page::from_dynamic(&route).await))
+                }));
+            });
+        }
     }
 
     view! { div(data-route=*store.get()) { (view.get().as_ref().clone()) } }
@@ -122,16 +128,20 @@ enum Page<G: Html> {
 
 impl<G: Html> Page<G> {
     fn from_context(ctx: Context) -> Self {
+        tracing::info!("LOL");
         let page = try_block! {
-            Ok::<_, Error>(match ctx.route().unwrap() {
-                Route::Index => Self::Index,
-                Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_context(arg.clone(), ctx)?),
-                Route::User(arg) => Self::User(pages::UserPage::<G>::from_context(arg.clone(), ctx)?),
-                Route::UserPaste(user, id) =>
+            Ok::<_, Error>(match ctx.route() {
+                Ok(Route::Index) => Self::Index,
+                Ok(Route::Paste(arg)) =>
+                    Self::Paste(pages::PastePage::<G>::from_context(arg.clone(), ctx)?),
+                Ok(Route::User(arg)) =>
+                    Self::User(pages::UserPage::<G>::from_context(arg.clone(), ctx)?),
+                Ok(Route::UserPaste(user, id)) =>
                     Self::UserPaste(pages::UserPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
-                Route::UserEditPaste(user, id) =>
+                Ok(Route::UserEditPaste(user, id)) =>
                     Self::UserEditPaste(pages::UserEditPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
-                Route::NotFound => Self::NotFound,
+                Ok(Route::NotFound) => Self::NotFound,
+                Err(err) => Self::resolve_err(err),
             })
         };
 
@@ -234,11 +244,10 @@ impl<G: Html> Page<G> {
     }
 
     fn resolve(r: Result<Self>) -> Self {
-        let err = match r {
-            Ok(page) => return page,
-            Err(err) => err,
-        };
+        r.unwrap_or_else(|e| Self::resolve_err(&e))
+    }
 
+    fn resolve_err(err: &Error) -> Self {
         tracing::warn!("encountered error: {:?}", err);
         // TODO: error context on these errors,
         // e.g. not found page displaying the resource type

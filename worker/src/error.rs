@@ -29,8 +29,7 @@ pub enum Error {
     AccessDenied,
 
     #[error("{0}")]
-    // error, XML
-    InvalidPoB(String, String),
+    InvalidPoB(pob::Error, String),
 
     #[error("{0}")]
     InvalidId(&'static str),
