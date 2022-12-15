@@ -13,7 +13,7 @@ use-kv-storage = []
 
 [dependencies]
 app = { path = "../app", features = ["ssr"], default-features = false }
-pob = { path = "../pob/" }
+pob = { path = "../pob/", features = ["better-errors"] }
 poe-tree = { path = "../poe-tree/" }
 shared = { path = "../shared/" }
 

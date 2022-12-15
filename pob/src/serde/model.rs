@@ -1,9 +1,6 @@
-use serde::de;
-use serde::Deserialize;
-use serde_with::serde_as;
-use serde_with::{formats::CommaSeparator, StringWithSeparator};
+use serde::{de, Deserialize};
 
-use crate::serde::utils::{lua_table, u8_or_nil};
+use crate::serde::utils;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct PathOfBuilding {
@@ -107,7 +104,7 @@ pub(crate) struct SkillSet {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Skill {
-    #[serde(default, deserialize_with = "u8_or_nil")]
+    #[serde(default, deserialize_with = "utils::u8_or_nil")]
     pub main_active_skill: u8,
     #[serde(default)]
     pub enabled: bool,
@@ -115,7 +112,7 @@ pub(crate) struct Skill {
     pub label: Option<String>,
     #[serde(default)]
     pub slot: Option<String>,
-    #[serde(default, rename = "$value")]
+    #[serde(default, rename = "Gem")]
     pub gems: Vec<Gem>,
 }
 
@@ -136,11 +133,11 @@ pub(crate) struct Gem {
     pub name: String,
     pub skill_id: Option<String>,
     pub gem_id: Option<String>,
-    #[serde(default = "super::utils::default_true")]
+    #[serde(default = "utils::default_true")]
     pub enabled: bool,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "utils::lenient")]
     pub level: u8,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "utils::lenient")]
     pub quality: u8,
 }
 
@@ -176,16 +173,14 @@ pub(crate) struct Tree {
     pub specs: Vec<Spec>,
 }
 
-#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Spec {
     #[serde(default)]
     pub title: Option<String>,
-    #[serde(default)]
-    #[serde_as(as = "StringWithSeparator::<CommaSeparator, u32>")]
+    #[serde(default, deserialize_with = "utils::comma_separated")]
     pub nodes: Vec<u32>,
-    #[serde(default, deserialize_with = "lua_table")]
+    #[serde(default, deserialize_with = "utils::lua_table")]
     pub mastery_effects: Vec<(u32, u32)>,
     #[serde(default, rename = "URL")]
     pub url: Option<String>,

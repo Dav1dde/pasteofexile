@@ -13,6 +13,6 @@ pub enum Error {
     #[error("failed to deflate/decompress input: {0}")]
     Deflate(std::io::Error),
 
-    #[error("failed to parse input XML: {0:?}")]
-    ParseXml(#[from] quick_xml::de::DeError),
+    #[error("failed to parse build at: {0} ({1})")]
+    ParseXml(String, quick_xml::de::DeError),
 }

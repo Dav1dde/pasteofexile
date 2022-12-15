@@ -122,7 +122,7 @@
 	</Calcs>
 	<Skills sortGemsByDPSField="CombinedDPS" sortGemsByDPS="true" defaultGemQuality="0" defaultGemLevel="20" showSupportGemTypes="ALL" showAltQualityGems="false">
 		<Skill mainActiveSkillCalcs="1" includeInFullDPS="true" label="" groupCount="nil" enabled="true" slot="Body Armour" mainActiveSkill="1">
-			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportVoidManipulation" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemVoidManipulation" quality="20" enabled="true" count="1" nameSpec="Void Manipulation" skillMinion="SummonedReaper"/>
+			<Gem enableGlobal2="false" level="500" enableGlobal1="true" skillId="SupportVoidManipulation" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemVoidManipulation" quality="550" enabled="true" count="1" nameSpec="Void Manipulation" skillMinion="SummonedReaper"/>
 			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="PoisonousConcoction" qualityId="Default" skillPart="2" gemId="Metadata/Items/Gems/SkillGemPoisonousConcoction" quality="20" enabled="true" skillPartCalcs="1" count="7" nameSpec="Poisonous Concoction" skillMinion="SummonedPhantasm"/>
 			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportAilments" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemUnboundAilments" quality="20" enabled="true" count="1" nameSpec="Unbound Ailments" skillMinion="SummonedReaper"/>
 			<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportGreaterMultipleProjectiles" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemGreaterMultipleProjectiles" quality="20" enabled="true" count="1" nameSpec="Greater Multiple Projectiles" skillMinion="SummonedReaper"/>

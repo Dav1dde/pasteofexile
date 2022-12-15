@@ -9,7 +9,21 @@ pub struct SerdePathOfBuilding {
 
 impl SerdePathOfBuilding {
     pub fn from_xml(s: &str) -> Result<Self> {
-        let pob = quick_xml::de::from_str(s).map_err(Error::ParseXml)?;
+        let mut xd = quick_xml::de::Deserializer::from_reader(s.as_bytes());
+
+        #[cfg(feature = "better-errors")]
+        let pob = match serde_path_to_error::deserialize(&mut xd) {
+            Ok(pob) => pob,
+            Err(err) => {
+                let path = err.path().to_string();
+                return Err(Error::ParseXml(path, err.into_inner()));
+            }
+        };
+
+        #[cfg(not(feature = "better-errors"))]
+        let pob = serde::Deserialize::deserialize(&mut xd)
+            .map_err(|e| Error::ParseXml("Unknown".to_owned(), e))?;
+
         Ok(Self { pob })
     }
 
@@ -307,6 +321,13 @@ mod tests {
         assert!(pob.has_keystone(Keystone::MindOverMatter));
 
         assert_eq!(Some("3.19".to_owned()), pob.max_tree_version());
+
+        // Level and quality overflow the u8, they should fall back to Default::default()
+        assert_eq!(0, pob.skill_sets()[0].skills[0].gems[0].level);
+        assert_eq!(0, pob.skill_sets()[0].skills[0].gems[0].quality);
+        // No overflows
+        assert_eq!(20, pob.skill_sets()[0].skills[0].gems[1].level);
+        assert_eq!(20, pob.skill_sets()[0].skills[0].gems[1].quality);
 
         // TODO: test configs
     }

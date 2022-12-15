@@ -4,12 +4,15 @@ version = "0.1.0"
 authors = ["David Herberth <github@dav1d.de>"]
 edition = "2021"
 
+[features]
+better-errors = ["serde_path_to_error"]
+
 [dependencies]
 flate2 = "1"
 log = "0.4"
 base64 = "0.13"
 serde = { version = "1.0.139", features = ["derive"] }
-serde_with = "2.1"
 quick-xml = { version = "0.22", features = ["serialize"] }
 thiserror = "1"
 encoding = "0.2"
+serde_path_to_error = { version = "0.1", optional = true }
