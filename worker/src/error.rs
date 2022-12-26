@@ -28,6 +28,12 @@ pub enum Error {
     #[error("Access Denied")]
     AccessDenied,
 
+    #[error("Missing Authorization Grant")]
+    MissingAuthorizationGrant,
+
+    #[error("Invalid Session State")]
+    InvalidSessionState,
+
     #[error("{0}")]
     InvalidPoB(pob::Error, String),
 
@@ -57,12 +63,29 @@ impl Error {
             Self::Worker(..) => "Worker",
             Self::BadRequest(..) => "BadRequest",
             Self::AccessDenied => "AccessDenied",
+            Self::MissingAuthorizationGrant => "MissingAuthorizationGrant",
+            Self::InvalidSessionState => "InvalidSessionState",
             Self::InvalidPoB(..) => "InvalidPoB",
             Self::InvalidId(..) => "InvalidId",
             Self::Dangerous(..) => "DangerousError",
             Self::Base64(..) => "Base64",
             Self::IOError(..) => "IOError",
             Self::Error(..) => "Error",
+        }
+    }
+
+    pub fn status_code(&self) -> u16 {
+        match self {
+            Self::NotFound(..) | Self::InvalidId(..) => 404,
+            Self::BadRequest(..) | Self::InvalidPoB(..) => 400,
+            Self::AccessDenied | Self::MissingAuthorizationGrant | Self::InvalidSessionState => 403,
+            Self::Dangerous(err) => match err {
+                DangerousError::BadEncoding => 400,
+                DangerousError::BadSignature => 400,
+                DangerousError::Deserialize => 400,
+                _ => 500,
+            },
+            _ => 500,
         }
     }
 
@@ -75,6 +98,8 @@ impl Error {
             Self::Worker(..) => Level::Error,
             Self::BadRequest(..) => Level::Info,
             Self::AccessDenied => Level::Info,
+            Self::MissingAuthorizationGrant => Level::Info,
+            Self::InvalidSessionState => Level::Info,
             Self::InvalidId(..) => Level::Info,
             Self::InvalidPoB(..) => Level::Error,
             Self::Dangerous(err) => match err {
@@ -115,44 +140,17 @@ impl From<wasm_bindgen::JsValue> for Error {
     }
 }
 
+impl From<Error> for crate::Response {
+    fn from(err: Error) -> Self {
+        crate::Response::status(err.status_code()).json(&ErrorResponse {
+            code: err.status_code(),
+            message: err.to_string(),
+        })
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
     pub code: u16,
     pub message: String,
-}
-
-impl From<Error> for ErrorResponse {
-    fn from(err: Error) -> Self {
-        match err {
-            err @ Error::NotFound(..) => ErrorResponse {
-                code: 404,
-                message: err.to_string(),
-            },
-            err @ Error::BadRequest(..) | err @ Error::InvalidPoB(..) => ErrorResponse {
-                code: 400,
-                message: err.to_string(),
-            },
-            err @ Error::AccessDenied => ErrorResponse {
-                code: 403,
-                message: err.to_string(),
-            },
-            Error::Dangerous(err) => ErrorResponse {
-                code: match err {
-                    DangerousError::BadEncoding => 400,
-                    DangerousError::BadSignature => 400,
-                    DangerousError::Deserialize => 400,
-                    _ => 500,
-                },
-                message: err.to_string(),
-            },
-            Error::InvalidId(message) => ErrorResponse {
-                code: 404,
-                message: message.to_owned(),
-            },
-            err => ErrorResponse {
-                code: 500,
-                message: err.to_string(),
-            },
-        }
-    }
 }

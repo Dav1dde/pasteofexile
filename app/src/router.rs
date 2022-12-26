@@ -5,8 +5,10 @@ use sycamore_router::{HistoryIntegration, Router as DynRouter, RouterProps};
 use web_sys::Element;
 
 use crate::{
-    future::LocalBoxFuture, pages, try_block, utils::is_hydrating, Context, Error, Meta,
-    ResponseContext, Result,
+    future::LocalBoxFuture,
+    pages, try_block,
+    utils::{deserialize_from_attribute, is_hydrating, serialize_for_attribute},
+    Context, Error, Meta, ResponseContext, Result,
 };
 
 #[derive(Clone, Debug, sycamore_router::Route)]
@@ -77,14 +79,17 @@ fn switch_browser<G: Html>(route: ReadSignal<Route>) -> View<G> {
 fn switch<G: Html>(switch: Switch) -> View<G> {
     // TODO: loading view?
     let view = Signal::new(View::empty());
-    let store = Signal::new("");
+
+    let mut stored_route = "";
+    let mut stored_state = None;
 
     match switch {
         Switch::Static(ctx) => {
             let page = Page::from_context(ctx);
             // During SSR store the page, so we can recover it during hydration
-            if let Some(s) = page.store() {
-                store.set(s);
+            if let Some((route, state)) = page.store() {
+                stored_route = route;
+                stored_state = state;
             }
             view.set(render(page));
         }
@@ -112,7 +117,12 @@ fn switch<G: Html>(switch: Switch) -> View<G> {
         }
     }
 
-    view! { div(data-route=*store.get()) { (view.get().as_ref().clone()) } }
+    let stored_state = stored_state.unwrap_or_default();
+    view! {
+        div(data-route=stored_route, data-state=stored_state) {
+            (view.get().as_ref().clone())
+        }
+    }
 }
 
 enum Page<G: Html> {
@@ -121,14 +131,11 @@ enum Page<G: Html> {
     User(<pages::UserPage<G> as Component<G>>::Props),
     UserPaste(<pages::UserPastePage<G> as Component<G>>::Props),
     UserEditPaste(<pages::UserEditPastePage<G> as Component<G>>::Props),
-    NotFound,
-    ServerError,
-    InvalidBuildCode,
+    Error(u16, String),
 }
 
 impl<G: Html> Page<G> {
     fn from_context(ctx: Context) -> Self {
-        tracing::info!("LOL");
         let page = try_block! {
             Ok::<_, Error>(match ctx.route() {
                 Ok(Route::Index) => Self::Index,
@@ -140,18 +147,15 @@ impl<G: Html> Page<G> {
                     Self::UserPaste(pages::UserPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
                 Ok(Route::UserEditPaste(user, id)) =>
                     Self::UserEditPaste(pages::UserEditPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
-                Ok(Route::NotFound) => Self::NotFound,
+                Ok(Route::NotFound) => Self::not_found(),
                 Err(err) => Self::resolve_err(err),
             })
         };
 
         let page = Self::resolve(page);
 
-        match page {
-            Self::NotFound => ResponseContext::set_status_code(404),
-            Self::InvalidBuildCode => ResponseContext::set_status_code(400),
-            Self::ServerError => ResponseContext::set_status_code(500),
-            _ => (),
+        if let Self::Error(status_code, _) = page {
+            ResponseContext::set_status_code(status_code);
         }
 
         if let Ok(meta) = page.meta() {
@@ -179,10 +183,11 @@ impl<G: Html> Page<G> {
         // Recover a page that was stored during SSR.
         // This usually happens when we were supposed to render a page, but the page threw an error
         // and it was in place redirected to an error page.
+        let stored_state = element.get_attribute("data-state");
         let stored_page = element
             .get_attribute("data-route")
             .as_deref()
-            .and_then(Self::restore);
+            .and_then(|route| Self::restore(route, stored_state));
 
         if let Some(page) = stored_page {
             return page;
@@ -193,9 +198,13 @@ impl<G: Html> Page<G> {
                 Route::Index => Self::Index,
                 Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_hydration(arg.clone(), element)?),
                 Route::User(arg) => Self::User(pages::UserPage::<G>::from_hydration(arg.clone(), element)?),
-                Route::UserPaste(user, id) => Self::UserPaste(pages::UserPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?),
-                Route::UserEditPaste(user, id) => Self::UserEditPaste(pages::UserEditPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?),
-                Route::NotFound => Self::NotFound,
+                Route::UserPaste(user, id) => Self::UserPaste(
+                    pages::UserPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?
+                ),
+                Route::UserEditPaste(user, id) => Self::UserEditPaste(
+                    pages::UserEditPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?
+                ),
+                Route::NotFound => Self::not_found(),
             })
         };
 
@@ -220,7 +229,7 @@ impl<G: Html> Page<G> {
                 Route::UserEditPaste(user, id) => {
                     Self::UserEditPaste(pages::UserEditPastePage::<G>::from_dynamic((user.clone(), id.clone())).await?)
                 },
-                Route::NotFound => Self::NotFound,
+                Route::NotFound => Self::not_found(),
             })
         };
 
@@ -252,11 +261,11 @@ impl<G: Html> Page<G> {
         // TODO: error context on these errors,
         // e.g. not found page displaying the resource type
         match err {
-            Error::NotFound(_, _) => Self::NotFound,
+            Error::NotFound(_, _) => Self::Error(404, "Not Found".to_owned()),
             // TODO: rethink this, if this happens because of a pastebin.com build this is fine and
             // a 400 status code, if this happens on an uploaded paste, this is a problem.
-            Error::PobError(_) => Self::InvalidBuildCode,
-            _ => Self::ServerError,
+            Error::PobError(_) => Self::Error(400, "Invalid Build Code".to_owned()),
+            _ => Self::Error(500, "Unknown Error".to_owned()),
         }
     }
 
@@ -267,28 +276,38 @@ impl<G: Html> Page<G> {
             Self::User(ref props) => pages::UserPage::<G>::meta(props),
             Self::UserPaste(ref props) => pages::UserPastePage::<G>::meta(props),
             Self::UserEditPaste(ref props) => pages::UserEditPastePage::<G>::meta(props),
-            Self::NotFound => Ok(Meta::not_found()),
-            Self::ServerError => Ok(Meta::server_error()),
-            Self::InvalidBuildCode => Ok(Meta::error("Invalid build code")),
+            Self::Error(_, message) => Ok(Meta::error(message)),
         }
     }
 
-    fn store(&self) -> Option<&'static str> {
-        match self {
-            Self::NotFound => Some("not_found"),
-            Self::InvalidBuildCode => Some("invalid_build_code"),
-            Self::ServerError => Some("server_error"),
-            _ => None,
-        }
+    /// Used to serialize meta pages which can not be inferred from a route.
+    ///
+    /// Meta pages are pages like error pages which can happen under any route.
+    /// These pages need to remember on hydration and need to be restored
+    /// as such again.
+    ///
+    /// Returns a pair of meta identifier and its state.
+    fn store(&self) -> Option<(&'static str, Option<String>)> {
+        // Sync with `Self::restore`.
+        let Self::Error(status_code, message) = self else { return None };
+
+        let state = serialize_for_attribute(&(status_code, message));
+        Some(("error", Some(state)))
     }
 
-    fn restore<'a>(previous: impl Into<Option<&'a str>>) -> Option<Self> {
-        match previous.into()? {
-            "not_found" => Some(Self::NotFound),
-            "invalid_build_code" => Some(Self::InvalidBuildCode),
-            "server_error" => Some(Self::ServerError),
-            _ => None,
+    /// Deserializes a meta page from its identifier and state.
+    fn restore(previous: &str, state: Option<String>) -> Option<Self> {
+        // Sync with `Self::store`.
+        if previous != "error" {
+            return None;
         }
+
+        let (code, message) = deserialize_from_attribute(&state.expect("route state"));
+        Some(Self::Error(code, message))
+    }
+
+    fn not_found() -> Self {
+        Self::Error(404, "Not Found".to_owned())
     }
 }
 
@@ -309,14 +328,20 @@ fn render<G: Html>(page: Page<G>) -> View<G> {
         Page::UserEditPaste(props) => view! {
             pages::UserEditPastePage(props)
         },
-        Page::NotFound => view! {
-            "404 Not Found"
+        Page::Error(status_code, message) => view! {
+            // This needs to be in a component to not interfere with hydration.
+            // A new hydration level is introduced per component, this
+            // makes sure elements defined here don't mess with hydration
+            // levels of other branches.
+            DisplayError((status_code, message))
         },
-        Page::ServerError => view! {
-            "Unknown Error"
-        },
-        Page::InvalidBuildCode => view! {
-            "Invalid build code"
-        },
+    }
+}
+
+#[component(DisplayError<G>)]
+pub fn display_error((status_code, message): (u16, String)) -> View<G> {
+    view! {
+        span(class="pr-2") { (status_code) }
+        span() { (message) }
     }
 }

@@ -6,15 +6,15 @@ use shared::{
     model::{PasteId, PasteMetadata},
     validation, User,
 };
-use worker::{Headers, Response};
 
 use crate::{
     consts, crypto, poe_api,
     request_context::RequestContext,
+    response,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
     sentry,
-    utils::{self, CacheControl, RequestExt, ResponseExt},
-    Error, Result,
+    utils::{self, CacheControl, RequestExt},
+    Error, Response, Result,
 };
 
 macro_rules! validate {
@@ -48,46 +48,47 @@ macro_rules! validate_access {
     };
 }
 
-pub async fn try_handle(rctx: &mut RequestContext, route: route::Api) -> Result<Option<Response>> {
-    match route {
-        route::Api::Get(get) => match get {
-            GetEndpoints::Oembed => handle_oembed(rctx).await.map(Some),
-            GetEndpoints::User(user) => handle_user(rctx, user).await.map(Some),
-            GetEndpoints::PobPaste(id) => handle_download_text(rctx, id).await.map(Some),
-            GetEndpoints::PobUserPaste(user, id) => {
-                handle_download_text(rctx, PasteId::new_user(user, id))
-                    .await
-                    .map(Some)
-            }
-            GetEndpoints::Paste(id) => handle_download_text(rctx, PasteId::Paste(id))
-                .await
-                .map(Some),
-            GetEndpoints::UserPaste(user, id) => {
-                handle_download_text(rctx, PasteId::new_user(user, id))
-                    .await
-                    .map(Some)
-            }
-            GetEndpoints::PasteJson(id) => handle_download_json(rctx, PasteId::Paste(id))
-                .await
-                .map(Some),
-            GetEndpoints::UserPasteJson(user, id) => {
-                handle_download_json(rctx, PasteId::new_user(user, id))
-                    .await
-                    .map(Some)
-            }
-            GetEndpoints::Login => handle_login(rctx).await.map(Some),
-            GetEndpoints::Oauht2Poe => handle_oauth2_poe(rctx).await.map(Some),
-            GetEndpoints::NotFound => Ok(None),
-        },
-        route::Api::Post(post) => match post {
-            PostEndpoints::Upload() => handle_upload(rctx).await.map(Some),
-            PostEndpoints::PobUpload() => handle_pob_upload(rctx).await.map(Some),
-            PostEndpoints::NotFound => Ok(None),
-        },
-        route::Api::Delete(delete) => match delete {
-            DeleteEndpoints::DeletePaste(id) => handle_delete_paste(rctx, id).await.map(Some),
-            DeleteEndpoints::NotFound => Ok(None),
-        },
+pub async fn handle(rctx: &mut RequestContext, route: route::Api) -> response::Result {
+    use route::{Api::*, DeleteEndpoints::*, GetEndpoints::*, PostEndpoints::*};
+
+    // Whether this is a user facing API call.
+    //
+    // Currently this can happen on some API endpoints related to login/auth,
+    // these are handled as API endpoints but are user facing, meaning
+    // the user would expect a proper error page not just some JSON.
+    let is_user_api = matches!(&route, Get(Login) | Get(Oauht2Poe));
+
+    let r = match route {
+        // Get
+        Get(Oembed) => handle_oembed(rctx).await,
+        Get(User(user)) => handle_user(rctx, user).await,
+        Get(PobPaste(id)) => handle_download_text(rctx, id).await,
+        Get(PobUserPaste(user, id)) => {
+            handle_download_text(rctx, PasteId::new_user(user, id)).await
+        }
+        Get(Paste(id)) => handle_download_text(rctx, PasteId::Paste(id)).await,
+        Get(UserPaste(user, id)) => handle_download_text(rctx, PasteId::new_user(user, id)).await,
+        Get(PasteJson(id)) => handle_download_json(rctx, PasteId::Paste(id)).await,
+        Get(UserPasteJson(user, id)) => {
+            handle_download_json(rctx, PasteId::new_user(user, id)).await
+        }
+        Get(Login) => handle_login(rctx).await,
+        Get(Oauht2Poe) => handle_oauth2_poe(rctx).await,
+        // Post
+        Post(Upload) => handle_upload(rctx).await,
+        Post(PobUpload) => handle_pob_upload(rctx).await,
+        // Delete
+        Delete(DeletePaste(id)) => handle_delete_paste(rctx, id).await,
+        // Not Found Routes - these should never happen,
+        // but they are there because sycamore_router requires them.
+        Get(GetEndpoints::NotFound)
+        | Post(PostEndpoints::NotFound)
+        | Delete(DeleteEndpoints::NotFound) => Ok(Response::not_found()),
+    };
+
+    match is_user_api {
+        true => r.map_err(response::AppError),
+        false => r.map_err(response::ApiError),
     }
 }
 
@@ -118,7 +119,9 @@ async fn handle_oembed(rctx: &RequestContext) -> Result<Response> {
         oembed.author_name = Some(author);
     }
 
-    worker::Response::from_json(&oembed)?.cache_for(Duration::from_secs(12 * 3_600))
+    Ok(Response::ok()
+        .json(&oembed)
+        .cache_for(Duration::from_secs(12 * 3600)))
 }
 
 #[tracing::instrument(skip(rctx))]
@@ -129,15 +132,16 @@ async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Resp
         .await?
         .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
 
-    worker::Response::ok(paste.content)?
-        .with_headers(Headers::new())
-        .with_content_type("text/plain")?
-        .with_etag(&paste.entity_id)?
-        .with_cache_control(
+    Response::ok()
+        .body(paste.content)
+        .content_type("text/plain")
+        .etag(&*paste.entity_id)
+        .cache(
             CacheControl::default()
                 .public()
                 .s_max_age(consts::CACHE_FOREVER),
         )
+        .result()
 }
 
 #[tracing::instrument(skip(rctx))]
@@ -148,22 +152,23 @@ async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Resp
         .await?
         .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
 
-    worker::Response::from_json(&paste)?
-        .with_headers(Headers::new())
-        .with_content_type("application/json")?
-        .with_etag(&meta.etag)?
-        .with_cache_control(
+    Response::ok()
+        .json(&paste)
+        .content_type("application/json")
+        .etag(&*meta.etag)
+        .cache(
             CacheControl::default()
                 .public()
                 .s_max_age(consts::CACHE_FOREVER),
         )
+        .result()
 }
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_delete_paste(rctx: &RequestContext, id: PasteId) -> Result<Response> {
     rctx.storage()?.delete(&id).await?;
     crate::cache::on_paste_change(rctx, id);
-    Ok(Response::empty()?)
+    Ok(Response::ok())
 }
 
 #[derive(Deserialize)]
@@ -246,11 +251,11 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
         .await?;
     tracing::debug!("<-- paste uploaded");
 
-    let body = serde_json::to_vec(&id)?;
+    let response = Response::ok().json(&id);
 
     crate::cache::on_paste_change(rctx, id);
 
-    Response::from_bytes(body)?.with_content_type("application/json")
+    Ok(response)
 }
 
 #[tracing::instrument(skip(rctx))]
@@ -272,7 +277,8 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
         .await?;
     tracing::debug!("<-- paste uploaing ...");
 
-    let response = Response::ok(id.to_string())?;
+    // TODO id should be serializable?
+    let response = Response::ok().json(&id.to_string());
 
     crate::cache::on_paste_change(rctx, id);
 
@@ -307,13 +313,15 @@ fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
 async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
     let (meta, pastes) = rctx.pastes()?.list_pastes(&user).await?;
 
-    Response::from_json(&pastes)?
-        .with_etag(&meta.etag)?
-        .with_cache_control(
+    Response::ok()
+        .json(&pastes)
+        .etag(&*meta.etag)
+        .cache(
             CacheControl::default()
                 .public()
                 .s_max_age(consts::CACHE_FOREVER),
         )
+        .result()
 }
 
 #[tracing::instrument(skip(rctx))]
@@ -336,20 +344,16 @@ async fn handle_login(rctx: &RequestContext) -> Result<Response> {
 
     tracing::info!(%redirect_uri, %state, "redirecting for login");
 
-    Response::redirect_temp(&login_uri)?.with_state_cookie(&state)
+    Ok(Response::redirect_temp(&login_uri).state_cookie(&state))
 }
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
     let url = rctx.url()?;
 
-    let grant = match poe_api::AuthorizationGrant::try_from(&url) {
-        Ok(grant) => grant,
-        // TODO: render error page
-        _ => {
-            tracing::warn!("missing authorization grant");
-            return Ok(Response::error("no authorization grant", 403)?);
-        }
+    let Ok(grant) = poe_api::AuthorizationGrant::try_from(&url) else {
+        tracing::warn!("missing authorization grant");
+        return Err(Error::MissingAuthorizationGrant);
     };
 
     tracing::info!(%grant.state, "logging in");
@@ -359,12 +363,10 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
         let cookie_state = rctx.cookie("state").unwrap_or_default();
         if cookie_state != grant.state {
             tracing::warn!(%cookie_state, %grant.state, "grant state does not match cookie state");
-            // TODO: render error page
-            return Ok(Response::error("invalid session state", 403)?);
+            return Err(Error::InvalidSessionState);
         }
     });
 
-    // TODO: error handling -> show error page
     let token = rctx.oauth()?.fetch_token(&grant.code).await?;
 
     let profile = poe_api::PoeApi::new(token.access_token)
@@ -385,7 +387,8 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
         .filter(|path| !path.is_empty())
         .unwrap_or("/");
 
-    Response::redirect_temp(redirect)?
-        .with_delete_state_cookie()?
-        .with_new_session(&session)
+    Response::redirect_temp(redirect)
+        .delete_state_cookie()
+        .new_session(&session)
+        .result()
 }

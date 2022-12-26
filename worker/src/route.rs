@@ -100,9 +100,9 @@ pub enum GetEndpoints {
 #[derive(sycamore_router::Route, strum::IntoStaticStr, Debug, Clone)]
 pub enum PostEndpoints {
     #[to("/api/internal/paste/")]
-    Upload(),
+    Upload,
     #[to("/pob/")]
-    PobUpload(),
+    PobUpload,
     #[not_found]
     NotFound,
 }

@@ -150,8 +150,12 @@ pub fn deserialize_attribute<T: DeserializeOwned>(
         .flatten()
         .and_then(|e| e.get_attribute(attribute))?;
 
+    deserialize_from_attribute(&attr)
+}
+
+pub fn deserialize_from_attribute<T: DeserializeOwned>(data: &str) -> T {
     // TODO: maybe custom encoding instead of base64, just swap " and @ (a different character)
-    let data = base64::decode_config(attr, base64::URL_SAFE_NO_PAD).expect("b64 decode");
+    let data = base64::decode_config(data, base64::URL_SAFE_NO_PAD).expect("b64 decode");
     let data = String::from_utf8(data).expect("utf8");
 
     serde_json::from_str(&data).expect("deserialize")

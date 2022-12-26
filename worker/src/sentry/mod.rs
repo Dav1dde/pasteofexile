@@ -62,6 +62,10 @@ pub fn update_transaction(status: Status) {
     with_sentry_mut(|sentry| sentry.update_transaction(status));
 }
 
+pub fn capture_err(err: &crate::Error) {
+    with_sentry(|sentry| sentry.capture_err(err));
+}
+
 pub fn add_breadcrumb(breadcrumb: Breadcrumb) {
     with_sentry_mut(move |sentry| {
         sentry.add_breadcrumb(breadcrumb);

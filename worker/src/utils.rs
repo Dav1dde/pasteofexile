@@ -4,7 +4,7 @@ use std::time::Duration;
 use shared::validation;
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
-use worker::{js_sys, worker_sys, Request, Response, Result};
+use worker::{js_sys, Request, Result};
 
 use crate::Error;
 
@@ -154,105 +154,6 @@ impl fmt::Display for CacheControl {
         w!(self.s_max_age.map(|d| d.as_secs()), "s-max-age={}");
 
         Ok(())
-    }
-}
-
-pub trait ResponseExt: Sized {
-    fn redirect_temp(target: &str) -> crate::Result<Self>;
-    fn redirect_perm(target: &str) -> crate::Result<Self>;
-
-    fn cache_for(self, ttl: Duration) -> crate::Result<Self> {
-        self.with_cache_control(CacheControl::default().public().max_age(ttl))
-    }
-    fn with_cache_control(self, cache_control: CacheControl) -> crate::Result<Self> {
-        self.with_header("Cache-Control", &cache_control.to_string())
-    }
-    fn with_content_type(self, content_type: &str) -> crate::Result<Self> {
-        self.with_header("Content-Type", content_type)
-    }
-    fn with_etag(self, entity_id: &str) -> crate::Result<Self> {
-        let entity_id = format!("\"{}\"", entity_id.trim_matches('"'));
-        self.with_header("Etag", &entity_id)
-    }
-    fn with_etag_opt(self, entity_id: Option<&str>) -> crate::Result<Self> {
-        if let Some(entity_id) = entity_id {
-            self.with_etag(entity_id)
-        } else {
-            Ok(self)
-        }
-    }
-    fn with_state_cookie(self, state: &str) -> crate::Result<Self> {
-        self.append_header(
-            "Set-Cookie",
-            &format!("state={state}; Max-Age=600; Secure; Same-Site=Lax; Path=/"),
-        )
-    }
-    fn with_delete_state_cookie(self) -> crate::Result<Self> {
-        self.append_header(
-            "Set-Cookie",
-            "state=none; Max-Age=0; Secure; Same-Site=Lax; Path=/",
-        )
-    }
-    fn with_new_session(self, session: &str) -> crate::Result<Self> {
-        self.append_header(
-            "Set-Cookie",
-            &format!("session={session}; Max-Age=1209600; Secure; SameSite=Lax; Path=/"),
-        )
-    }
-
-    fn dup_headers(self) -> Self;
-    fn append_header(self, name: &str, value: &str) -> crate::Result<Self>;
-    fn with_header(self, name: &str, value: &str) -> crate::Result<Self>;
-
-    fn cloned(self) -> crate::Result<(Self, Self)>;
-}
-
-impl ResponseExt for Response {
-    fn redirect_temp(target: &str) -> crate::Result<Self> {
-        Self::empty()?
-            .with_status(307)
-            .with_header("Location", target)
-    }
-
-    fn redirect_perm(target: &str) -> crate::Result<Self> {
-        Self::empty()?
-            .with_status(301)
-            .with_header("Location", target)
-    }
-
-    fn dup_headers(self) -> Self {
-        let headers = self.headers().clone();
-        self.with_headers(headers)
-    }
-
-    fn append_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
-        self.headers_mut().append(name, value)?;
-        Ok(self)
-    }
-
-    fn with_header(mut self, name: &str, value: &str) -> crate::Result<Self> {
-        self.headers_mut().set(name, value)?;
-        Ok(self)
-    }
-
-    fn cloned(self) -> crate::Result<(Self, Self)> {
-        let status_code = self.status_code();
-        let headers = self.headers().clone();
-
-        let response1: worker_sys::Response = self.into();
-        let response2 = response1.clone()?;
-
-        let body1 = worker::ResponseBody::Stream(response1);
-        let body2 = worker::ResponseBody::Stream(response2);
-
-        let response1 = worker::Response::from_body(body1)?
-            .with_status(status_code)
-            .with_headers(headers.clone());
-        let response2 = worker::Response::from_body(body2)?
-            .with_status(status_code)
-            .with_headers(headers);
-
-        Ok((response1, response2))
     }
 }
 

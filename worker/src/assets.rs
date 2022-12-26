@@ -1,35 +1,36 @@
 use std::borrow::Cow;
 
 use wasm_bindgen::prelude::*;
-use worker::Response;
 
-use crate::{consts, request_context::RequestContext, utils::ResponseExt, Error, Result};
+use crate::{consts, request_context::RequestContext, response, Error, Response, Result};
 
-pub async fn try_handle(rctx: &RequestContext) -> Result<Option<Response>> {
-    if is_asset_path(&rctx.path()) {
-        Ok(Some(serve_asset(rctx).await?))
-    } else {
-        Ok(None)
-    }
+#[tracing::instrument(skip_all)]
+pub async fn handle(rctx: &RequestContext) -> response::Result {
+    serve_asset(rctx).await.map_err(response::AppError)
+}
+
+async fn serve_asset(rctx: &RequestContext) -> Result<Response> {
+    let path = rctx.path();
+
+    let Some(mime_type) = get_mime(&path) else {
+        return Err(Error::NotFound("asset", path.to_string()));
+    };
+
+    let path = path.trim_start_matches('/');
+    let path = resolve(path);
+    let Some(value) = rctx.get_asset(&path)?.bytes().await? else {
+        return Err(Error::NotFound("asset", path.to_string()));
+    };
+
+    Response::ok()
+        .body(value)
+        .content_type(mime_type)
+        .cache_for(consts::CACHE_FOREVER)
+        .result()
 }
 
 pub fn is_asset_path(path: &str) -> bool {
     get_mime(path).is_some()
-}
-
-#[tracing::instrument(skip_all)]
-async fn serve_asset(rctx: &RequestContext) -> Result<Response> {
-    let path = rctx.path();
-    let path = path.trim_start_matches('/');
-    let path = resolve(path);
-    let value = match rctx.get_asset(&path)?.bytes().await? {
-        Some(value) => value,
-        None => return Err(Error::NotFound("asset", path.to_string())),
-    };
-
-    Response::from_bytes(value)?
-        .with_content_type(get_mime(&path).unwrap_or("text/plain"))?
-        .cache_for(consts::CACHE_FOREVER)
 }
 
 #[wasm_bindgen(raw_module = "./assets.mjs")]
