@@ -125,6 +125,21 @@ impl From<UserPasteId> for PasteId {
     }
 }
 
+impl From<PasteId> for String {
+    fn from(id: PasteId) -> Self {
+        match id {
+            PasteId::Paste(id) => id,
+            PasteId::UserPaste(up) => format!("{}:{}", up.user, up.id),
+        }
+    }
+}
+
+impl From<&PasteId> for PasteId {
+    fn from(id: &PasteId) -> Self {
+        id.clone()
+    }
+}
+
 impl fmt::Display for PasteId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

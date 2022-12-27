@@ -43,6 +43,12 @@ impl From<User> for String {
     }
 }
 
+impl From<&User> for User {
+    fn from(user: &User) -> Self {
+        user.clone()
+    }
+}
+
 impl fmt::Display for User {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)

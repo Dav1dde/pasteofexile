@@ -49,7 +49,7 @@ pub struct Node {
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,
-    pub ascendancy_or_class: String,
+    pub ascendancy_or_class: String, // TODO: this should be an enum
     pub version: Option<String>,
     pub main_skill_name: Option<String>,
 }
@@ -59,7 +59,7 @@ pub struct PasteSummary {
     pub id: String,
     pub user: Option<crate::User>,
     pub title: String,
-    pub ascendancy_or_class: String,
+    pub ascendancy_or_class: String, // TODO: this should be an enum
     pub version: String,
     pub main_skill_name: String,
     pub last_modified: u64,

@@ -49,6 +49,10 @@ impl Drop for SentryToken {
     }
 }
 
+pub fn current_trace_id() -> protocol::TraceId {
+    with_sentry(|sentry| sentry.trace_id).unwrap_or_default()
+}
+
 pub struct TransactionContext {
     pub name: String,
     pub op: String,

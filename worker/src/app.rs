@@ -50,6 +50,7 @@ async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
 
     Response::status(resp_ctx.status_code)
         .html(index)
+        .meta(info.meta)
         .etag(info.etag.as_deref())
         .cache(info.cache_control)
 }
@@ -79,7 +80,8 @@ async fn build_context(
             match rctx.pastes()?.get_paste(&id).await {
                 Ok(Some((meta, paste))) => {
                     info.etag = Some(meta.etag);
-                    (info, Context::paste(id.to_string(), paste))
+                    info.meta = Some(response::Meta::paste(&id, &paste));
+                    (info, Context::paste(id, paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
                     info.etag = Some("not_found".to_owned());
@@ -94,6 +96,7 @@ async fn build_context(
             let info = ResponseInfo {
                 cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
                 etag: Some(meta.etag),
+                meta: Some(response::Meta::list(&user)),
                 ..Default::default()
             };
 
@@ -112,6 +115,7 @@ async fn build_context(
             match rctx.pastes()?.get_paste(&id).await {
                 Ok(Some((meta, paste))) => {
                     info.etag = Some(meta.etag);
+                    info.meta = Some(response::Meta::paste(&id, &paste));
                     (info, Context::user_paste(id.unwrap_user(), paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
@@ -138,6 +142,7 @@ struct ResponseInfo {
     cache_control: CacheControl,
     etag: Option<String>,
     redirect: Option<String>,
+    meta: Option<response::Meta>,
 }
 
 impl Default for ResponseInfo {
@@ -146,6 +151,7 @@ impl Default for ResponseInfo {
             cache_control: CacheControl::default().max_age(Duration::from_secs(3_600)),
             etag: None,
             redirect: None,
+            meta: None,
         }
     }
 }

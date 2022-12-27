@@ -64,16 +64,16 @@ impl KvStorage {
         id: &PasteId,
         sha1: &[u8],
         data: &[u8],
-        metadata: Option<PasteMetadata>,
+        metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
         self.kv
             .put_bytes(&path, data)?
-            .metadata(KvMetadata {
-                entity_id: Some(hex(sha1)),
-                last_modified: js_sys::Date::new_0().get_time() as u64,
-                metadata,
-            })?
+            .metadata(serde_json::json!({
+                "entity_id": hex(sha1),
+                "last_modified": js_sys::Date::new_0().get_time() as u64,
+                "metadata": metadata,
+            }))?
             .execute()
             .await?;
         Ok(())
@@ -86,14 +86,14 @@ impl KvStorage {
         id: &PasteId,
         sha1: &[u8],
         data: Rc<[u8]>,
-        metadata: Option<PasteMetadata>,
+        metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
-        let metadata = KvMetadata {
-            entity_id: Some(hex(sha1)),
-            last_modified: js_sys::Date::new_0().get_time() as u64,
-            metadata,
-        };
+        let metadata = serde_json::json!({
+            "entity_id": hex(sha1),
+            "last_modified": js_sys::Date::new_0().get_time() as u64,
+            "metadata": metadata,
+        });
         let future = async move {
             let r = self
                 .kv

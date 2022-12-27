@@ -20,6 +20,9 @@ pub const ENV_SECRET_KEY: &str = "SECRET_KEY";
 pub const ENV_OAUTH_CLIENT_ID: &str = "OAUTH_CLIENT_ID";
 pub const ENV_OAUTH_CLIENT_SECRET: &str = "OAUTH_CLIENT_SECRET";
 
+pub const ENV_STATS_URL: &str = "STATS_URL";
+pub const ENV_STATS_TOKEN: &str = "STATS_TOKEN";
+
 pub const OAUTH_SCOPE: &str = "account:profile";
 
 const HOUR: u64 = 3_600;

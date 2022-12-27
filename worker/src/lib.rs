@@ -17,6 +17,7 @@ mod response;
 mod retry;
 mod route;
 mod sentry;
+mod stats;
 mod storage;
 mod utils;
 
@@ -49,15 +50,12 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
         name: rctx.transaction(),
     });
 
-    let response = Ok(worker::Response::from(cached(&mut rctx).await));
+    let response = cached(&mut rctx).await;
 
-    let status = response
-        .as_ref()
-        .map(|response| response.status_code())
-        .unwrap_or(500);
-    sentry::update_transaction(sentry::Status::from(status));
+    stats::record(&rctx, &response).await;
+    sentry::update_transaction(sentry::Status::from(response.status_code()));
 
-    response
+    Ok(worker::Response::from(response))
 }
 
 #[tracing::instrument(skip_all)]
@@ -68,14 +66,14 @@ async fn cached(rctx: &mut RequestContext) -> Response {
     if use_cache {
         if let Some(response) = cache.get(rctx.req(), true).await.expect("cache api") {
             tracing::debug!("cache hit");
-            return Response::from(response).header("Cf-Cache-Status", "HIT");
+            return Response::from_cache(response);
         }
     }
 
     let response = handle(rctx).await;
 
     if use_cache && response.is_cacheable() {
-        let for_cache = response.clone().into();
+        let for_cache = response.for_cache();
 
         let key = rctx.req().inner().url();
         rctx.ctx().wait_until(async move {
@@ -91,6 +89,7 @@ async fn cached(rctx: &mut RequestContext) -> Response {
     }
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle(rctx: &mut RequestContext) -> Response {
     let response = match rctx.route() {
         route::Route::Api(route) => api::handle(rctx, route.clone()).await,

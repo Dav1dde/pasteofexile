@@ -63,7 +63,7 @@ impl Storage {
         id: &PasteId,
         sha1: &[u8],
         data: &[u8],
-        metadata: Option<PasteMetadata>,
+        metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
         self.storage.put(id, sha1, data, metadata).await
     }
@@ -74,7 +74,7 @@ impl Storage {
         id: &PasteId,
         sha1: &[u8],
         data: Rc<[u8]>,
-        metadata: Option<PasteMetadata>,
+        metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
         self.storage.put_async(ctx, id, sha1, data, metadata).await
     }

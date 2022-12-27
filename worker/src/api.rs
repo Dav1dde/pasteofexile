@@ -133,6 +133,7 @@ async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Resp
         .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
 
     Response::ok()
+        .meta_paste(id, &paste)
         .body(paste.content)
         .content_type("text/plain")
         .etag(&*paste.entity_id)
@@ -154,6 +155,7 @@ async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Resp
 
     Response::ok()
         .json(&paste)
+        .meta_paste(id, paste)
         .content_type("application/json")
         .etag(&*meta.etag)
         .cache(
@@ -247,11 +249,11 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
 
     tracing::debug!("--> uploading paste '{}'", id);
     rctx.storage()?
-        .put(&id, &sha1, &content, Some(metadata))
+        .put(&id, &sha1, &content, Some(&metadata))
         .await?;
     tracing::debug!("<-- paste uploaded");
 
-    let response = Response::ok().json(&id);
+    let response = Response::ok().json(&id).meta_paste(&id, metadata);
 
     crate::cache::on_paste_change(rctx, id);
 
@@ -273,12 +275,14 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
 
     tracing::debug!("--> uploading paste '{}'", id);
     rctx.storage()?
-        .put_async(rctx.ctx(), &id, &sha1, data, Some(metadata))
+        .put_async(rctx.ctx(), &id, &sha1, data, Some(&metadata))
         .await?;
     tracing::debug!("<-- paste uploaing ...");
 
     // TODO id should be serializable?
-    let response = Response::ok().json(&id.to_string());
+    let response = Response::ok()
+        .json(&id.to_string())
+        .meta_paste(&id, metadata);
 
     crate::cache::on_paste_change(rctx, id);
 
@@ -315,6 +319,7 @@ async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
 
     Response::ok()
         .json(&pastes)
+        .meta_list(user)
         .etag(&*meta.etag)
         .cache(
             CacheControl::default()

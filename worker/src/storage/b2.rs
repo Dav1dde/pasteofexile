@@ -82,12 +82,12 @@ impl B2Storage {
         id: &PasteId,
         sha1: &[u8],
         data: &[u8],
-        metadata: Option<PasteMetadata>,
+        metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
         let hex = utils::hex(sha1);
         let metadata = metadata
-            .map(|m| serde_json::to_string(&m))
+            .map(serde_json::to_string)
             .transpose()?
             .map(b64_encode);
         let settings = b2_client::UploadSettings {
@@ -107,13 +107,13 @@ impl B2Storage {
         id: &PasteId,
         sha1: &[u8],
         data: Rc<[u8]>,
-        metadata: Option<PasteMetadata>,
+        metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
         let path = super::to_path(id)?;
 
         let hex = utils::hex(sha1);
         let metadata = metadata
-            .map(|m| serde_json::to_string(&m))
+            .map(serde_json::to_string)
             .transpose()?
             .map(b64_encode);
         let future = async move {
