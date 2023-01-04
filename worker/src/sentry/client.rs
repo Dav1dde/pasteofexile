@@ -34,6 +34,10 @@ impl Sentry {
         }
     }
 
+    pub fn set_trace_id(&mut self, trace_id: protocol::TraceId) {
+        self.trace_id = trace_id;
+    }
+
     pub fn set_user(&mut self, user: impl Into<Option<protocol::User>>) {
         self.user = user.into();
     }

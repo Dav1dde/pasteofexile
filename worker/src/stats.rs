@@ -17,7 +17,7 @@ pub async fn record(rctx: &RequestContext, response: &Response) {
 
     let body = serde_json::json!({
         "transaction": rctx.transaction(),
-        "trace_id": crate::sentry::current_trace_id(),
+        "trace_id": rctx.trace_id(),
         "app_version": git_version!(),
         "url": rctx.req().url().ok(),
         "method": rctx.method().to_string(),

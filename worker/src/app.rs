@@ -19,7 +19,7 @@ pub async fn handle_err(err: crate::Error) -> Response {
 
 async fn handle_inner(rctx: &RequestContext, route: app::Route) -> Result<Response> {
     let (info, ctx) = build_context(rctx, route).await.unwrap_or_else(|err| {
-        sentry::with_sentry(|sentry| sentry.capture_err(&err));
+        sentry::capture_err(&err);
         let err = match err {
             Error::InvalidPoB(err, _) => app::Error::PobError(err),
             err => app::Error::ServerError(err.to_string()),

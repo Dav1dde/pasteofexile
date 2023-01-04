@@ -1,12 +1,17 @@
 use std::ops::Deref;
 
-use crate::{route, sentry, utils::RequestExt};
+use crate::{
+    route,
+    sentry::{self, TraceId},
+    utils::RequestExt,
+};
 
 pub struct RequestContext {
     req: worker::Request,
     env: Env,
     ctx: worker::Context,
     route: route::Route,
+    trace_id: TraceId,
 }
 
 impl RequestContext {
@@ -17,7 +22,12 @@ impl RequestContext {
             env: Env::new(env),
             ctx,
             route,
+            trace_id: TraceId::default(),
         }
+    }
+
+    pub fn trace_id(&self) -> TraceId {
+        self.trace_id
     }
 
     pub fn req(&self) -> &worker::Request {
@@ -100,7 +110,7 @@ impl RequestContext {
         }
     }
 
-    pub async fn get_sentry_request(&self) -> sentry::Request {
+    pub fn get_sentry_request(&self) -> sentry::Request {
         sentry::Request {
             url: self.req.url().ok(),
             method: Some(self.req.inner().method()),

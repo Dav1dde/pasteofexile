@@ -38,6 +38,7 @@ git-version = "0.3"
 time = { version = "0.3", features = ["formatting", "parsing"] }
 uuid = "1"
 strum = { version = "0.24", features = ["derive"] }
+pin-project-lite = "0.2"
 
 console_error_panic_hook = { version = "0.1", optional = true }
 tracing = "0.1"

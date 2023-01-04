@@ -1601,6 +1601,7 @@ dependencies = [
  "git-version",
  "js-sys",
  "percent-encoding",
+ "pin-project-lite",
  "pob",
  "poe-tree",
  "serde",

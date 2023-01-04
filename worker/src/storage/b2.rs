@@ -8,7 +8,8 @@ use shared::{
 use super::{b2_client, StoredPaste};
 use crate::{
     request_context::{Env, FromEnv},
-    sentry, utils,
+    sentry::{self, WithSentry},
+    utils,
     utils::{b64_decode, b64_encode},
     Error, Result,
 };
@@ -128,15 +129,13 @@ impl B2Storage {
             };
 
             if let Err(err) = self.b2.upload(&settings, &data).await {
-                // TODO: there might not be an active transaction anymore?
-                tracing::error!("<-- failed to upload paste: {:?}", err);
-                // TODO: is this necessary, tracing should pick it up already from tracing::erorr!
-                sentry::with_sentry(|sentry| sentry.capture_err_level(&err, sentry::Level::Error));
+                tracing::warn!("<-- failed to upload paste: {:?}", err);
+                sentry::capture_err_level(&err, sentry::Level::Error);
             } else {
                 tracing::debug!("<-- paste uploaded");
             }
         };
-        ctx.wait_until(future);
+        ctx.wait_until(future.with_current_sentry());
         Ok(())
     }
 

@@ -9,7 +9,7 @@ use shared::{
 use super::StoredPaste;
 use crate::{
     request_context::{Env, FromEnv},
-    sentry,
+    sentry::{self, WithSentry},
     utils::hex,
     Result,
 };
@@ -112,14 +112,13 @@ impl KvStorage {
                 .await;
 
             if let Err(err) = r {
-                tracing::error!("<-- failed to upload paste: {:?}", err);
-                // TODO: this should not be necessary due to tracing::error generating an event
-                sentry::with_sentry(|sentry| sentry.capture_err(&err.into()));
+                tracing::warn!("<-- failed to upload paste: {:?}", err);
+                sentry::capture_err_level(&err.into(), sentry::Level::Error);
             } else {
                 tracing::debug!("<-- paste uploaded");
             }
         };
-        ctx.wait_until(future);
+        ctx.wait_until(future.with_current_sentry());
         Ok(())
     }
 

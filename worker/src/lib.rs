@@ -1,3 +1,4 @@
+use sentry::WithSentry;
 use worker::{event, Cache, Context, Env, Method, Request, Response as WorkerResponse};
 
 mod api;
@@ -41,19 +42,22 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
             .init();
     });
 
-    let _sentry = sentry::init(rctx.ctx(), rctx.inject_opt());
+    let sentry = sentry::new(rctx.ctx(), rctx.inject_opt());
 
-    sentry::set_user(rctx.get_sentry_user().await);
-    sentry::set_request(rctx.get_sentry_request().await);
-    sentry::start_transaction(sentry::TransactionContext {
-        op: "http.server".to_owned(),
-        name: rctx.transaction(),
-    });
+    sentry
+        .set_trace_id(rctx.trace_id())
+        .set_user(rctx.get_sentry_user().await)
+        .set_request(rctx.get_sentry_request())
+        .start_transaction(sentry::TransactionContext {
+            op: "http.server".to_owned(),
+            name: rctx.transaction(),
+        });
 
-    let response = cached(&mut rctx).await;
+    let response = cached(&mut rctx).with_sentry(&sentry).await;
+
+    sentry.update_transaction(sentry::Status::from(response.status_code()));
 
     stats::record(&rctx, &response).await;
-    sentry::update_transaction(sentry::Status::from(response.status_code()));
 
     Ok(worker::Response::from(response))
 }
