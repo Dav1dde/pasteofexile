@@ -3,12 +3,13 @@ use std::{borrow::Cow, collections::HashMap};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use worker::{kv::KvStore, Env};
+use worker::kv::KvStore;
 
 use crate::{
     consts,
     crypto::sha1,
     net,
+    request_context::{Env, FromEnv},
     retry::{retry, Retry},
     utils::hex,
     Error, Result,
@@ -99,14 +100,16 @@ pub struct B2 {
     public_file_url: String,
 }
 
-impl B2 {
-    pub fn from_env(env: &Env) -> Result<Self> {
-        Ok(Self {
+impl FromEnv for B2 {
+    fn from_env(env: &Env) -> Option<Self> {
+        Some(Self {
             credentials: Credentials::from_env(env)?,
-            public_file_url: env.var(consts::ENV_B2_PUBLIC_FILE_URL)?.to_string(),
+            public_file_url: env.var(consts::ENV_B2_PUBLIC_FILE_URL)?,
         })
     }
+}
 
+impl B2 {
     #[tracing::instrument(skip(self, content), fields(size = content.len()))]
     pub async fn upload(
         &self,
@@ -237,15 +240,17 @@ pub struct Credentials {
     application_key: String,
 }
 
-impl Credentials {
-    pub fn from_env(env: &Env) -> Result<Self> {
-        Ok(Self {
+impl FromEnv for Credentials {
+    fn from_env(env: &Env) -> Option<Self> {
+        Some(Self {
             kv: env.kv(consts::KV_B2_CREDENTIALS)?,
-            key_id: env.var(consts::ENV_B2_KEY_ID)?.to_string(),
-            application_key: env.var(consts::ENV_B2_APPLICATION_KEY)?.to_string(),
+            key_id: env.var(consts::ENV_B2_KEY_ID)?,
+            application_key: env.var(consts::ENV_B2_APPLICATION_KEY)?,
         })
     }
+}
 
+impl Credentials {
     #[tracing::instrument(skip(self))]
     async fn get_auth_details(&self, force_refresh: bool) -> Result<AuthDetails> {
         if !force_refresh {

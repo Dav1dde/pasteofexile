@@ -6,12 +6,22 @@ use shared::{
     User,
 };
 
+use crate::request_context::{Env, FromEnv};
+
 pub struct Meta {
     pub etag: String,
 }
 
 pub struct Pastes {
     pub(crate) storage: crate::storage::Storage,
+}
+
+impl FromEnv for Pastes {
+    fn from_env(env: &Env) -> Option<Self> {
+        Some(Self {
+            storage: crate::storage::Storage::from_env(env)?,
+        })
+    }
 }
 
 impl Pastes {

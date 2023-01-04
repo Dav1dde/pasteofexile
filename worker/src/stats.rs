@@ -1,13 +1,15 @@
 use git_version::git_version;
+use serde::Serialize;
 
-use crate::{consts, net, request_context::RequestContext, Response};
+use crate::{
+    consts, net,
+    request_context::{Env, FromEnv, RequestContext},
+    Response,
+};
 
 pub async fn record(rctx: &RequestContext, response: &Response) {
-    if !response.is_2xx() {
-        return;
-    }
     let Some(meta) = response.get_meta() else { return; };
-    let Some((stats_url, stats_token)) = stats_data(rctx) else { return; };
+    let Some(stats) = rctx.inject_opt::<Stats>() else { return };
 
     let user = rctx.session().await.ok().flatten().map(|u| u.name);
 
@@ -36,14 +38,7 @@ pub async fn record(rctx: &RequestContext, response: &Response) {
     });
 
     rctx.ctx().wait_until(async move {
-        let token = stats_token.map(|token| format!("Bearer {token}"));
-        let response = net::Request::post(stats_url)
-            .header("Content-Type", "application/json")
-            .header_opt("Authorization", token.as_deref())
-            .body(serde_json::to_string(&body).expect("serialize stats"))
-            .no_sentry()
-            .send()
-            .await;
+        let response = stats.send(&body).await;
 
         match response {
             Err(err) => worker::console_log!("failed to record stats: {err:?}"),
@@ -56,19 +51,32 @@ pub async fn record(rctx: &RequestContext, response: &Response) {
     });
 }
 
-fn stats_data(rctx: &RequestContext) -> Option<(String, Option<String>)> {
-    let stats_url = rctx
-        .env()
-        .var(consts::ENV_STATS_URL)
-        .ok()
-        .map(|s| s.to_string())
-        .filter(|s| !s.trim().is_empty())?;
+struct Stats {
+    url: String,
+    token: Option<String>,
+}
 
-    let stats_token = rctx
-        .env()
-        .var(consts::ENV_STATS_TOKEN)
-        .ok()
-        .map(|s| s.to_string());
+impl FromEnv for Stats {
+    fn from_env(env: &Env) -> Option<Self> {
+        let url = env
+            .var(consts::ENV_STATS_URL)
+            .filter(|s| !s.trim().is_empty())?;
+        let token = env.var(consts::ENV_STATS_TOKEN);
+        Some(Self { url, token })
+    }
+}
 
-    Some((stats_url, stats_token))
+impl Stats {
+    async fn send(&self, body: &impl Serialize) -> worker::Result<worker::Response> {
+        let body = serde_json::to_string(body)?;
+
+        let token = self.token.as_ref().map(|token| format!("Bearer {token}"));
+        net::Request::post(&self.url)
+            .header("Content-Type", "application/json")
+            .header_opt("Authorization", token.as_deref())
+            .body(body)
+            .no_sentry()
+            .send()
+            .await
+    }
 }

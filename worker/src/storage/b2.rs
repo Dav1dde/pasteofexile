@@ -7,6 +7,7 @@ use shared::{
 
 use super::{b2_client, StoredPaste};
 use crate::{
+    request_context::{Env, FromEnv},
     sentry, utils,
     utils::{b64_decode, b64_encode},
     Error, Result,
@@ -16,13 +17,15 @@ pub struct B2Storage {
     b2: b2_client::B2,
 }
 
-impl B2Storage {
-    pub fn from_env(env: &worker::Env) -> Result<Self> {
-        Ok(Self {
+impl FromEnv for B2Storage {
+    fn from_env(env: &Env) -> Option<Self> {
+        Some(Self {
             b2: b2_client::B2::from_env(env)?,
         })
     }
+}
 
+impl B2Storage {
     #[tracing::instrument(skip(self))]
     pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         let path = super::to_path(id)?;

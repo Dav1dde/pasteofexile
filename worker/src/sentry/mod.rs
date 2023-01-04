@@ -10,12 +10,22 @@ mod utils;
 pub use self::client::Sentry;
 pub use self::layer::Layer;
 pub use self::protocol::{Breadcrumb, Level, Map, Request, SpanStatus as Status, User, Value};
+use crate::consts;
+use crate::request_context::{Env, FromEnv};
 
 thread_local!(pub(crate) static SENTRY: RefCell<Option<Sentry>> = RefCell::new(None));
 
 pub struct Options {
     pub project: String,
     pub token: String,
+}
+
+impl FromEnv for Options {
+    fn from_env(env: &Env) -> Option<Self> {
+        let project = env.var(consts::ENV_SENTRY_PROJECT)?;
+        let token = env.var(consts::ENV_SENTRY_TOKEN)?;
+        Some(Self { project, token })
+    }
 }
 
 pub fn init(ctx: &worker::Context, options: impl Into<Option<Options>>) -> SentryToken {

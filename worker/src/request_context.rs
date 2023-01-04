@@ -1,12 +1,10 @@
 use std::ops::Deref;
 
-use worker::kv;
-
-use crate::{consts, route, sentry, utils::RequestExt};
+use crate::{route, sentry, utils::RequestExt};
 
 pub struct RequestContext {
     req: worker::Request,
-    env: worker::Env,
+    env: Env,
     ctx: worker::Context,
     route: route::Route,
 }
@@ -16,7 +14,7 @@ impl RequestContext {
         let route = route::Route::new(&req);
         Self {
             req,
-            env,
+            env: Env::new(env),
             ctx,
             route,
         }
@@ -30,11 +28,6 @@ impl RequestContext {
         &mut self.req
     }
 
-    #[allow(dead_code)]
-    pub fn env(&self) -> &worker::Env {
-        &self.env
-    }
-
     pub fn ctx(&self) -> &worker::Context {
         &self.ctx
     }
@@ -43,6 +36,43 @@ impl RequestContext {
         &self.route
     }
 
+    /// Creates an instance of `T` and returns it.
+    ///
+    /// This does not cache instances, it creates a new instance on every access.
+    /// There is also no magic injection, it simply creates a new instance.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if `T` cannot be created because of missing env vars.
+    /// Use [`inject_opt`] if injection is expected to fail.
+    #[track_caller]
+    pub fn inject<T: FromEnv>(&self) -> T {
+        // It's fine to panic here, failing to inject means there is a bug in the code
+        // or outside configuration.
+        if let Some(t) = T::from_env(&self.env) {
+            return t;
+        }
+
+        tracing::error!(
+            "failed to inject instance for type {}",
+            std::any::type_name::<T>()
+        );
+        panic!(
+            "failed to inject instance for type {}",
+            std::any::type_name::<T>()
+        )
+    }
+
+    /// Creates an optional `T` and returns it.
+    ///
+    /// This behaves like [`inject`] but does not panic,
+    /// if the environment is mssing variables.
+    pub fn inject_opt<T: FromEnv>(&self) -> Option<T> {
+        T::from_env(&self.env)
+    }
+}
+
+impl RequestContext {
     pub fn transaction(&self) -> String {
         use route::{Api::*, Route::*};
         match self.route {
@@ -55,39 +85,6 @@ impl RequestContext {
             },
             NotFound => "not_found".to_owned(),
         }
-    }
-
-    pub fn pastes(&self) -> crate::Result<crate::pastes::Pastes> {
-        Ok(crate::pastes::Pastes {
-            storage: self.storage()?,
-        })
-    }
-
-    pub fn storage(&self) -> crate::Result<crate::storage::Storage> {
-        crate::storage::Storage::from_env(&self.env)
-    }
-
-    pub fn oauth(&self) -> crate::Result<crate::poe_api::Oauth> {
-        Ok(crate::poe_api::Oauth::new(
-            self.env
-                .var(crate::consts::ENV_OAUTH_CLIENT_ID)?
-                .to_string(),
-            self.env
-                .var(crate::consts::ENV_OAUTH_CLIENT_SECRET)?
-                .to_string(),
-        ))
-    }
-
-    pub fn dangerous(&self) -> crate::Result<crate::dangerous::Dangerous> {
-        let secret = self.env.var(crate::consts::ENV_SECRET_KEY)?.to_string();
-        Ok(crate::dangerous::Dangerous::new(secret.into_bytes()))
-    }
-
-    pub fn get_sentry_options(&self) -> Option<sentry::Options> {
-        let project = self.env.var(consts::ENV_SENTRY_PROJECT).ok()?.to_string();
-        let token = self.env.var(consts::ENV_SENTRY_TOKEN).ok()?.to_string();
-
-        Some(sentry::Options { project, token })
     }
 
     pub async fn get_sentry_user(&self) -> sentry::User {
@@ -112,23 +109,14 @@ impl RequestContext {
         }
     }
 
-    pub fn get_asset(&self, name: &str) -> crate::Result<kv::GetOptionsBuilder> {
-        let kv = self.get_assets()?;
-        let name = crate::assets::resolve(name);
-        Ok(kv.get(&name))
-    }
-
-    pub fn get_assets(&self) -> crate::Result<kv::KvStore> {
-        Ok(self.env.kv(consts::KV_STATIC_CONTENT)?)
-    }
-
     pub async fn session(&self) -> crate::Result<Option<app::User>> {
         let session = match self.req().session() {
             Some(session) => session,
             None => return Ok(None),
         };
 
-        Ok(Some(self.dangerous()?.verify::<app::User>(&session).await?))
+        let dangerous = self.inject::<crate::dangerous::Dangerous>();
+        Ok(Some(dangerous.verify::<app::User>(&session).await?))
     }
 }
 
@@ -138,4 +126,26 @@ impl Deref for RequestContext {
     fn deref(&self) -> &Self::Target {
         &self.req
     }
+}
+
+pub struct Env {
+    inner: worker::Env,
+}
+
+impl Env {
+    fn new(inner: worker::Env) -> Self {
+        Self { inner }
+    }
+
+    pub fn kv(&self, name: &str) -> Option<worker::kv::KvStore> {
+        self.inner.kv(name).ok()
+    }
+
+    pub fn var(&self, name: &str) -> Option<String> {
+        self.inner.var(name).ok().map(|v| v.to_string())
+    }
+}
+
+pub trait FromEnv: Sized {
+    fn from_env(env: &Env) -> Option<Self>;
 }

@@ -7,7 +7,12 @@ use shared::{
 };
 
 use super::StoredPaste;
-use crate::{sentry, utils::hex, Result};
+use crate::{
+    request_context::{Env, FromEnv},
+    sentry,
+    utils::hex,
+    Result,
+};
 
 #[derive(Default, Serialize, Deserialize)]
 struct KvMetadata {
@@ -24,14 +29,16 @@ pub struct KvStorage {
     kv: worker::kv::KvStore,
 }
 
-#[allow(dead_code)]
-impl KvStorage {
-    pub fn from_env(env: &worker::Env) -> Result<Self> {
-        Ok(Self {
+impl FromEnv for KvStorage {
+    fn from_env(env: &Env) -> Option<Self> {
+        Some(Self {
             kv: env.kv(crate::consts::KV_PASTE_STORAGE)?,
         })
     }
+}
 
+#[allow(dead_code)]
+impl KvStorage {
     #[tracing::instrument(skip(self))]
     pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         let path = super::to_path(id)?;

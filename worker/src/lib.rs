@@ -41,7 +41,7 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
             .init();
     });
 
-    let _sentry = sentry::init(rctx.ctx(), rctx.get_sentry_options());
+    let _sentry = sentry::init(rctx.ctx(), rctx.inject_opt());
 
     sentry::set_user(rctx.get_sentry_user().await);
     sentry::set_request(rctx.get_sentry_request().await);

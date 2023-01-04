@@ -1,8 +1,13 @@
 use std::borrow::Cow;
 
 use wasm_bindgen::prelude::*;
+use worker::kv::KvStore;
 
-use crate::{consts, request_context::RequestContext, response, Error, Response, Result};
+use crate::{
+    consts,
+    request_context::{Env, FromEnv, RequestContext},
+    response, Error, Response, Result,
+};
 
 #[tracing::instrument(skip_all)]
 pub async fn handle(rctx: &RequestContext) -> response::Result {
@@ -16,9 +21,8 @@ async fn serve_asset(rctx: &RequestContext) -> Result<Response> {
         return Err(Error::NotFound("asset", path.to_string()));
     };
 
-    let path = path.trim_start_matches('/');
-    let path = resolve(path);
-    let Some(value) = rctx.get_asset(&path)?.bytes().await? else {
+    let assets = rctx.inject::<Assets>();
+    let Some(value) = assets.get(&path).bytes().await? else {
         return Err(Error::NotFound("asset", path.to_string()));
     };
 
@@ -33,16 +37,34 @@ pub fn is_asset_path(path: &str) -> bool {
     get_mime(path).is_some()
 }
 
+struct Assets {
+    kv: KvStore,
+}
+
+impl FromEnv for Assets {
+    fn from_env(env: &Env) -> Option<Self> {
+        let kv = env.kv(consts::KV_STATIC_CONTENT)?;
+        Some(Self { kv })
+    }
+}
+
+impl Assets {
+    fn get(&self, path: &str) -> worker::kv::GetOptionsBuilder {
+        let path = self.resolve(path.trim_start_matches('/'));
+        self.kv.get(&path)
+    }
+
+    fn resolve<'a>(&self, name: &'a str) -> Cow<'a, str> {
+        match get_asset(name) {
+            Some(name) => Cow::Owned(name),
+            None => Cow::Borrowed(name),
+        }
+    }
+}
+
 #[wasm_bindgen(raw_module = "./assets.mjs")]
 extern "C" {
     fn get_asset(name: &str) -> Option<String>;
-}
-
-pub(crate) fn resolve(name: &str) -> Cow<'_, str> {
-    match get_asset(name) {
-        Some(name) => Cow::Owned(name),
-        None => Cow::Borrowed(name),
-    }
 }
 
 fn get_mime(path: &str) -> Option<&'static str> {

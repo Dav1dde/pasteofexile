@@ -6,7 +6,10 @@ use shared::{
     User,
 };
 
-use crate::Result;
+use crate::{
+    request_context::{Env, FromEnv},
+    Result,
+};
 
 #[allow(dead_code)]
 mod b2;
@@ -36,9 +39,9 @@ pub struct Storage {
     storage: DefaultStorage,
 }
 
-impl Storage {
-    pub fn from_env(env: &worker::Env) -> Result<Self> {
-        Ok(Self {
+impl FromEnv for Storage {
+    fn from_env(env: &Env) -> Option<Self> {
+        Some(Self {
             storage: DefaultStorage::from_env(env)?,
         })
     }

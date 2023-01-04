@@ -77,7 +77,8 @@ async fn build_context(
             };
 
             // TODO code duplication with UserPaste(id)
-            match rctx.pastes()?.get_paste(&id).await {
+            let pastes = rctx.inject::<crate::pastes::Pastes>();
+            match pastes.get_paste(&id).await {
                 Ok(Some((meta, paste))) => {
                     info.etag = Some(meta.etag);
                     info.meta = Some(response::Meta::paste(&id, &paste));
@@ -91,7 +92,8 @@ async fn build_context(
             }
         }
         User(user) => {
-            let (meta, pastes) = rctx.pastes()?.list_pastes(&user).await?;
+            let pastes = rctx.inject::<crate::pastes::Pastes>();
+            let (meta, pastes) = pastes.list_pastes(&user).await?;
 
             let info = ResponseInfo {
                 cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
@@ -112,7 +114,8 @@ async fn build_context(
             };
 
             // TODO code duplication with Paste(id)?
-            match rctx.pastes()?.get_paste(&id).await {
+            let pastes = rctx.inject::<crate::pastes::Pastes>();
+            match pastes.get_paste(&id).await {
                 Ok(Some((meta, paste))) => {
                     info.etag = Some(meta.etag);
                     info.meta = Some(response::Meta::paste(&id, &paste));

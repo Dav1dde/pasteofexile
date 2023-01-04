@@ -2,7 +2,10 @@ use std::fmt;
 
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::crypto;
+use crate::{
+    crypto,
+    request_context::{Env, FromEnv},
+};
 
 #[derive(Debug)]
 pub enum DangerousError {
@@ -31,6 +34,13 @@ type Result<T> = std::result::Result<T, DangerousError>;
 
 pub struct Dangerous {
     secret: Vec<u8>,
+}
+
+impl FromEnv for Dangerous {
+    fn from_env(env: &Env) -> Option<Self> {
+        let secret = env.var(crate::consts::ENV_SECRET_KEY)?;
+        Some(Self::new(secret.into_bytes()))
+    }
 }
 
 impl Dangerous {

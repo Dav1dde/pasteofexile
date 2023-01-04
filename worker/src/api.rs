@@ -126,8 +126,8 @@ async fn handle_oembed(rctx: &RequestContext) -> Result<Response> {
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Response> {
-    let paste = rctx
-        .storage()?
+    let storage = rctx.inject::<crate::storage::Storage>();
+    let paste = storage
         .get(&id)
         .await?
         .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
@@ -147,8 +147,8 @@ async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Resp
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Response> {
-    let (meta, paste) = rctx
-        .pastes()?
+    let pastes = rctx.inject::<crate::pastes::Pastes>();
+    let (meta, paste) = pastes
         .get_paste(&id)
         .await?
         .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
@@ -168,7 +168,8 @@ async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Resp
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_delete_paste(rctx: &RequestContext, id: PasteId) -> Result<Response> {
-    rctx.storage()?.delete(&id).await?;
+    let storage = rctx.inject::<crate::storage::Storage>();
+    storage.delete(&id).await?;
     crate::cache::on_paste_change(rctx, id);
     Ok(Response::ok())
 }
@@ -248,9 +249,8 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
     };
 
     tracing::debug!("--> uploading paste '{}'", id);
-    rctx.storage()?
-        .put(&id, &sha1, &content, Some(&metadata))
-        .await?;
+    let storage = rctx.inject::<crate::storage::Storage>();
+    storage.put(&id, &sha1, &content, Some(&metadata)).await?;
     tracing::debug!("<-- paste uploaded");
 
     let response = Response::ok().json(&id).meta_paste(&id, metadata);
@@ -274,7 +274,8 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
     let id = PasteId::new_id(utils::hash_to_short_id(&sha1, 9)?);
 
     tracing::debug!("--> uploading paste '{}'", id);
-    rctx.storage()?
+    let storage = rctx.inject::<crate::storage::Storage>();
+    storage
         .put_async(rctx.ctx(), &id, &sha1, data, Some(&metadata))
         .await?;
     tracing::debug!("<-- paste uploaing ...");
@@ -315,7 +316,8 @@ fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
-    let (meta, pastes) = rctx.pastes()?.list_pastes(&user).await?;
+    let pastes = rctx.inject::<crate::pastes::Pastes>();
+    let (meta, pastes) = pastes.list_pastes(&user).await?;
 
     Response::ok()
         .json(&pastes)
@@ -343,9 +345,11 @@ async fn handle_login(rctx: &RequestContext) -> Result<Response> {
     let state = format!("{}.{}", utils::random_string::<12>()?, path);
 
     let redirect_uri = format!("https://{host}/oauth2/authorization/poe");
-    let login_uri = rctx
-        .oauth()?
-        .get_login_url(&redirect_uri, &state, consts::OAUTH_SCOPE);
+    let login_uri = rctx.inject::<crate::poe_api::Oauth>().get_login_url(
+        &redirect_uri,
+        &state,
+        consts::OAUTH_SCOPE,
+    );
 
     tracing::info!(%redirect_uri, %state, "redirecting for login");
 
@@ -372,7 +376,8 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
         }
     });
 
-    let token = rctx.oauth()?.fetch_token(&grant.code).await?;
+    let oauth = rctx.inject::<crate::poe_api::Oauth>();
+    let token = oauth.fetch_token(&grant.code).await?;
 
     let profile = poe_api::PoeApi::new(token.access_token)
         .fetch_profile()
@@ -383,7 +388,10 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
     let user = app::User {
         name: User::new_unchecked(profile.name),
     };
-    let session = rctx.dangerous()?.sign(&user).await?;
+    let session = rctx
+        .inject::<crate::dangerous::Dangerous>()
+        .sign(&user)
+        .await?;
 
     let redirect = grant
         .state

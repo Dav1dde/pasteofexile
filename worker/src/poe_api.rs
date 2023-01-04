@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use worker::Url;
 
-use crate::net;
+use crate::{
+    net,
+    request_context::{Env, FromEnv},
+};
 
 const OAUTH_AUTHORIZE_URL: &str = "https://www.pathofexile.com/oauth/authorize";
 const POE_API_USER_AGENT: &str = "OAuth pobbin/1.0 (contact: ggg@pobb.in)";
@@ -40,6 +43,15 @@ pub struct OauthToken {
 pub struct Oauth {
     pub client_id: String,
     pub client_secret: String,
+}
+
+impl FromEnv for Oauth {
+    fn from_env(env: &Env) -> Option<Self> {
+        Some(Self::new(
+            env.var(crate::consts::ENV_OAUTH_CLIENT_ID)?,
+            env.var(crate::consts::ENV_OAUTH_CLIENT_SECRET)?,
+        ))
+    }
 }
 
 impl Oauth {
