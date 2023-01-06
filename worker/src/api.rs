@@ -282,7 +282,7 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
 
     // TODO id should be serializable?
     let response = Response::ok()
-        .json(&id.to_string())
+        .body(id.to_string())
         .meta_paste(&id, metadata);
 
     crate::cache::on_paste_change(rctx, id);
