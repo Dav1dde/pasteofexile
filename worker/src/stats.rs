@@ -23,7 +23,7 @@ pub async fn record(rctx: &RequestContext, response: &Response) {
         "method": rctx.method().to_string(),
         "status_code": response.status_code(),
         "user_agent": headers.get("User-Agent").ok().flatten(),
-        "referer": headers.get("Referer").ok().flatten(),
+        "referrer": headers.get("Referer").ok().flatten(),
         "client_ip": headers.get("Cf-Connecting-Ip").ok().flatten(),
         "client_country": headers.get("Cf-IPCountry").ok().flatten(),
         "cached": response.was_cached(),
