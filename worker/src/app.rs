@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use shared::model::{PasteId, UserPasteId};
 
-use crate::{consts, response, sentry, CacheControl, Error, RequestContext, Response, Result};
+use crate::{
+    consts, response, sentry, utils::Etag, CacheControl, Error, RequestContext, Response, Result,
+};
 
 pub async fn handle(rctx: &RequestContext, route: app::Route) -> response::Result {
     handle_inner(rctx, route).await.map_err(response::AppError)
@@ -48,10 +50,12 @@ async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
         .replace("<!-- %head% -->", &head)
         .replace("<!-- %app% -->", &app);
 
+    let etag = info.etag.as_ref().map(|etag| Etag::weak(etag).git());
+
     Response::status(resp_ctx.status_code)
         .html(index)
         .meta(info.meta)
-        .etag(info.etag.as_deref())
+        .etag(etag)
         .cache(info.cache_control)
 }
 
@@ -69,10 +73,11 @@ async fn build_context(
             let id = PasteId::new_id(id);
             // TODO: handle 404
 
-            // We can cache this forever because we know anonymous pastes will never change
-            // For 404's this is technically incorrect, but what are the odds...
             let mut info = ResponseInfo {
-                cache_control: CacheControl::default().max_age(consts::CACHE_FOREVER),
+                cache_control: CacheControl::default()
+                    .public()
+                    .max_age(consts::CACHE_A_BIT)
+                    .s_max_age(consts::CACHE_FOREVER),
                 ..Default::default()
             };
 
@@ -96,7 +101,9 @@ async fn build_context(
             let (meta, pastes) = pastes.list_pastes(&user).await?;
 
             let info = ResponseInfo {
-                cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
+                cache_control: CacheControl::default()
+                    .public()
+                    .s_max_age(consts::CACHE_FOREVER),
                 etag: Some(meta.etag),
                 meta: Some(response::Meta::list(&user)),
                 ..Default::default()
@@ -109,7 +116,9 @@ async fn build_context(
             // TODO: handle 404
 
             let mut info = ResponseInfo {
-                cache_control: CacheControl::default().s_max_age(consts::CACHE_FOREVER),
+                cache_control: CacheControl::default()
+                    .public()
+                    .s_max_age(consts::CACHE_FOREVER),
                 ..Default::default()
             };
 
@@ -151,7 +160,9 @@ struct ResponseInfo {
 impl Default for ResponseInfo {
     fn default() -> Self {
         Self {
-            cache_control: CacheControl::default().max_age(Duration::from_secs(3_600)),
+            cache_control: CacheControl::default()
+                .public()
+                .max_age(Duration::from_secs(3_600)),
             etag: None,
             redirect: None,
             meta: None,

@@ -1,6 +1,7 @@
 use std::fmt;
 use std::time::Duration;
 
+use git_version::git_version;
 use shared::validation;
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
@@ -153,6 +154,51 @@ impl fmt::Display for CacheControl {
         w!(self.max_age.map(|d| d.as_secs()), "max-age={}");
         w!(self.s_max_age.map(|d| d.as_secs()), "s-max-age={}");
 
+        Ok(())
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Etag<'a> {
+    value: &'a str,
+    weak: bool,
+    git: bool,
+}
+
+impl<'a> Etag<'a> {
+    pub fn strong(value: &'a str) -> Self {
+        Self {
+            value,
+            weak: false,
+            git: false,
+        }
+    }
+
+    pub fn weak(value: &'a str) -> Self {
+        Self {
+            value,
+            weak: true,
+            git: false,
+        }
+    }
+
+    pub fn git(mut self) -> Self {
+        self.git = true;
+        self
+    }
+}
+
+impl<'a> fmt::Display for Etag<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.weak {
+            write!(f, "W/")?;
+        }
+        write!(f, "\"")?;
+        write!(f, "{}", self.value)?;
+        if self.git {
+            write!(f, ".{}", git_version!())?;
+        }
+        write!(f, "\"")?;
         Ok(())
     }
 }

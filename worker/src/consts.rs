@@ -25,8 +25,5 @@ pub const ENV_STATS_TOKEN: &str = "STATS_TOKEN";
 
 pub const OAUTH_SCOPE: &str = "account:profile";
 
-const HOUR: u64 = 3_600;
-const DAY: u64 = 24 * HOUR;
-
-pub const CACHE_ASSETS: u64 = 2 * DAY;
+pub const CACHE_A_BIT: Duration = Duration::from_secs(21600); // 6 Hours
 pub const CACHE_FOREVER: Duration = Duration::from_secs(31536000);

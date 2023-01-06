@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use shared::{model::PasteId, User};
 
 pub use self::ResponseError::{ApiError, AppError};
-use crate::{storage::StoredPaste, utils::CacheControl};
+use crate::{
+    storage::StoredPaste,
+    utils::{CacheControl, Etag},
+};
 
 pub type Result = std::result::Result<Response, ResponseError>;
 
@@ -179,13 +182,9 @@ impl Response {
         self.header("Content-Type", content_type)
     }
 
-    pub fn etag<'a, T>(self, etag: T) -> Self
-    where
-        T: Into<Option<&'a str>>,
-    {
+    pub fn etag<'a>(self, etag: impl Into<Option<Etag<'a>>>) -> Self {
         let Some(etag) = etag.into() else { return self };
-        // TODO: modify etag with git commit hash?
-        self.header("Etag", &format!("\"{}\"", etag.trim_matches('"')))
+        self.header("Etag", &etag.to_string())
     }
 
     pub fn state_cookie(self, state: &str) -> Self {

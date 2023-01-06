@@ -13,7 +13,7 @@ use crate::{
     response,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
     sentry,
-    utils::{self, CacheControl, RequestExt},
+    utils::{self, CacheControl, Etag, RequestExt},
     Error, Response, Result,
 };
 
@@ -136,7 +136,7 @@ async fn handle_download_text(rctx: &RequestContext, id: PasteId) -> Result<Resp
         .meta_paste(id, &paste)
         .body(paste.content)
         .content_type("text/plain")
-        .etag(&*paste.entity_id)
+        .etag(Etag::strong(&paste.entity_id))
         .cache(
             CacheControl::default()
                 .public()
@@ -157,7 +157,7 @@ async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Resp
         .json(&paste)
         .meta_paste(id, paste)
         .content_type("application/json")
-        .etag(&*meta.etag)
+        .etag(Etag::strong(&meta.etag))
         .cache(
             CacheControl::default()
                 .public()
@@ -322,7 +322,7 @@ async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
     Response::ok()
         .json(&pastes)
         .meta_list(user)
-        .etag(&*meta.etag)
+        .etag(Etag::strong(&meta.etag))
         .cache(
             CacheControl::default()
                 .public()
