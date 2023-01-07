@@ -31,6 +31,9 @@ pub enum Error {
     #[error("Missing Authorization Grant")]
     MissingAuthorizationGrant,
 
+    #[error("Authorization Grant Error: {0}")]
+    AuthorizationGrantError(String),
+
     #[error("Invalid Session State")]
     InvalidSessionState,
 
@@ -64,6 +67,7 @@ impl Error {
             Self::BadRequest(..) => "BadRequest",
             Self::AccessDenied => "AccessDenied",
             Self::MissingAuthorizationGrant => "MissingAuthorizationGrant",
+            Self::AuthorizationGrantError(..) => "AuthorizationGrantError",
             Self::InvalidSessionState => "InvalidSessionState",
             Self::InvalidPoB(..) => "InvalidPoB",
             Self::InvalidId(..) => "InvalidId",
@@ -78,7 +82,10 @@ impl Error {
         match self {
             Self::NotFound(..) | Self::InvalidId(..) => 404,
             Self::BadRequest(..) | Self::InvalidPoB(..) => 400,
-            Self::AccessDenied | Self::MissingAuthorizationGrant | Self::InvalidSessionState => 403,
+            Self::AccessDenied
+            | Self::MissingAuthorizationGrant
+            | Self::AuthorizationGrantError(..)
+            | Self::InvalidSessionState => 403,
             Self::Dangerous(err) => match err {
                 DangerousError::BadEncoding => 400,
                 DangerousError::BadSignature => 400,
@@ -98,7 +105,8 @@ impl Error {
             Self::Worker(..) => Level::Error,
             Self::BadRequest(..) => Level::Info,
             Self::AccessDenied => Level::Info,
-            Self::MissingAuthorizationGrant => Level::Info,
+            Self::MissingAuthorizationGrant => Level::Warning,
+            Self::AuthorizationGrantError(..) => Level::Warning,
             Self::InvalidSessionState => Level::Info,
             Self::InvalidId(..) => Level::Info,
             Self::InvalidPoB(..) => Level::Error,

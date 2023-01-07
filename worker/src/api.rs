@@ -335,14 +335,7 @@ async fn handle_login(rctx: &RequestContext) -> Result<Response> {
     let req_url = rctx.url()?;
     let host = crate::utils::if_debug!("preview.pobb.in", req_url.host_str().unwrap());
 
-    let referrer = rctx.referrer();
-    let path = referrer
-        .as_ref()
-        .filter(|url| url.host_str() == req_url.host_str())
-        .map(|url| &url[url::Position::BeforePath..])
-        .unwrap_or("/");
-    let state = format!("{}.{}", utils::random_string::<12>()?, path);
-
+    let state = create_oauth_state(&req_url, rctx.referrer().as_ref())?;
     let redirect_uri = format!("https://{host}/oauth2/authorization/poe");
     let login_uri = rctx.inject::<crate::poe_api::Oauth>().get_login_url(
         &redirect_uri,
@@ -359,9 +352,22 @@ async fn handle_login(rctx: &RequestContext) -> Result<Response> {
 async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
     let url = rctx.url()?;
 
-    let Ok(grant) = poe_api::AuthorizationGrant::try_from(&url) else {
-        tracing::warn!("missing authorization grant");
-        return Err(Error::MissingAuthorizationGrant);
+    let grant = match poe_api::AuthorizationGrant::try_from(&url) {
+        Ok(grant) => grant,
+        Err(poe_api::AuthorizationGrantParseError::UserDeniedAccess(state)) => {
+            tracing::info!("user denied access for login");
+            return Response::redirect_temp(redirect_from_oauth_state(&state))
+                .delete_state_cookie()
+                .result();
+        }
+        Err(poe_api::AuthorizationGrantParseError::Error { name, description }) => {
+            return Err(Error::AuthorizationGrantError(format!(
+                "{name}: {description:?}"
+            )))
+        }
+        Err(poe_api::AuthorizationGrantParseError::MissingAuthorizationGrant) => {
+            return Err(Error::MissingAuthorizationGrant)
+        }
     };
 
     tracing::info!(%grant.state, "logging in");
@@ -392,15 +398,24 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
         .sign(&user)
         .await?;
 
-    let redirect = grant
-        .state
-        .split_once('.')
-        .map(|(_, path)| path)
-        .filter(|path| !path.is_empty())
-        .unwrap_or("/");
-
-    Response::redirect_temp(redirect)
+    Response::redirect_temp(redirect_from_oauth_state(&grant.state))
         .delete_state_cookie()
         .new_session(&session)
         .result()
+}
+
+fn create_oauth_state(req_url: &url::Url, referrer: Option<&url::Url>) -> Result<String> {
+    let path = referrer
+        .filter(|url| url.host_str() == req_url.host_str())
+        .map(|url| &url[url::Position::BeforePath..])
+        .unwrap_or("/");
+    Ok(format!("{}.{}", utils::random_string::<12>()?, path))
+}
+
+fn redirect_from_oauth_state(state: &str) -> &str {
+    state
+        .split_once('.')
+        .map(|(_, path)| path)
+        .filter(|path| !path.is_empty())
+        .unwrap_or("/")
 }

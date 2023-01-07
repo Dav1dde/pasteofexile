@@ -15,23 +15,48 @@ pub struct AuthorizationGrant<'a> {
     pub state: Cow<'a, str>,
 }
 
+pub enum AuthorizationGrantParseError<'a> {
+    UserDeniedAccess(Cow<'a, str>),
+    MissingAuthorizationGrant,
+    Error {
+        name: Cow<'a, str>,
+        description: Option<Cow<'a, str>>,
+    },
+}
+
 impl<'a> TryFrom<&'a Url> for AuthorizationGrant<'a> {
-    type Error = ();
+    type Error = AuthorizationGrantParseError<'a>;
 
     fn try_from(value: &'a Url) -> Result<Self, Self::Error> {
         let mut code = None;
         let mut state = None;
+        let mut error = None;
+        let mut error_description = None;
         for (k, v) in value.query_pairs() {
             match &*k {
                 "code" => code = Some(v),
                 "state" => state = Some(v),
+                "error" => error = Some(v),
+                "error_description" => error_description = Some(v),
                 _ => {}
             }
         }
 
+        #[allow(clippy::unnecessary_unwrap)]
+        if error.as_deref() == Some("access_denied") && state.is_some() {
+            return Err(Self::Error::UserDeniedAccess(state.unwrap()));
+        }
+
+        if let Some(name) = error {
+            return Err(Self::Error::Error {
+                name,
+                description: error_description,
+            });
+        }
+
         code.zip(state)
             .map(|(code, state)| Self { code, state })
-            .ok_or(())
+            .ok_or(Self::Error::MissingAuthorizationGrant)
     }
 }
 
