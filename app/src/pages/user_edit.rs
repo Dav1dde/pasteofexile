@@ -22,7 +22,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
         let paste = ctx.into_paste().unwrap();
         Ok(Data {
             id: UserPasteId { user, id },
-            title: paste.metadata.map(|m| m.title),
+            title: paste.metadata.and_then(|m| m.title),
             content: paste.content,
         })
     }
@@ -45,7 +45,7 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
             Ok(Data {
                 id: id.unwrap_user(),
                 content: paste.content,
-                title: paste.metadata.map(|x| x.title),
+                title: paste.metadata.and_then(|x| x.title),
             })
         })
     }

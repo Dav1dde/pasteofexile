@@ -214,11 +214,10 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
             Error::AccessDenied
         })?;
 
-        validate!(data.title.is_some(), "Title is required");
-        let title = data.title.unwrap();
-        validate_v!(validation::user::is_valid_custom_title(&title));
-
-        metadata.title = title;
+        if let Some(ref title) = data.title {
+            validate_v!(validation::user::is_valid_custom_title(&title));
+        }
+        metadata.title = Some(data.title.unwrap_or_else(|| app::pob::title(&pob)));
 
         if let Some(id) = data.id {
             validate_access!(Some(session.name.as_str()) == id.user().map(|user| user.as_str()));
@@ -306,7 +305,7 @@ fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
 
 fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
     PasteMetadata {
-        title: app::pob::title(pob),
+        title: None,
         ascendancy_or_class: pob.ascendancy_or_class_name().to_owned(),
         version: pob.max_tree_version(),
         main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),

@@ -48,7 +48,7 @@ pub struct Node {
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
-    pub title: String,
+    pub title: Option<String>,
     pub ascendancy_or_class: String, // TODO: this should be an enum
     pub version: Option<String>,
     pub main_skill_name: Option<String>,

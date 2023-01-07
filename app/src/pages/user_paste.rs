@@ -31,7 +31,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
 
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
         let mut paste = ctx.into_paste().unwrap();
-        let title = paste.metadata.take().map(|m| m.title);
+        let title = paste.metadata.take().and_then(|m| m.title);
 
         Ok(Data {
             id: UserPasteId { user, id },
@@ -61,7 +61,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
             // TODO: get rid of these clones
             let mut paste =
                 crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
-            let title = paste.metadata.take().map(|x| x.title);
+            let title = paste.metadata.take().and_then(|x| x.title);
 
             Ok(Data {
                 id: UserPasteId { user, id },

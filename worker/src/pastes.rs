@@ -58,7 +58,7 @@ impl Pastes {
                 PasteSummary {
                     id,
                     user: Some(user.clone()),
-                    title: metadata.title,
+                    title: metadata.title.unwrap_or_default(),
                     ascendancy_or_class: metadata.ascendancy_or_class,
                     version: metadata.version.unwrap_or_default(),
                     main_skill_name: metadata.main_skill_name.unwrap_or_default(),
