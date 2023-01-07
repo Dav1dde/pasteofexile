@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use shared::model::{PasteId, UserPasteId};
 
 use crate::{
@@ -50,7 +48,7 @@ async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
         .replace("<!-- %head% -->", &head)
         .replace("<!-- %app% -->", &app);
 
-    let etag = info.etag.as_ref().map(|etag| Etag::weak(etag).git());
+    let etag = info.etag.as_deref().map(|etag| Etag::weak(etag).git());
 
     Response::status(resp_ctx.status_code)
         .html(index)
@@ -67,8 +65,11 @@ async fn build_context(
     // TODO: refactor this context garbage, maybe make it into a trait?
     use app::{Context, Route::*};
     let (info, ctx) = match route {
-        Index => (ResponseInfo::default(), Context::index()),
-        NotFound => (ResponseInfo::default(), Context::not_found()),
+        Index => (ResponseInfo::default().with_etag("index"), Context::index()),
+        NotFound => (
+            ResponseInfo::default().with_etag("not_found"),
+            Context::not_found(),
+        ),
         Paste(id) => {
             let id = PasteId::new_id(id);
             // TODO: handle 404
@@ -90,8 +91,7 @@ async fn build_context(
                     (info, Context::paste(id, paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
-                    info.etag = Some("not_found".to_owned());
-                    (info, Context::not_found())
+                    (info.with_etag("not_found"), Context::not_found())
                 }
                 Err(err) => return Err(err),
             }
@@ -131,19 +131,14 @@ async fn build_context(
                     (info, Context::user_paste(id.unwrap_user(), paste))
                 }
                 Err(Error::InvalidId(..)) | Ok(None) => {
-                    info.etag = Some("not_found".to_owned());
-                    (info, Context::not_found())
+                    (info.with_etag("not_found"), Context::not_found())
                 }
                 Err(err) => return Err(err),
             }
         }
         UserEditPaste(user, id) => {
-            let info = ResponseInfo {
-                redirect: Some(UserPasteId { user, id }.to_paste_url()),
-                ..Default::default()
-            };
-
-            (info, Context::not_found())
+            let location = UserPasteId { user, id }.to_paste_url();
+            (ResponseInfo::redirect(location), Context::not_found())
         }
     };
 
@@ -157,12 +152,27 @@ struct ResponseInfo {
     meta: Option<response::Meta>,
 }
 
+impl ResponseInfo {
+    pub fn redirect(location: String) -> Self {
+        Self {
+            redirect: Some(location),
+            ..Default::default()
+        }
+    }
+
+    pub fn with_etag(mut self, etag: impl Into<String>) -> Self {
+        self.etag = Some(etag.into());
+        self
+    }
+}
+
 impl Default for ResponseInfo {
     fn default() -> Self {
         Self {
             cache_control: CacheControl::default()
                 .public()
-                .max_age(Duration::from_secs(3_600)),
+                .max_age(consts::CACHE_A_BIT)
+                .s_max_age(consts::CACHE_FOREVER),
             etag: None,
             redirect: None,
             meta: None,
