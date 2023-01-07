@@ -43,7 +43,7 @@ impl SerdePathOfBuilding {
                 .iter()
                 .enumerate()
                 .filter(|(_, s)| s.gems.len() >= 4)
-                .filter(|(_, s)| s.active_gems().next().is_some())
+                .filter(|(_, s)| active_skills(&s.gems).next().is_some())
                 // max_by_key returns the last item, but we actually want the first -> rev
                 .rev()
                 .max_by_key(|(_, s)| s.gems.len())?;
@@ -138,24 +138,8 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     fn main_skill_name(&self) -> Option<&str> {
         let skill = self.main_skill()?;
 
-        let mut index = skill.main_active_skill.checked_sub(1)? as usize;
-        for (i, gem) in skill.active_gems().enumerate() {
-            if i == index {
-                return Some(&gem.name);
-            }
-            if gem.is_vaal() {
-                // Vaal skills count 'twice', decrement the original index to account for
-                // that. After the adjustment check again if the second part of the gem
-                // might be matching.
-                index -= 1;
-
-                if i == index {
-                    return Some(gem.non_vaal_name());
-                }
-            }
-        }
-
-        None
+        let index = skill.main_active_skill.checked_sub(1)? as usize;
+        active_skills(&skill.gems).nth(index)
     }
 
     fn main_skill_supported_by(&self, skill: &str) -> bool {
@@ -226,6 +210,30 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     }
 }
 
+/// Returns an iterator of active skills as PoB sees it.
+fn active_skills(gems: &[Gem]) -> impl Iterator<Item = &str> {
+    gems.iter().flat_map(|gem| {
+        let active = gem.is_active().then_some(gem.name.as_str());
+        // all vaal gems are implicitly also active
+        let vaal = gem.is_vaal().then(|| gem.non_vaal_name());
+        // granted skills by gems (e.g. `Impending Doom` grantes `Doom Blast`.
+        let granted = gem
+            .skill_id
+            .iter()
+            .flat_map(|sid| crate::gems::granted_active_skills(sid))
+            .copied();
+
+        // Order is important here.
+        // A vaal skill incldes the vall skill name in `gem.name`,
+        // this needs to go first, then this adds the non vaal version as second.
+        //
+        // Currently only Impending Doom grants a skill,
+        // if there is an active gem that grants a skill, this order may need to be re-evaluted.
+
+        active.into_iter().chain(vaal).chain(granted)
+    })
+}
+
 fn to_skills(skills: &[Skill], main_socket_group: usize) -> Vec<crate::Skill> {
     skills
         .iter()
@@ -280,6 +288,7 @@ mod tests {
     static V316_POISON_OCC: &str = include_str!("../../test/316_poison_occ.xml");
     static V318_SKILLSET: &str = include_str!("../../test/318_skillset.xml");
     static V319_MASTERY_EFFECTS: &str = include_str!("../../test/319_mastery_effects.xml");
+    static V320_IMPENDING_DOOM: &str = include_str!("../../test/320_impending_doom.xml");
 
     #[test]
     fn parse_v316_empty() {
@@ -350,5 +359,13 @@ mod tests {
 
         let spec = pob.tree_specs().pop().unwrap();
         assert_eq!(spec.mastery_effects, &[(12382, 47642), (8732, 12119)]);
+    }
+
+    #[test]
+    /// Impending Doom is a support which grants an active skill,
+    /// the main active skill should be `Doom Blast`.
+    fn parse_v320_impending_doom() {
+        let pob = SerdePathOfBuilding::from_xml(V320_IMPENDING_DOOM).unwrap();
+        assert_eq!(pob.main_skill_name(), Some("Doom Blast"));
     }
 }

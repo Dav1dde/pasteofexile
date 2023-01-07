@@ -280,7 +280,6 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
         .await?;
     tracing::debug!("<-- paste uploaing ...");
 
-    // TODO id should be serializable?
     let response = Response::ok()
         .body(id.to_string())
         .meta_paste(&id, metadata);

@@ -117,10 +117,6 @@ pub(crate) struct Skill {
 }
 
 impl Skill {
-    pub fn active_gems(&self) -> impl Iterator<Item = &Gem> {
-        self.gems.iter().filter(|gem| gem.is_active())
-    }
-
     pub fn support_gems(&self) -> impl Iterator<Item = &Gem> {
         self.gems.iter().filter(|gem| gem.is_support())
     }
@@ -147,7 +143,8 @@ impl Gem {
             return gem_id.starts_with("Metadata/Items/Gems/Support");
         }
         if let Some(skill_id) = &self.skill_id {
-            return skill_id.starts_with("Support");
+            // `SupportVoidManipulation` but also `ViciousHexSupport`
+            return skill_id.starts_with("Support") || skill_id.ends_with("Support");
         }
         self.name.contains("Support")
     }

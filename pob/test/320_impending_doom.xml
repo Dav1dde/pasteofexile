@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding>
+	<Build level="96" targetVersion="3_0" pantheonMajorGod="None" bandit="None" className="Witch" ascendClassName="Occultist" mainSocketGroup="1" viewMode="IMPORT" pantheonMinorGod="None">
+		<PlayerStat stat="AverageHit" value="57188.78064"/>
+		<PlayerStat stat="Speed" value="7.45"/>
+		<PlayerStat stat="PreEffectiveCritChance" value="6"/>
+		<PlayerStat stat="CritChance" value="6"/>
+		<PlayerStat stat="CritMultiplier" value="1.5"/>
+		<PlayerStat stat="HitChance" value="100"/>
+		<PlayerStat stat="TotalDPS" value="426056.415768"/>
+		<PlayerStat stat="TotalDot" value="0"/>
+		<PlayerStat stat="WithBleedDPS" value="426056.415768"/>
+		<PlayerStat stat="WithIgniteDPS" value="426056.415768"/>
+		<PlayerStat stat="PoisonDPS" value="96508.89365208"/>
+		<PlayerStat stat="PoisonDamage" value="586830.6353936"/>
+		<PlayerStat stat="WithPoisonDPS" value="4797944.6494503"/>
+		<PlayerStat stat="TotalDotDPS" value="4371888.2336823"/>
+		<PlayerStat stat="CullingDPS" value="846696.11460888"/>
+		<PlayerStat stat="CombinedDPS" value="5644640.7640592"/>
+		<PlayerStat stat="Cooldown" value="0.066"/>
+		<PlayerStat stat="AreaOfEffectRadius" value="20"/>
+		<PlayerStat stat="ManaCost" value="0"/>
+		<PlayerStat stat="ManaPercentCost" value="0"/>
+		<PlayerStat stat="ManaPerSecondCost" value="0"/>
+		<PlayerStat stat="ManaPercentPerSecondCost" value="0"/>
+		<PlayerStat stat="LifeCost" value="0"/>
+		<PlayerStat stat="LifePercentCost" value="0"/>
+		<PlayerStat stat="LifePerSecondCost" value="0"/>
+		<PlayerStat stat="LifePercentPerSecondCost" value="0"/>
+		<PlayerStat stat="ESCost" value="0"/>
+		<PlayerStat stat="ESPerSecondCost" value="0"/>
+		<PlayerStat stat="ESPercentPerSecondCost" value="0"/>
+		<PlayerStat stat="RageCost" value="0"/>
+		<PlayerStat stat="Str" value="190"/>
+		<PlayerStat stat="ReqStr" value="155"/>
+		<PlayerStat stat="Dex" value="223"/>
+		<PlayerStat stat="ReqDex" value="155"/>
+		<PlayerStat stat="Int" value="284"/>
+		<PlayerStat stat="ReqInt" value="212"/>
+		<PlayerStat stat="Devotion" value="0"/>
+		<PlayerStat stat="TotalEHP" value="130094.3736928"/>
+		<PlayerStat stat="PhysicalMaximumHitTaken" value="15625"/>
+		<PlayerStat stat="LightningMaximumHitTaken" value="40215"/>
+		<PlayerStat stat="FireMaximumHitTaken" value="40215"/>
+		<PlayerStat stat="ColdMaximumHitTaken" value="40215"/>
+		<PlayerStat stat="ChaosMaximumHitTaken" value="34470"/>
+		<PlayerStat stat="Life" value="4436"/>
+		<PlayerStat stat="Spec:LifeInc" value="153"/>
+		<PlayerStat stat="LifeUnreserved" value="4436"/>
+		<PlayerStat stat="LifeRecoverable" value="4436"/>
+		<PlayerStat stat="LifeUnreservedPercent" value="100"/>
+		<PlayerStat stat="LifeRegenRecovery" value="0"/>
+		<PlayerStat stat="LifeLeechGainRate" value="0"/>
+		<PlayerStat stat="Mana" value="1048"/>
+		<PlayerStat stat="Spec:ManaInc" value="28"/>
+		<PlayerStat stat="ManaUnreserved" value="39"/>
+		<PlayerStat stat="ManaUnreservedPercent" value="3.7213740458015"/>
+		<PlayerStat stat="ManaRegenRecovery" value="18.3"/>
+		<PlayerStat stat="ManaLeechGainRate" value="0"/>
+		<PlayerStat stat="EnergyShield" value="973"/>
+		<PlayerStat stat="EnergyShieldRecoveryCap" value="973"/>
+		<PlayerStat stat="Spec:EnergyShieldInc" value="64"/>
+		<PlayerStat stat="EnergyShieldRegenRecovery" value="190"/>
+		<PlayerStat stat="EnergyShieldLeechGainRate" value="97.3"/>
+		<PlayerStat stat="Ward" value="0"/>
+		<PlayerStat stat="RageRegenRecovery" value="0"/>
+		<PlayerStat stat="Evasion" value="32233"/>
+		<PlayerStat stat="Spec:EvasionInc" value="126"/>
+		<PlayerStat stat="MeleeEvadeChance" value="93"/>
+		<PlayerStat stat="ProjectileEvadeChance" value="93"/>
+		<PlayerStat stat="Armour" value="23062"/>
+		<PlayerStat stat="Spec:ArmourInc" value="24"/>
+		<PlayerStat stat="PhysicalDamageReduction" value="74"/>
+		<PlayerStat stat="BlockChance" value="24"/>
+		<PlayerStat stat="SpellBlockChance" value="0"/>
+		<PlayerStat stat="AttackDodgeChance" value="0"/>
+		<PlayerStat stat="SpellDodgeChance" value="0"/>
+		<PlayerStat stat="SpellSuppressionChance" value="100"/>
+		<PlayerStat stat="FireResist" value="75"/>
+		<PlayerStat stat="FireResistOverCap" value="12"/>
+		<PlayerStat stat="ColdResist" value="75"/>
+		<PlayerStat stat="ColdResistOverCap" value="11"/>
+		<PlayerStat stat="LightningResist" value="75"/>
+		<PlayerStat stat="LightningResistOverCap" value="5"/>
+		<PlayerStat stat="ChaosResist" value="65"/>
+		<PlayerStat stat="ChaosResistOverCap" value="0"/>
+		<PlayerStat stat="EffectiveMovementSpeedMod" value="1.84"/>
+		<PlayerStat stat="FullDPS" value="0"/>
+		<PlayerStat stat="FullDotDPS" value="0"/>
+		<PlayerStat stat="PowerCharges" value="0"/>
+		<PlayerStat stat="PowerChargesMax" value="3"/>
+		<PlayerStat stat="FrenzyCharges" value="0"/>
+		<PlayerStat stat="FrenzyChargesMax" value="3"/>
+		<PlayerStat stat="EnduranceCharges" value="0"/>
+		<PlayerStat stat="EnduranceChargesMax" value="3"/>
+		<TimelessData jewelTypeId="3" searchList="maraketh_notable_add_faster_poison, 1, 0, 0
+maraketh_notable_add_poison_damage, 1, 0, 0" jewelSocketId="33989" searchListFallback="" socketFilter="true" conquerorTypeId="1"/>
+	</Build>
+	<Skills sortGemsByDPSField="TotalPoisonDPS" activeSkillSet="1" sortGemsByDPS="true" defaultGemQuality="20" defaultGemLevel="normalMaximum" showSupportGemTypes="ALL" showAltQualityGems="false">
+		<SkillSet id="1">
+			<Skill mainActiveSkillCalcs="2" includeInFullDPS="false" label="" enabled="true" slot="Body Armour" mainActiveSkill="2">
+				<Gem enableGlobal2="false" level="21" enableGlobal1="true" skillId="TemporalChains" qualityId="Default" gemId="Metadata/Items/Gems/SkillGemTemporalChains" quality="0" enabled="true" count="1" nameSpec="Temporal Chains"/>
+				<Gem enableGlobal2="false" level="21" enableGlobal1="true" skillId="ViciousHexSupport" qualityId="Default" gemId="Metadata/Items/Gems/SupportGemImpendingDoom" quality="0" enabled="true" count="1" nameSpec="Impending Doom" skillMinion="SummonedPhantasm"/>
+				<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="SupportVoidManipulation" qualityId="Default" gemId="Metadata/Items/Gems/SupportGemVoidManipulation" quality="20" enabled="true" count="1" nameSpec="Void Manipulation"/>
+				<Gem enableGlobal2="true" level="21" enableGlobal1="true" skillId="SupportAddedChaosDamage" qualityId="Default" gemId="Metadata/Items/Gems/SupportGemAddedChaosDamage" quality="0" enabled="true" count="1" nameSpec="Added Chaos Damage"/>
+				<Gem enableGlobal2="true" level="20" enableGlobal1="true" skillId="SupportAilments" qualityId="Default" gemId="Metadata/Items/Gems/SupportGemUnboundAilments" quality="20" enabled="true" count="1" nameSpec="Unbound Ailments"/>
+				<Gem enableGlobal2="true" level="20" enableGlobal1="true" skillId="SupportSpellCascade" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemSpellCascade" quality="20" enabled="true" count="1" nameSpec="Spell Cascade"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Tree activeSpec="1">
+		<Spec title="Mapping" ascendClassId="1" masteryEffects="{6570,13382},{21801,50933},{62506,43250},{65528,57074},{60210,34563},{25281,47642},{53615,28638},{33678,29652}" nodes="30110,31316,15073,1652,27659,60210,2292,6109,40126,25067,4011,4502,21984,46289,57226,25058,44988,46578,5018,45810,6250,13714,53652,61653,33310,32091,30767,28330,27203,65528,8135,49605,28859,27415,45593,9877,20546,64265,10829,22618,19144,54447,61320,33989,55485,12143,6538,23616,6570,41263,56116,18769,42041,49978,51212,36858,32417,48124,21835,58968,35894,34763,3359,31973,16167,35737,53013,37127,24067,6799,9769,60440,55247,38190,18865,48778,53114,21033,20812,32710,35503,39861,27929,31683,5823,13168,18378,8938,63194,56075,37492,18402,22535,25309,27096,36881,1822,65034,12801,9355,47471,55571,8948,21678,65167,31137,49515,31984,8930,25281,63799,37663,53615,11659,51786,44103,58032,21801,24496,32210,19939,21301,62506,33678,62021,10992,42907,37671" treeVersion="3_20" classId="3">
+			<URL>
+				https://www.pathofexile.com/passive-skill-tree/AAAABgMBfnWeelQ64QZ0bAvrMgj0F92cvmHrD6sRllXgtNHfimHir7y18hOasvIYajWS0ZTw1YIefVt4L26qakP_-B_HwcVwu2sXshkmlVBC-wkqTVhaSsjviITF2L0vbxmKXEAZqqEv2zRJUaQ5wzrIDI_6fqG7_FVL5liMNofLDR985T8ni5nPFZEHXgMajyYp7BjXz5UuSbG-is96UilRTH_Giq-btW0Ze8MWvzNwIur22tsLknRH4lgHYt1p2JARBx7-CjIBJIu5b9kTIvRUrv6PeaHBa3zwIuJiwfk3kx_Rby2LykqsR-KwVSlfsH3STeNTNfQqg47yRSrwp5uTJwAIhwPrMt7y__g0RhmquhpiwW_e0W_G9VUpqPL0KnPUg44=
+			</URL>
+			<Sockets>
+				<Socket nodeId="21984" itemId="10"/>
+				<Socket nodeId="31683" itemId="11"/>
+				<Socket nodeId="33989" itemId="12"/>
+				<Socket nodeId="41263" itemId="12"/>
+			</Sockets>
+		</Spec>
+	</Tree>
+	<Notes></Notes>
+	<Items activeItemSet="3" useSecondWeaponSet="false">
+		<ItemSet useSecondWeaponSet="false" title="Mapping Items" id="3"></ItemSet>
+	</Items>
+	<Config>
+	</Config>
+</PathOfBuilding>

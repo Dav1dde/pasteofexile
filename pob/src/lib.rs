@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 mod config;
 mod error;
+mod gems;
 mod passives;
 mod serde;
 mod stats;
