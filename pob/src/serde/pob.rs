@@ -43,7 +43,7 @@ impl SerdePathOfBuilding {
                 .iter()
                 .enumerate()
                 .filter(|(_, s)| s.gems.len() >= 4)
-                .filter(|(_, s)| active_skills(&s.gems).next().is_some())
+                .filter(|(_, s)| active_skill_names(&s.gems).next().is_some())
                 // max_by_key returns the last item, but we actually want the first -> rev
                 .rev()
                 .max_by_key(|(_, s)| s.gems.len())?;
@@ -139,7 +139,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
         let skill = self.main_skill()?;
 
         let index = skill.main_active_skill.checked_sub(1)? as usize;
-        active_skills(&skill.gems).nth(index)
+        active_skill_names(&skill.gems).nth(index)
     }
 
     fn main_skill_supported_by(&self, skill: &str) -> bool {
@@ -211,7 +211,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
 }
 
 /// Returns an iterator of active skills as PoB sees it.
-fn active_skills(gems: &[Gem]) -> impl Iterator<Item = &str> {
+fn active_skill_names(gems: &[Gem]) -> impl Iterator<Item = &str> {
     gems.iter().flat_map(|gem| {
         let active = gem.is_active().then_some(gem.name.as_str());
         // all vaal gems are implicitly also active
