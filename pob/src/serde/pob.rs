@@ -362,10 +362,13 @@ mod tests {
     }
 
     #[test]
-    /// Impending Doom is a support which grants an active skill,
-    /// the main active skill should be `Doom Blast`.
     fn parse_v320_impending_doom() {
         let pob = SerdePathOfBuilding::from_xml(V320_IMPENDING_DOOM).unwrap();
+        // Impending Doom is a support which grants an active skill,
+        // the main active skill should be `Doom Blast`.
         assert_eq!(pob.main_skill_name(), Some("Doom Blast"));
+
+        // The skill's `nameSpec` is empty and needs to be supplied from `crate::gems`.
+        assert_eq!(pob.skill_sets()[0].skills[1].gems[0].name, "Tornado");
     }
 }

@@ -122,18 +122,13 @@ impl Skill {
     }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub(crate) struct Gem {
-    #[serde(rename = "nameSpec")]
     pub name: String,
     pub skill_id: Option<String>,
     pub gem_id: Option<String>,
-    #[serde(default = "utils::default_true")]
     pub enabled: bool,
-    #[serde(default, deserialize_with = "utils::lenient")]
     pub level: u8,
-    #[serde(default, deserialize_with = "utils::lenient")]
     pub quality: u8,
 }
 
@@ -159,6 +154,50 @@ impl Gem {
 
     pub fn non_vaal_name(&self) -> &str {
         self.name.strip_prefix("Vaal ").unwrap_or(&self.name)
+    }
+}
+
+impl<'de> Deserialize<'de> for Gem {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        pub(crate) struct Inner {
+            #[serde(rename = "nameSpec")]
+            pub name: String,
+            pub skill_id: Option<String>,
+            pub gem_id: Option<String>,
+            #[serde(default = "utils::default_true")]
+            pub enabled: bool,
+            #[serde(default, deserialize_with = "utils::lenient")]
+            pub level: u8,
+            #[serde(default, deserialize_with = "utils::lenient")]
+            pub quality: u8,
+        }
+
+        let inner = Inner::deserialize(deserializer)?;
+
+        let name = if inner.name.is_empty() {
+            inner
+                .skill_id
+                .as_deref()
+                .and_then(crate::gems::skill_name_fallback)
+                .map(Into::into)
+                .unwrap_or_default()
+        } else {
+            inner.name
+        };
+
+        Ok(Self {
+            name,
+            skill_id: inner.skill_id,
+            gem_id: inner.gem_id,
+            enabled: inner.enabled,
+            level: inner.level,
+            quality: inner.quality,
+        })
     }
 }
 

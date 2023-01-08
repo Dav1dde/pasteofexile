@@ -139,10 +139,13 @@ fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
             let is_last = matches!(gem, itertools::Position::Last(_));
             let gem = gem.into_inner();
 
+            // This could be empty for skills from uniques (see also `pob/src/gems.rs`),
+            // but PoB has a workaround so this shouldn't be empty.
+            // Rather add more uniques to the existing workaround then adding another here.
             let name = gem.name.to_owned();
             let class = match (gem.is_selected, gem.is_active) {
-                (true, _) => "truncate font-bold dark:text-amber-50 text-slate-800",
-                (_, true) => "truncate dark:text-stone-100 text-slate-800",
+                (true, _) => "truncate font-bold text-amber-50",
+                (_, true) => "truncate text-stone-100",
                 (false, false) => {
                     if is_only {
                         "truncate"

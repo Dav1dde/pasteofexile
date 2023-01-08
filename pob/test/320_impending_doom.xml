@@ -106,12 +106,15 @@ maraketh_notable_add_poison_damage, 1, 0, 0" jewelSocketId="33989" searchListFal
 				<Gem enableGlobal2="true" level="20" enableGlobal1="true" skillId="SupportAilments" qualityId="Default" gemId="Metadata/Items/Gems/SupportGemUnboundAilments" quality="20" enabled="true" count="1" nameSpec="Unbound Ailments"/>
 				<Gem enableGlobal2="true" level="20" enableGlobal1="true" skillId="SupportSpellCascade" qualityId="Default" skillPart="1" gemId="Metadata/Items/Gems/SupportGemSpellCascade" quality="20" enabled="true" count="1" nameSpec="Spell Cascade"/>
 			</Skill>
+            <Skill mainActiveSkillCalcs="nil" includeInFullDPS="nil" label="" source="Item:30:Saqawal's Flock, Silken Hood" enabled="true" slot="Helmet" mainActiveSkill="1">
+                <Gem enableGlobal2="nil" level="20" enableGlobal1="true" skillId="AvianTornado" quality="0" enabled="true" count="nil" nameSpec=""/>
+            </Skill>
 		</SkillSet>
 	</Skills>
 	<Tree activeSpec="1">
-		<Spec title="Mapping" ascendClassId="1" masteryEffects="{6570,13382},{21801,50933},{62506,43250},{65528,57074},{60210,34563},{25281,47642},{53615,28638},{33678,29652}" nodes="30110,31316,15073,1652,27659,60210,2292,6109,40126,25067,4011,4502,21984,46289,57226,25058,44988,46578,5018,45810,6250,13714,53652,61653,33310,32091,30767,28330,27203,65528,8135,49605,28859,27415,45593,9877,20546,64265,10829,22618,19144,54447,61320,33989,55485,12143,6538,23616,6570,41263,56116,18769,42041,49978,51212,36858,32417,48124,21835,58968,35894,34763,3359,31973,16167,35737,53013,37127,24067,6799,9769,60440,55247,38190,18865,48778,53114,21033,20812,32710,35503,39861,27929,31683,5823,13168,18378,8938,63194,56075,37492,18402,22535,25309,27096,36881,1822,65034,12801,9355,47471,55571,8948,21678,65167,31137,49515,31984,8930,25281,63799,37663,53615,11659,51786,44103,58032,21801,24496,32210,19939,21301,62506,33678,62021,10992,42907,37671" treeVersion="3_20" classId="3">
+		<Spec title="Mapping" ascendClassId="1" masteryEffects="" treeVersion="3_20" classId="3">
 			<URL>
-				https://www.pathofexile.com/passive-skill-tree/AAAABgMBfnWeelQ64QZ0bAvrMgj0F92cvmHrD6sRllXgtNHfimHir7y18hOasvIYajWS0ZTw1YIefVt4L26qakP_-B_HwcVwu2sXshkmlVBC-wkqTVhaSsjviITF2L0vbxmKXEAZqqEv2zRJUaQ5wzrIDI_6fqG7_FVL5liMNofLDR985T8ni5nPFZEHXgMajyYp7BjXz5UuSbG-is96UilRTH_Giq-btW0Ze8MWvzNwIur22tsLknRH4lgHYt1p2JARBx7-CjIBJIu5b9kTIvRUrv6PeaHBa3zwIuJiwfk3kx_Rby2LykqsR-KwVSlfsH3STeNTNfQqg47yRSrwp5uTJwAIhwPrMt7y__g0RhmquhpiwW_e0W_G9VUpqPL0KnPUg44=
+				https://www.pathofexile.com/passive-skill-tree/
 			</URL>
 			<Sockets>
 				<Socket nodeId="21984" itemId="10"/>
