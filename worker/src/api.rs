@@ -72,6 +72,8 @@ pub async fn handle(rctx: &mut RequestContext, route: route::Api) -> response::R
         Get(UserPasteJson(user, id)) => {
             handle_download_json(rctx, PasteId::new_user(user, id)).await
         }
+        Get(PasteXml(id)) => handle_download_xml(rctx, PasteId::Paste(id)).await,
+        Get(UserPasteXml(user, id)) => handle_download_xml(rctx, PasteId::new_user(user, id)).await,
         Get(Login) => handle_login(rctx).await,
         Get(Oauht2Poe) => handle_oauth2_poe(rctx).await,
         // Post
@@ -158,6 +160,29 @@ async fn handle_download_json(rctx: &RequestContext, id: PasteId) -> Result<Resp
         .meta_paste(id, paste)
         .content_type("application/json")
         .etag(Etag::strong(&meta.etag))
+        .cache(
+            CacheControl::default()
+                .public()
+                .s_max_age(consts::CACHE_FOREVER),
+        )
+        .result()
+}
+
+#[tracing::instrument(skip(rctx))]
+async fn handle_download_xml(rctx: &RequestContext, id: PasteId) -> Result<Response> {
+    let storage = rctx.inject::<crate::storage::Storage>();
+    let paste = storage
+        .get(&id)
+        .await?
+        .ok_or_else(|| Error::NotFound("paste", id.to_string()))?;
+
+    let content = pob::decompress(&paste.content).map_err(|e| Error::BadRequest(e.to_string()))?;
+
+    Response::ok()
+        .meta_paste(id, &paste)
+        .body(content)
+        .content_type("application/xml")
+        .etag(Etag::strong(&paste.entity_id))
         .cache(
             CacheControl::default()
                 .public()

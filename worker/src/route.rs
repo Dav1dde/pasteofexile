@@ -80,6 +80,10 @@ pub enum GetEndpoints {
     PasteJson(String),
     #[to("/u/<name>/<id>/json")]
     UserPasteJson(User, String),
+    #[to("/<id>/xml")]
+    PasteXml(String),
+    #[to("/u/<name>/<id>/xml")]
+    UserPasteXml(User, String),
     /// Path of Building endpoint for importing builds.
     /// This supports the anonymous and user scoped paste IDs.
     /// User scoped paste IDs are used in `pob://` protocol links.
