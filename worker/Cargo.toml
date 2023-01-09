@@ -17,7 +17,7 @@ pob = { path = "../pob/", features = ["better-errors"] }
 poe-tree = { path = "../poe-tree/" }
 shared = { path = "../shared/" }
 
-worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "5a24cc5d", package = "worker" }
+worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "3e547f2a", package = "worker" }
 # worker = { path = "../../workers-rs/worker/" }
 
 serde_json = "1"

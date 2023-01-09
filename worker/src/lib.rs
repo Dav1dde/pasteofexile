@@ -79,10 +79,12 @@ async fn cached(rctx: &mut RequestContext) -> Response {
     if use_cache && response.is_cacheable() {
         let for_cache = response.for_cache();
 
-        let key = rctx.req().inner().url();
+        // Unwrap can only fail if the body was already consumed,
+        // this is a GET request without a body at this point.
+        let key = rctx.req().inner().clone().unwrap();
         rctx.ctx().wait_until(async move {
             tracing::debug!("--> caching response");
-            let r = cache.put(&key, for_cache).await;
+            let r = cache.put(key, for_cache).await;
             debug_assert!(r.is_ok(), "failed to cache response: {r:?}");
             tracing::debug!("<-- response cached");
         });
