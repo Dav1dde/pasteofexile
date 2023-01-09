@@ -2,3 +2,7 @@ User-agent: *
 Disallow: /api/
 Disallow: /pob/
 Disallow: /*/raw$
+Disallow: /*/json$
+Disallow: /*/xml$
+Disallow: /login
+Disallow: /oauth2/*
