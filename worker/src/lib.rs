@@ -22,6 +22,10 @@ mod stats;
 mod storage;
 mod utils;
 
+mod app_metadata {
+    include!(concat!(env!("OUT_DIR"), "/app_metadata.rs"));
+}
+
 use request_context::RequestContext;
 use utils::CacheControl;
 

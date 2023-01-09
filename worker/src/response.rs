@@ -140,9 +140,7 @@ impl Response {
             meta: None,
         }
     }
-}
 
-impl Response {
     pub fn redirect_temp(location: &str) -> Self {
         Self::status(307).header("Location", location)
     }
@@ -150,7 +148,9 @@ impl Response {
     pub fn redirect_perm(location: &str) -> Self {
         Self::status(301).header("Location", location)
     }
+}
 
+impl Response {
     pub fn body(mut self, body: impl Into<Vec<u8>>) -> Self {
         self.body = worker::ResponseBody::Body(body.into());
         self
@@ -167,14 +167,18 @@ impl Response {
     }
 
     pub fn header(mut self, name: &str, value: &str) -> Self {
-        let r = self.headers.set(name, value);
-        debug_assert!(r.is_ok());
+        if !value.is_empty() {
+            let r = self.headers.set(name, value);
+            debug_assert!(r.is_ok());
+        }
         self
     }
 
     pub fn append_header(mut self, name: &str, value: &str) -> Self {
-        let r = self.headers.append(name, value);
-        debug_assert!(r.is_ok());
+        if !value.is_empty() {
+            let r = self.headers.append(name, value);
+            debug_assert!(r.is_ok());
+        }
         self
     }
 

@@ -1,7 +1,9 @@
 use shared::model::{PasteId, UserPasteId};
 
 use crate::{
-    consts, response, sentry, utils::Etag, CacheControl, Error, RequestContext, Response, Result,
+    app_metadata, consts, response, sentry,
+    utils::{to_link, Etag},
+    CacheControl, Error, RequestContext, Response, Result,
 };
 
 pub async fn handle(rctx: &RequestContext, route: app::Route) -> response::Result {
@@ -37,6 +39,9 @@ async fn handle_inner(rctx: &RequestContext, route: app::Route) -> Result<Respon
 
 async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
     let (app, resp_ctx) = app::render_to_string(ctx);
+
+    let link_preload = to_link(&resp_ctx.preload, "preload");
+
     let head = app::render_head(app::Head {
         meta: resp_ctx.meta.unwrap_or_default(),
         prefetch: resp_ctx.prefetch,
@@ -54,6 +59,8 @@ async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
         .html(index)
         .meta(info.meta)
         .etag(etag)
+        .append_header("Link", app_metadata::EARLY_HINTS)
+        .append_header("Link", &link_preload)
         .cache(info.cache_control)
 }
 

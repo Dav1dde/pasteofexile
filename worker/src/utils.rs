@@ -85,6 +85,13 @@ pub fn to_path(id: &str) -> crate::Result<String> {
     Ok(result)
 }
 
+pub fn to_link(p: &[app::Prefetch], rel: &str) -> String {
+    p.iter()
+        .map(|p| format!("<{}>;rel={};as={}", p.url(), rel, p.typ()))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum Cachability {
     Public,
