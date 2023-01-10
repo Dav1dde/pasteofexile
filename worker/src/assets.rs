@@ -71,15 +71,16 @@ fn get_mime(path: &str) -> Option<&'static str> {
     let (_, ext) = path.rsplit_once('.')?;
 
     let ct = match ext {
-        "html" => "text/html",
         "css" => "text/css",
+        "html" => "text/html",
+        "ico" => "image/x-icon",
+        "jpeg" => "image/jpeg",
+        "jpg" => "image/jpeg",
         "js" => "text/javascript",
         "json" => "application/json",
         "png" => "image/png",
-        "jpg" => "image/jpeg",
-        "jpeg" => "image/jpeg",
-        "ico" => "image/x-icon",
         "svg" => "image/svg+xml",
+        "txt" => "text/plain",
         "wasm" => "application/wasm",
         _ => return None,
     };
