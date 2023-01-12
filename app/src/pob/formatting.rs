@@ -30,7 +30,7 @@ impl<'a> Iterator for ColoredText<'a> {
 
         let (end, next_start, next_style) = loop {
             let index = match text[start_search..].find('^') {
-                Some(index) => index,
+                Some(index) => start_search + index,
                 None => {
                     if text.is_empty() {
                         return None;
@@ -145,6 +145,12 @@ mod tests {
     fn test_multiple_empty() {
         let x = ColoredText::new("^1^2^3^4^5").collect::<Vec<_>>();
         assert_eq!(x, vec![]);
+    }
+
+    #[test]
+    fn test_invalid_interleaved() {
+        let x = ColoredText::new("^1A^B^2C").collect::<Vec<_>>();
+        assert_eq!(x, vec![(Named(1), "A^B"), (Named(2), "C")]);
     }
 
     #[test]
