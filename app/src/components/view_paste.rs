@@ -190,7 +190,7 @@ pub fn view_paste(
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
                 PobGems(build.clone())
             }
-            div(class="flex-1") {
+            div(class="flex-1 max-w-full lg:max-w-[43%]") {
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
                 PobTreeTable(build)
             }

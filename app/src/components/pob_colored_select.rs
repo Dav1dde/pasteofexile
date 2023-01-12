@@ -63,7 +63,7 @@ where
         Style::Style(style) => ("", style),
         Style::None => ("", String::new()),
     };
-    let class = format!("sm:ml-3 mt-1 mb-2 px-1 {class}");
+    let class = format!("sm:ml-3 mt-1 mb-2 px-1 max-w-full {class}");
 
     view! {
         select(class=class, style=style, on:input=on_input, onchange=SELECT_ONCHANGE_COLOR_FROM_OPTION) {

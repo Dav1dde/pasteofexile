@@ -46,7 +46,7 @@ pub fn pob_tree_table(build: Build) -> View<G> {
 
     // TODO: try flexbox with 50% 50%
     view! {
-        div(class="grid grid-cols-1 sm:grid-cols-[minmax(max-content,_350px)_max-content] gap-x-8 sm:gap-y-1 sm:ml-3") {
+        div(class="grid grid-cols-1 overflow-x-auto sm:grid-cols-[minmax(max-content,_350px)_max-content] gap-x-8 sm:gap-y-1 sm:ml-3") {
             (rows)
         }
     }
