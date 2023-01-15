@@ -71,7 +71,7 @@ impl Storage {
         self.storage.put(id, sha1, data, metadata).await
     }
 
-    pub async fn put_async(
+    pub async fn put_auto(
         self,
         rctx: &crate::RequestContext,
         id: &PasteId,
@@ -79,7 +79,12 @@ impl Storage {
         data: Rc<[u8]>,
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
-        self.storage.put_async(rctx, id, sha1, data, metadata).await
+        // Turkey blocks b2 for some reason...
+        if rctx.country().as_deref() == Some("TR") {
+            self.storage.put(id, sha1, &data, metadata).await
+        } else {
+            self.storage.put_async(rctx, id, sha1, data, metadata).await
+        }
     }
 
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {

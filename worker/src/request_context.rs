@@ -128,6 +128,10 @@ impl RequestContext {
         let dangerous = self.inject::<crate::dangerous::Dangerous>();
         Ok(Some(dangerous.verify::<app::User>(&session).await?))
     }
+
+    pub fn country(&self) -> Option<String> {
+        self.req.cf().country()
+    }
 }
 
 impl Deref for RequestContext {
