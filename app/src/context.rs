@@ -43,7 +43,8 @@ impl Context {
         }
     }
 
-    pub fn user_paste(up: UserPasteId, paste: shared::model::Paste) -> Self {
+    pub fn user_paste(id: PasteId, paste: shared::model::Paste) -> Self {
+        let up = id.unwrap_user();
         Self {
             route: Ok(Route::UserPaste(up.user, up.id)),
             inner: paste.into(),

@@ -103,6 +103,14 @@ impl PasteId {
         }
     }
 
+    pub fn to_pob_load_url(&self) -> String {
+        // TODO: maybe this is just `format!("/pob/{}", self)
+        match self {
+            Self::Paste(id) => format!("/pob/{id}"),
+            Self::UserPaste(up) => up.to_pob_load_url(),
+        }
+    }
+
     pub fn to_pob_open_url(&self) -> String {
         match self {
             // TODO: use Display here?

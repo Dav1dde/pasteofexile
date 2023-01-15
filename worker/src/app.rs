@@ -39,7 +39,6 @@ async fn handle_inner(rctx: &RequestContext, route: app::Route) -> Result<Respon
 
 async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
     let (app, resp_ctx) = app::render_to_string(ctx);
-
     let link_preload = to_link(&resp_ctx.preload, "preload");
 
     let head = app::render_head(app::Head {
@@ -79,38 +78,14 @@ async fn build_context(
         ),
         Paste(id) => {
             let id = PasteId::new_id(id);
-            // TODO: handle 404
 
-            let mut info = ResponseInfo {
-                cache_control: CacheControl::default()
-                    .public()
-                    .max_age(consts::CACHE_A_BIT)
-                    .s_max_age(consts::CACHE_FOREVER),
-                ..Default::default()
-            };
-
-            // TODO code duplication with UserPaste(id)
-            let pastes = rctx.inject::<crate::pastes::Pastes>();
-            match pastes.get_paste(&id).await {
-                Ok(Some((meta, paste))) => {
-                    info.etag = Some(meta.etag);
-                    info.meta = Some(response::Meta::paste(&id, &paste));
-                    (info, Context::paste(id, paste))
-                }
-                Err(Error::InvalidId(..)) | Ok(None) => {
-                    (info.with_etag("not_found"), Context::not_found())
-                }
-                Err(err) => return Err(err),
-            }
+            paste_page(rctx, id, Context::paste).await?
         }
         User(user) => {
             let pastes = rctx.inject::<crate::pastes::Pastes>();
             let (meta, pastes) = pastes.list_pastes(&user).await?;
 
             let info = ResponseInfo {
-                cache_control: CacheControl::default()
-                    .public()
-                    .s_max_age(consts::CACHE_FOREVER),
                 etag: Some(meta.etag),
                 meta: Some(response::Meta::list(&user)),
                 ..Default::default()
@@ -120,28 +95,8 @@ async fn build_context(
         }
         UserPaste(user, id) => {
             let id = PasteId::new_user(user, id);
-            // TODO: handle 404
 
-            let mut info = ResponseInfo {
-                cache_control: CacheControl::default()
-                    .public()
-                    .s_max_age(consts::CACHE_FOREVER),
-                ..Default::default()
-            };
-
-            // TODO code duplication with Paste(id)?
-            let pastes = rctx.inject::<crate::pastes::Pastes>();
-            match pastes.get_paste(&id).await {
-                Ok(Some((meta, paste))) => {
-                    info.etag = Some(meta.etag);
-                    info.meta = Some(response::Meta::paste(&id, &paste));
-                    (info, Context::user_paste(id.unwrap_user(), paste))
-                }
-                Err(Error::InvalidId(..)) | Ok(None) => {
-                    (info.with_etag("not_found"), Context::not_found())
-                }
-                Err(err) => return Err(err),
-            }
+            paste_page(rctx, id, Context::user_paste).await?
         }
         UserEditPaste(user, id) => {
             let location = UserPasteId { user, id }.to_paste_url();
@@ -150,6 +105,32 @@ async fn build_context(
     };
 
     Ok((info, ctx))
+}
+
+async fn paste_page(
+    rctx: &RequestContext,
+    id: PasteId,
+    mapper: impl Fn(PasteId, shared::model::Paste) -> app::Context,
+) -> Result<(ResponseInfo, app::Context)> {
+    let pastes = rctx.inject::<crate::pastes::Pastes>();
+
+    let r = match pastes.get_paste(&id).await {
+        Ok(Some((meta, paste))) => {
+            let info = ResponseInfo {
+                etag: Some(meta.etag),
+                meta: Some(response::Meta::paste(&id, &paste)),
+                ..Default::default()
+            };
+            (info, mapper(id, paste))
+        }
+        Err(Error::InvalidId(..)) | Ok(None) => (
+            ResponseInfo::default().with_etag("not_found"),
+            app::Context::not_found(),
+        ),
+        Err(err) => return Err(err),
+    };
+
+    Ok(r)
 }
 
 struct ResponseInfo {
@@ -178,7 +159,6 @@ impl Default for ResponseInfo {
         Self {
             cache_control: CacheControl::default()
                 .public()
-                .max_age(consts::CACHE_A_BIT)
                 .s_max_age(consts::CACHE_FOREVER),
             etag: None,
             redirect: None,

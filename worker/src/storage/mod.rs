@@ -73,13 +73,13 @@ impl Storage {
 
     pub async fn put_async(
         self,
-        ctx: &worker::Context,
+        rctx: &crate::RequestContext,
         id: &PasteId,
         sha1: &[u8],
         data: Rc<[u8]>,
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
-        self.storage.put_async(ctx, id, sha1, data, metadata).await
+        self.storage.put_async(rctx, id, sha1, data, metadata).await
     }
 
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {

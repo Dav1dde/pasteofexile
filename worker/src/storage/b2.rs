@@ -104,10 +104,10 @@ impl B2Storage {
         self.b2.upload(&settings, data).await.map(|_| ())
     }
 
-    #[tracing::instrument(skip(self, ctx, sha1, data))]
+    #[tracing::instrument(skip(self, rctx, sha1, data))]
     pub async fn put_async(
         self,
-        ctx: &worker::Context,
+        rctx: &crate::RequestContext,
         id: &PasteId,
         sha1: &[u8],
         data: Rc<[u8]>,
@@ -120,6 +120,10 @@ impl B2Storage {
             .map(serde_json::to_string)
             .transpose()?
             .map(b64_encode);
+
+        let url = rctx.url().unwrap();
+        let id = id.clone();
+
         let future = async move {
             let settings = b2_client::UploadSettings {
                 filename: &path,
@@ -132,10 +136,12 @@ impl B2Storage {
                 tracing::warn!("<-- failed to upload paste: {:?}", err);
                 sentry::capture_err_level(&err, sentry::Level::Error);
             } else {
+                crate::cache::on_paste_change_async(url, id).await;
                 tracing::debug!("<-- paste uploaded");
             }
         };
-        ctx.wait_until(future.with_current_sentry());
+        rctx.ctx().wait_until(future.with_current_sentry());
+
         Ok(())
     }
 

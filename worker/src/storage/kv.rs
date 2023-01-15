@@ -86,10 +86,10 @@ impl KvStorage {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, ctx, sha1, data))]
+    #[tracing::instrument(skip(self, rctx, sha1, data))]
     pub async fn put_async(
         self,
-        ctx: &worker::Context,
+        rctx: &crate::RequestContext,
         id: &PasteId,
         sha1: &[u8],
         data: Rc<[u8]>,
@@ -101,6 +101,10 @@ impl KvStorage {
             "last_modified": js_sys::Date::new_0().get_time() as u64,
             "metadata": metadata,
         });
+
+        let url = rctx.url().unwrap();
+        let id = id.clone();
+
         let future = async move {
             let r = self
                 .kv
@@ -115,10 +119,12 @@ impl KvStorage {
                 tracing::warn!("<-- failed to upload paste: {:?}", err);
                 sentry::capture_err_level(&err.into(), sentry::Level::Error);
             } else {
+                crate::cache::on_paste_change_async(url, id).await;
                 tracing::debug!("<-- paste uploaded");
             }
         };
-        ctx.wait_until(future.with_current_sentry());
+        rctx.ctx().wait_until(future.with_current_sentry());
+
         Ok(())
     }
 
