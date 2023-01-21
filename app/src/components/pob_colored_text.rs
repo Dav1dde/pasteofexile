@@ -2,9 +2,11 @@ use sycamore::prelude::*;
 
 use crate::pob::formatting::{Color, ColoredText};
 
-#[component(PobColoredText<G>)]
-pub fn pob_tree_table(text: String) -> View<G> {
-    let t = ColoredText::new(&text).map(render_fragment).collect();
+#[component]
+pub fn PobColoredText<G: Html>(cx: Scope, text: &str) -> View<G> {
+    let t = ColoredText::new(text)
+        .map(|cs| render_fragment(cx, cs))
+        .collect();
 
     View::new_fragment(t)
 }
@@ -23,12 +25,12 @@ pub fn color_to_style(color: Color<'_>) -> Style {
     }
 }
 
-fn render_fragment<G: GenericNode>((color, text): (Color, &str)) -> View<G> {
+fn render_fragment<G: GenericNode>(cx: Scope, (color, text): (Color, &str)) -> View<G> {
     let text = text.to_owned();
     match color_to_style(color) {
-        Style::Class(class) => view! { span(class=class) { (text) } },
-        Style::Style(style) => view! { span(style=style) { (text) } },
-        Style::None => view! { span { (text) } },
+        Style::Class(class) => view! { cx, span(class=class) { (text) } },
+        Style::Style(style) => view! { cx, span(style=style) { (text) } },
+        Style::None => view! { cx, span { (text) } },
     }
 }
 

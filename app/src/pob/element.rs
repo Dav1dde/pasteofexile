@@ -101,8 +101,8 @@ impl<'a> Element<'a> {
         self.render_priv(StringRenderer::new())
     }
 
-    pub fn render_to_view<G: GenericNode>(self) -> Option<View<G>> {
-        self.render_priv(ViewRenderer::new())
+    pub fn render_to_view<G: GenericNode>(self, cx: Scope) -> Option<View<G>> {
+        self.render_priv(ViewRenderer::new(cx))
     }
 
     fn render_priv<R: Renderer>(self, renderer: R) -> Option<<R as Renderer>::Output> {
@@ -298,23 +298,26 @@ impl Renderer for StringRenderer {
     }
 }
 
-struct ViewRenderer<G: GenericNode> {
+struct ViewRenderer<'a, G: GenericNode> {
+    cx: Scope<'a>,
     formatting: Formatting,
     views: Vec<View<G>>,
     _g: PhantomData<G>,
 }
 
-impl<G: GenericNode> ViewRenderer<G> {
-    fn new() -> Self {
+impl<'a, G: GenericNode> ViewRenderer<'a, G> {
+    fn new(cx: Scope<'a>) -> Self {
         Self {
+            cx,
             formatting: Formatting::default(),
             views: Vec::new(),
             _g: PhantomData,
         }
     }
 
-    fn with_formatting(formatting: Formatting) -> Self {
+    fn with_formatting(cx: Scope<'a>, formatting: Formatting) -> Self {
         Self {
+            cx,
             formatting,
             views: Vec::new(),
             _g: PhantomData,
@@ -322,7 +325,7 @@ impl<G: GenericNode> ViewRenderer<G> {
     }
 }
 
-impl<G: GenericNode> Renderer for ViewRenderer<G> {
+impl<'a, G: GenericNode> Renderer for ViewRenderer<'a, G> {
     type Output = View<G>;
 
     fn push<T>(&mut self, fragment: T)
@@ -334,9 +337,10 @@ impl<G: GenericNode> Renderer for ViewRenderer<G> {
         let class = fragment.formatting.class.unwrap_or("");
         let title = fragment.formatting.title.unwrap_or("");
 
+        let cx = self.cx;
         let view = match fragment.typ {
-            FragmentType::Text => view! { span(class=class, title=title) { (fragment.value) } },
-            FragmentType::Super => view! { sup(class=class, title=title) { (fragment.value) } },
+            FragmentType::Text => view! { cx, span(class=class, title=title) { (fragment.value) } },
+            FragmentType::Super => view! { cx, sup(class=class, title=title) { (fragment.value) } },
         };
         self.views.push(view);
     }
@@ -345,7 +349,8 @@ impl<G: GenericNode> Renderer for ViewRenderer<G> {
         let inner = View::new_fragment(element.views);
         let class = element.formatting.class.unwrap_or("");
         let title = element.formatting.title.unwrap_or("");
-        let element = view! {
+        let cx = self.cx;
+        let element = view! { cx,
             span(class=class, title=title) {
                 (inner)
             }
@@ -354,12 +359,13 @@ impl<G: GenericNode> Renderer for ViewRenderer<G> {
     }
 
     fn sub(&mut self, formatting: Formatting) -> Self {
-        ViewRenderer::with_formatting(formatting)
+        ViewRenderer::with_formatting(self.cx, formatting)
     }
 
     fn finish(self) -> Self::Output {
         let inner = View::new_fragment(self.views);
+        let cx = self.cx;
 
-        view! { div(class="inline-block ml-3") { (inner) } }
+        view! { cx, div(class="inline-block ml-3") { (inner) } }
     }
 }

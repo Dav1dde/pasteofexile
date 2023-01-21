@@ -5,19 +5,18 @@ use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
 
 use crate::{
-    async_callback,
     build::Build,
     components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
     consts::IMG_ONERROR_HIDDEN,
-    memo,
     pob::{self, Element},
+    utils::{async_callback, document, from_ref, view_cond},
 };
 
-pub struct ViewPasteProps {
+pub struct ViewPasteProps<'a> {
     pub id: PasteId,
     pub title: Option<String>,
     pub last_modified: u64,
-    pub build: Build,
+    pub build: &'a Build,
 }
 
 #[allow(dead_code)]
@@ -40,16 +39,17 @@ impl CopyState {
     }
 }
 
-#[component(ViewPaste<G>)]
-pub fn view_paste(
+#[component]
+pub fn ViewPaste<'a, G: Html>(
+    cx: Scope<'a>,
     ViewPasteProps {
         id,
         title,
         last_modified,
         build,
-    }: ViewPasteProps,
+    }: ViewPasteProps<'a>,
 ) -> View<G> {
-    let title = title.unwrap_or_else(|| pob::title(&*build));
+    let title = title.unwrap_or_else(|| pob::title(build.pob()));
 
     let version = build.max_tree_version().unwrap_or_default();
     let since = crate::utils::pretty_date_ts(last_modified);
@@ -57,29 +57,20 @@ pub fn view_paste(
 
     let open_in_pob_url = id.to_pob_open_url();
 
-    let notes = build.notes().to_owned();
-    let notes = if !notes.is_empty() {
-        view! {
-            div(class="flex-auto") {
-                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
-                pre(class="text-xs break-words whitespace-pre-wrap font-mono sm:ml-3") {
-                    PobColoredText(notes)
-                }
+    let notes = view_cond!(cx, !build.notes().is_empty(), {
+        div(class="flex-auto") {
+            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
+            pre(class="text-xs break-words whitespace-pre-wrap font-mono sm:ml-3") {
+                PobColoredText(build.notes())
             }
         }
-    } else {
-        View::empty()
-    };
-    let tree_preview = if has_displayable_tree(build.pob()) {
-        view! {
-            div(class="basis-full") {
-                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
-                PobTreePreview(build.clone())
-            }
+    });
+    let tree_preview = view_cond!(cx, has_displayable_tree(build.pob()), {
+        div(class="basis-full") {
+            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
+            PobTreePreview(build)
         }
-    } else {
-        View::empty()
-    };
+    });
 
     let select_all = |event: web_sys::Event| {
         let s: HtmlTextAreaElement = event.target().unwrap().unchecked_into();
@@ -87,19 +78,15 @@ pub fn view_paste(
         s.select();
     };
 
-    let content_ref = NodeRef::new();
-    let copy_state = Signal::new(CopyState::Ready);
+    let content_ref = create_node_ref(cx);
+    let copy_state = create_signal(cx, CopyState::Ready);
 
-    // TODO: figure out Signal clones and scopes
     let copy_to_clipboard = async_callback!(
-        copy_state,
-        content_ref,
+        cx,
         {
-            use crate::utils::{document, from_ref};
-
             copy_state.set(CopyState::Progress);
 
-            from_ref::<_, web_sys::HtmlTextAreaElement>(&content_ref).select();
+            from_ref::<_, web_sys::HtmlTextAreaElement>(content_ref).select();
 
             let document: web_sys::HtmlDocument = document();
             let state = if document.exec_command("copy").is_ok() {
@@ -115,33 +102,32 @@ pub fn view_paste(
                 .remove_all_ranges();
 
             copy_state.set(state);
+
             gloo_timers::future::TimeoutFuture::new(1_000).await;
             copy_state.set(CopyState::Ready);
         },
         *copy_state.get() == CopyState::Ready
     );
 
-    let btn_copy_name = memo!(copy_state, copy_state.get().name());
-    let btn_copy_disabled = memo!(copy_state, *copy_state.get() != CopyState::Ready);
+    let btn_copy_name = create_memo(cx, || copy_state.get().name());
+    let btn_copy_disabled = create_memo(cx, || *copy_state.get() != CopyState::Ready);
 
     let core_stats = pob::summary::core_stats(build.pob());
     let defense = pob::summary::defense(build.pob());
     let offense = pob::summary::offense(build.pob());
     let config = pob::summary::config(build.pob());
 
-    let summary = vec![core_stats, defense, offense, config]
+    let summary = [core_stats, defense, offense, config]
         .into_iter()
-        .map(render)
-        .map(|stat| view! { div(class="flex-row gap-x-5") { (stat) } })
+        .map(|stat| render(cx, stat))
+        .map(|stat| view! { cx, div(class="flex-row gap-x-5") { (stat) } })
         .collect();
     let summary = View::new_fragment(summary);
 
     let src =
         crate::assets::ascendancy_image(build.pob().ascendancy_or_class_name()).unwrap_or_default();
 
-    // TODO: this is terrible but it is what it is for now | sycmore-0.8
-    let content = build.content().to_owned();
-    view! {
+    view! { cx,
         div(class="text-right text-sm text-slate-500", title=date, data-last-modified=last_modified) { (since) }
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
             div(class="flex-auto flex flex-col gap-y-2 -mt-[3px]") {
@@ -168,7 +154,7 @@ pub fn view_paste(
                     aria-label="Path of Building buildcode",
                     readonly=true
                 ) {
-                    (content)
+                    (build.content)
                 }
                 div(class="text-right") {
                     button(
@@ -188,7 +174,7 @@ pub fn view_paste(
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
             div(class="flex-auto w-full lg:w-auto") {
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
-                PobGems(build.clone())
+                PobGems(build)
             }
             div(class="flex-1 max-w-full lg:max-w-[43%]") {
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
@@ -201,11 +187,11 @@ pub fn view_paste(
     }
 }
 
-fn render<G: GenericNode>(elements: Vec<Element>) -> View<G> {
+fn render<G: GenericNode>(cx: Scope, elements: Vec<Element>) -> View<G> {
     View::new_fragment(
         elements
             .into_iter()
-            .filter_map(|e| e.render_to_view())
+            .filter_map(|e| e.render_to_view(cx))
             .collect(),
     )
 }

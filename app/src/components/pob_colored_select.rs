@@ -8,6 +8,7 @@ use crate::{
     pob::formatting::{only_first_color, Color},
 };
 
+#[derive(Prop)]
 pub struct PobColoredSelectProps<F> {
     pub options: Vec<String>, // TODO: this could be Vec<(Color, String)> which would be one less
     // string clone, or with sycamore-0.8 &str
@@ -15,10 +16,10 @@ pub struct PobColoredSelectProps<F> {
     pub on_change: F,
 }
 
-#[component(PobColoredSelect<G>)]
-pub fn pob_colored_select<F>(props: PobColoredSelectProps<F>) -> View<G>
+#[component]
+pub fn PobColoredSelect<'a, G: Html, F>(cx: Scope<'a>, props: PobColoredSelectProps<F>) -> View<G>
 where
-    F: Fn(Option<usize>) + 'static,
+    F: Fn(Option<usize>) + 'a,
 {
     let selected_index = props.selected.unwrap_or(0);
 
@@ -33,9 +34,13 @@ where
         }
 
         let v = match color_to_style(color) {
-            Style::Class(class) => view! { option(selected=selected, class=class) { (content) } },
-            Style::Style(style) => view! { option(selected=selected, style=style) { (content) } },
-            Style::None => view! { option(selected=selected) { (content) } },
+            Style::Class(class) => {
+                view! { cx, option(selected=selected, class=class) { (content) } }
+            }
+            Style::Style(style) => {
+                view! { cx, option(selected=selected, style=style) { (content) } }
+            }
+            Style::None => view! { cx, option(selected=selected) { (content) } },
         };
 
         options.push(v);
@@ -65,7 +70,7 @@ where
     };
     let class = format!("sm:ml-3 mt-1 mb-2 px-1 max-w-full {class}");
 
-    view! {
+    view! { cx,
         select(class=class, style=style, on:input=on_input, onchange=SELECT_ONCHANGE_COLOR_FROM_OPTION) {
             (options)
         }

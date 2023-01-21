@@ -1,10 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sycamore::{
-    context::{ContextProvider, ContextProviderProps},
-    prelude::*,
-};
-
-use crate::utils::if_browser;
+use sycamore::{prelude::*, reactive::provide_context};
 
 // TODO move this into shared
 #[derive(Debug, Deserialize, Serialize)]
@@ -23,30 +18,19 @@ impl Session {
         matches!(self, Self::LoggedIn(_))
     }
 
-    #[cfg(not(feature = "ssr"))]
     pub fn user(&self) -> Option<&User> {
         match self {
             Self::LoggedIn(user) => Some(user),
             _ => None,
         }
     }
-}
 
-#[derive(Clone)]
-pub struct SessionValue(Signal<Session>);
-
-impl SessionValue {
-    pub fn get(&self) -> std::rc::Rc<Session> {
-        self.0.get()
+    pub fn logout() -> Self {
+        let _ = crate::utils::document::<web_sys::HtmlDocument>()
+            .set_cookie("session=; max-age=0; path=/");
+        Self::None
     }
 
-    pub fn logout(&self) {
-        if_browser!(self.0.set(Session::logout()));
-    }
-}
-
-impl Session {
-    #[cfg(not(feature = "ssr"))]
     fn from_document() -> Result<Self, Box<dyn std::error::Error>> {
         let session = crate::utils::document::<web_sys::HtmlDocument>()
             .cookie()
@@ -71,43 +55,30 @@ impl Session {
 
         Ok(Session::LoggedIn(user))
     }
-
-    #[cfg(not(feature = "ssr"))]
-    fn logout() -> Self {
-        let _ = crate::utils::document::<web_sys::HtmlDocument>()
-            .set_cookie("session=; max-age=0; path=/");
-        Self::None
-    }
 }
 
-#[component(SessionWrapper<G>)]
-pub fn session_wrapper<F>(children: F) -> View<G>
-where
-    F: FnOnce() -> View<G>,
-{
-    let value = if_browser!(
-        {
-            let session = match Session::from_document() {
-                Ok(session) => session,
-                Err(err) => {
-                    tracing::error!("Can not extract session: {:?}", err);
-                    Session::logout()
-                }
-            };
+pub type SessionValue = RcSignal<Session>;
 
-            let signal = Signal::new(Session::None);
+pub fn use_session<G: Html>(cx: Scope) {
+    let signal = create_rc_signal(Session::None);
 
-            // Ugly workaround to let hydration finish before 'logging' the user in.
-            // This prevents hydration from breaking because the markup does not match the markup
-            // rendered on the server side.
-            crate::utils::spawn_local!(signal, {
-                signal.set(session);
-            });
+    if G::IS_BROWSER {
+        let session = match Session::from_document() {
+            Ok(session) => session,
+            Err(err) => {
+                tracing::error!("Can not extract session: {:?}", err);
+                Session::logout()
+            }
+        };
 
-            SessionValue(signal)
-        },
-        SessionValue(Signal::new(Session::None))
-    );
+        // Ugly workaround to let hydration finish before 'logging' the user in.
+        // This prevents hydration from breaking because the markup does not match the markup
+        // rendered on the server side.
+        let s = signal.clone();
+        sycamore::futures::spawn_local(async move {
+            s.set(session);
+        });
+    }
 
-    view! { ContextProvider(ContextProviderProps{ value, children }) }
+    provide_context(cx, signal);
 }

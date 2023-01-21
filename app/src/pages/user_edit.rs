@@ -9,40 +9,40 @@ use crate::{
     Meta, Result,
 };
 
-pub struct Data {
+pub struct UserEditPastePage {
     id: UserPasteId,
     title: Option<String>,
     content: String,
 }
 
-impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
+impl RoutedComponent for UserEditPastePage {
     type RouteArg = (User, String);
 
-    fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
+    fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Self> {
         let paste = ctx.into_paste().unwrap();
-        Ok(Data {
+        Ok(Self {
             id: UserPasteId { user, id },
             title: paste.metadata.map(|m| m.title),
             content: paste.content,
         })
     }
 
-    fn from_hydration((user, id): Self::RouteArg, element: web_sys::Element) -> Result<Data> {
+    fn from_hydration((user, id): Self::RouteArg, element: web_sys::Element) -> Result<Self> {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
 
-        Ok(Data {
+        Ok(Self {
             id: UserPasteId { user, id },
             content,
             title,
         })
     }
 
-    fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
+    fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Self>> {
         let id = shared::model::PasteId::new_user(user, id);
         Box::pin(async move {
             let paste = crate::api::get_paste(&id).await?;
-            Ok(Data {
+            Ok(Self {
                 id: id.unwrap_user(),
                 content: paste.content,
                 title: paste.metadata.map(|x| x.title),
@@ -50,19 +50,19 @@ impl<G: Html> RoutedComponent<G> for UserEditPastePage<G> {
         })
     }
 
-    fn meta(_arg: &Data) -> Result<Meta> {
+    fn meta(&self) -> Result<Meta> {
         Ok(Meta {
             title: "Edit Build".into(),
             description: "".into(),
             ..Default::default()
         })
     }
-}
 
-#[component(UserEditPastePage<G>)]
-pub fn user_edit_paste_page(Data { id, content, title }: Data) -> View<G> {
-    let props = CreatePasteProps::Update { id, content, title };
-    view! {
-        CreatePaste(props)
+    fn render<G: Html>(self, cx: Scope) -> View<G> {
+        let Self { id, content, title } = self;
+        let props = CreatePasteProps::Update { id, content, title };
+        view! { cx,
+            CreatePaste(props)
+        }
     }
 }

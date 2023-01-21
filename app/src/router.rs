@@ -1,13 +1,12 @@
 use shared::User;
-use sycamore::component::Component;
 use sycamore::prelude::*;
-use sycamore_router::{HistoryIntegration, Router as DynRouter, RouterProps};
+use sycamore_router::{HistoryIntegration, Router as DynRouter};
 use web_sys::Element;
 
 use crate::{
     future::LocalBoxFuture,
-    pages, try_block,
-    utils::{deserialize_from_attribute, is_hydrating, serialize_for_attribute},
+    pages,
+    utils::{deserialize_from_attribute, serialize_for_attribute, try_block, try_block_async},
     Context, Error, Meta, ResponseContext, Result,
 };
 
@@ -29,56 +28,59 @@ pub enum Route {
 }
 
 impl Route {
-    pub fn resolve(path: &str) -> Self {
+    pub fn resolve(&self, path: &str) -> Self {
         use sycamore_router::Route;
-        Self::match_path(path)
+        self.match_path(path)
     }
 }
 
-pub trait RoutedComponent<G: Html>: Component<G> {
+pub trait RoutedComponent
+where
+    Self: Sized,
+{
     type RouteArg: Clone;
 
-    fn from_context(args: Self::RouteArg, ctx: Context) -> Result<<Self as Component<G>>::Props>;
-    fn from_hydration(
-        args: Self::RouteArg,
-        element: Element,
-    ) -> Result<<Self as Component<G>>::Props>;
-    fn from_dynamic<'a>(
-        args: Self::RouteArg,
-    ) -> LocalBoxFuture<'a, Result<<Self as Component<G>>::Props>>;
+    fn from_context(args: Self::RouteArg, ctx: Context) -> Result<Self>;
+    fn from_hydration(args: Self::RouteArg, element: Element) -> Result<Self>;
 
-    fn meta(arg: &<Self as Component<G>>::Props) -> Result<Meta>;
+    fn from_dynamic<'a>(args: Self::RouteArg) -> LocalBoxFuture<'a, Result<Self>>;
+
+    fn meta(&self) -> Result<Meta>;
+
+    fn render<G: Html>(self, cx: Scope) -> View<G>;
 }
 
-#[component(Router<G>)]
-pub fn router(ctx: Option<Context>) -> View<G> {
+#[component]
+pub fn Router<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
     ctx.map(|ctx| {
         // Fix hydration. During SSR there is no router component, while there is one
         // at and after hydration. Artificially introduce a component without actually
         // using a component.
         // Can't use the `StaticRouter` because then we'd have to clone the context.
-        sycamore::utils::hydrate::hydrate_component(|| switch(Switch::Static(ctx)))
+        sycamore::utils::hydrate::hydrate_component(|| {
+            sycamore::utils::hydrate::hydrate_component(|| switch(cx, Switch::Static(ctx)))
+        })
     })
     .unwrap_or_else(|| {
-        view! {
-            DynRouter(RouterProps::new(HistoryIntegration::new(), switch_browser))
+        view! { cx,
+            DynRouter(integration=HistoryIntegration::new(), view=switch_browser)
         }
     })
 }
 
 #[allow(clippy::large_enum_variant)]
-enum Switch {
+enum Switch<'a> {
     Static(Context),
-    Dynamic(ReadSignal<Route>),
+    Dynamic(&'a ReadSignal<Route>),
 }
 
-fn switch_browser<G: Html>(route: ReadSignal<Route>) -> View<G> {
-    switch(Switch::Dynamic(route))
+fn switch_browser<'a, G: Html>(cx: Scope<'a>, route: &'a ReadSignal<Route>) -> View<G> {
+    switch(cx, Switch::Dynamic(route))
 }
 
-fn switch<G: Html>(switch: Switch) -> View<G> {
+fn switch<'a, G: Html>(cx: Scope<'a>, switch: Switch<'a>) -> View<G> {
     // TODO: loading view?
-    let view = Signal::new(View::empty());
+    let view = create_signal(cx, View::empty());
 
     let mut stored_route = "";
     let mut stored_state = None;
@@ -91,62 +93,62 @@ fn switch<G: Html>(switch: Switch) -> View<G> {
                 stored_route = route;
                 stored_state = state;
             }
-            view.set(render(page));
+            view.set(render(cx, page));
         }
         Switch::Dynamic(route) => {
-            if is_hydrating() {
-                view.set(render(Page::from_hydration(&route.get())));
+            if !sycamore::utils::hydrate::hydration_completed() {
+                view.set(render(cx, Page::from_hydration(&route.get())));
             }
 
             // Always set up the effect even if hydrating to make sure
             // the reactive scope is tracked correctly.
-            crate::effect!(view, {
+            create_effect(cx, move || {
                 let route = route.get();
 
                 // Don't actually have to fetch data, it's already there.
                 // Could also check if the view changed, but this might be trouble
                 // if you actually want to refresh the site/route.
-                if is_hydrating() {
+                if !sycamore::utils::hydrate::hydration_completed() {
                     return;
                 }
 
-                sycamore::futures::spawn_local_in_scope(cloned!(view => async move {
-                    view.set(render(Page::from_dynamic(&route).await))
-                }));
+                sycamore::futures::spawn_local_scoped(cx, async move {
+                    view.set(render(cx, Page::from_dynamic(&route).await))
+                });
             });
         }
     }
 
     let stored_state = stored_state.unwrap_or_default();
-    view! {
+    view! { cx,
         div(data-route=stored_route, data-state=stored_state) {
             (view.get().as_ref().clone())
         }
     }
 }
 
-enum Page<G: Html> {
-    Index,
-    Paste(<pages::PastePage<G> as Component<G>>::Props),
-    User(<pages::UserPage<G> as Component<G>>::Props),
-    UserPaste(<pages::UserPastePage<G> as Component<G>>::Props),
-    UserEditPaste(<pages::UserEditPastePage<G> as Component<G>>::Props),
+enum Page {
+    Index(pages::IndexPage),
+    Paste(pages::PastePage),
+    User(pages::UserPage),
+    UserPaste(pages::UserPastePage),
+    UserEditPaste(pages::UserEditPastePage),
     Error(u16, String),
 }
 
-impl<G: Html> Page<G> {
+impl Page {
     fn from_context(ctx: Context) -> Self {
         let page = try_block! {
             Ok::<_, Error>(match ctx.route() {
-                Ok(Route::Index) => Self::Index,
+                Ok(Route::Index) => Self::Index(pages::IndexPage::from_context((), ctx)?),
                 Ok(Route::Paste(arg)) =>
-                    Self::Paste(pages::PastePage::<G>::from_context(arg.clone(), ctx)?),
+                    Self::Paste(pages::PastePage::from_context(arg.clone(), ctx)?),
                 Ok(Route::User(arg)) =>
-                    Self::User(pages::UserPage::<G>::from_context(arg.clone(), ctx)?),
+                    Self::User(pages::UserPage::from_context(arg.clone(), ctx)?),
                 Ok(Route::UserPaste(user, id)) =>
-                    Self::UserPaste(pages::UserPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
+                    Self::UserPaste(pages::UserPastePage::from_context((user.clone(), id.clone()), ctx)?),
                 Ok(Route::UserEditPaste(user, id)) =>
-                    Self::UserEditPaste(pages::UserEditPastePage::<G>::from_context((user.clone(), id.clone()), ctx)?),
+                    Self::UserEditPaste(pages::UserEditPastePage::from_context((user.clone(), id.clone()), ctx)?),
                 Ok(Route::NotFound) => Self::not_found(),
                 Err(err) => Self::resolve_err(err),
             })
@@ -195,14 +197,14 @@ impl<G: Html> Page<G> {
 
         let page = try_block! {
             Ok::<_, Error>(match route {
-                Route::Index => Self::Index,
-                Route::Paste(arg) => Self::Paste(pages::PastePage::<G>::from_hydration(arg.clone(), element)?),
-                Route::User(arg) => Self::User(pages::UserPage::<G>::from_hydration(arg.clone(), element)?),
+                Route::Index => Self::Index(pages::IndexPage::from_hydration((), element)?),
+                Route::Paste(arg) => Self::Paste(pages::PastePage::from_hydration(arg.clone(), element)?),
+                Route::User(arg) => Self::User(pages::UserPage::from_hydration(arg.clone(), element)?),
                 Route::UserPaste(user, id) => Self::UserPaste(
-                    pages::UserPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?
+                    pages::UserPastePage::from_hydration((user.clone(), id.clone()), element)?
                 ),
                 Route::UserEditPaste(user, id) => Self::UserEditPaste(
-                    pages::UserEditPastePage::<G>::from_hydration((user.clone(), id.clone()), element)?
+                    pages::UserEditPastePage::from_hydration((user.clone(), id.clone()), element)?
                 ),
                 Route::NotFound => Self::not_found(),
             })
@@ -212,22 +214,20 @@ impl<G: Html> Page<G> {
     }
 
     async fn from_dynamic(route: &Route) -> Self {
-        use crate::try_block_async;
-
         let page = try_block_async! {
             Ok::<_, Error>(match route {
-                Route::Index => Self::Index,
+                Route::Index => Self::Index(pages::IndexPage::from_dynamic(()).await?),
                 Route::Paste(arg) => {
-                    Self::Paste(pages::PastePage::<G>::from_dynamic(arg.clone()).await?)
+                    Self::Paste(pages::PastePage::from_dynamic(arg.clone()).await?)
                 },
                 Route::User(arg) => {
-                    Self::User(pages::UserPage::<G>::from_dynamic(arg.clone()).await?)
+                    Self::User(pages::UserPage::from_dynamic(arg.clone()).await?)
                 },
                 Route::UserPaste(user, id) => {
-                    Self::UserPaste(pages::UserPastePage::<G>::from_dynamic((user.clone(), id.clone())).await?)
+                    Self::UserPaste(pages::UserPastePage::from_dynamic((user.clone(), id.clone())).await?)
                 },
                 Route::UserEditPaste(user, id) => {
-                    Self::UserEditPaste(pages::UserEditPastePage::<G>::from_dynamic((user.clone(), id.clone())).await?)
+                    Self::UserEditPaste(pages::UserEditPastePage::from_dynamic((user.clone(), id.clone())).await?)
                 },
                 Route::NotFound => Self::not_found(),
             })
@@ -271,11 +271,11 @@ impl<G: Html> Page<G> {
 
     fn meta(&self) -> Result<Meta> {
         match self {
-            Self::Index => Ok(Meta::index()),
-            Self::Paste(ref props) => pages::PastePage::<G>::meta(props),
-            Self::User(ref props) => pages::UserPage::<G>::meta(props),
-            Self::UserPaste(ref props) => pages::UserPastePage::<G>::meta(props),
-            Self::UserEditPaste(ref props) => pages::UserEditPastePage::<G>::meta(props),
+            Self::Index(ref page) => page.meta(),
+            Self::Paste(ref page) => page.meta(),
+            Self::User(ref page) => page.meta(),
+            Self::UserPaste(ref page) => page.meta(),
+            Self::UserEditPaste(ref page) => page.meta(),
             Self::Error(_, message) => Ok(Meta::error(message)),
         }
     }
@@ -291,7 +291,7 @@ impl<G: Html> Page<G> {
         // Sync with `Self::restore`.
         let Self::Error(status_code, message) = self else { return None };
 
-        let state = serialize_for_attribute(&(status_code, message));
+        let state = serialize_for_attribute::<SsrNode>(&(status_code, message));
         Some(("error", Some(state)))
     }
 
@@ -311,24 +311,14 @@ impl<G: Html> Page<G> {
     }
 }
 
-fn render<G: Html>(page: Page<G>) -> View<G> {
+fn render<G: Html>(cx: Scope, page: Page) -> View<G> {
     match page {
-        Page::Index => view! {
-            pages::IndexPage()
-        },
-        Page::Paste(props) => view! {
-            pages::PastePage(props)
-        },
-        Page::User(props) => view! {
-            pages::UserPage(props)
-        },
-        Page::UserPaste(props) => view! {
-            pages::UserPastePage(props)
-        },
-        Page::UserEditPaste(props) => view! {
-            pages::UserEditPastePage(props)
-        },
-        Page::Error(status_code, message) => view! {
+        Page::Index(page) => page.render(cx),
+        Page::Paste(page) => page.render(cx),
+        Page::User(page) => page.render(cx),
+        Page::UserPaste(page) => page.render(cx),
+        Page::UserEditPaste(page) => page.render(cx),
+        Page::Error(status_code, message) => view! { cx,
             // This needs to be in a component to not interfere with hydration.
             // A new hydration level is introduced per component, this
             // makes sure elements defined here don't mess with hydration
@@ -338,9 +328,9 @@ fn render<G: Html>(page: Page<G>) -> View<G> {
     }
 }
 
-#[component(DisplayError<G>)]
-pub fn display_error((status_code, message): (u16, String)) -> View<G> {
-    view! {
+#[component]
+pub fn DisplayError<G: Html>(cx: Scope, (status_code, message): (u16, String)) -> View<G> {
+    view! { cx,
         span(class="pr-2") { (status_code) }
         span() { (message) }
     }

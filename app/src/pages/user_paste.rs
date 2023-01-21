@@ -9,8 +9,7 @@ use sycamore::prelude::*;
 
 use crate::{
     build::Build,
-    components::{PasteToolbox, PasteToolboxProps, ViewPaste, ViewPasteProps},
-    effect,
+    components::{PasteToolbox, ViewPaste, ViewPasteProps},
     future::LocalBoxFuture,
     meta, pob,
     router::RoutedComponent,
@@ -19,21 +18,21 @@ use crate::{
     Meta, Result,
 };
 
-pub struct Data {
+pub struct UserPastePage {
     id: UserPasteId,
     title: Option<String>,
     last_modified: u64,
     build: Build,
 }
 
-impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
+impl RoutedComponent for UserPastePage {
     type RouteArg = (User, String);
 
-    fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Data> {
+    fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Self> {
         let mut paste = ctx.into_paste().unwrap();
         let title = paste.metadata.take().map(|m| m.title);
 
-        Ok(Data {
+        Ok(Self {
             id: UserPasteId { user, id },
             title,
             last_modified: paste.last_modified,
@@ -41,14 +40,14 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         })
     }
 
-    fn from_hydration((user, id): Self::RouteArg, element: web_sys::Element) -> Result<Data> {
+    fn from_hydration((user, id): Self::RouteArg, element: web_sys::Element) -> Result<Self> {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
         let last_modified = find_attribute(&element, "data-last-modified").unwrap_or_default();
         let nodes = deserialize_attribute(&element, "data-nodes").unwrap_or_default();
 
         let build = Build::new(content, nodes)?;
-        Ok(Data {
+        Ok(Self {
             id: UserPasteId { user, id },
             title,
             last_modified,
@@ -56,14 +55,14 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         })
     }
 
-    fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
+    fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Self>> {
         Box::pin(async move {
             // TODO: get rid of these clones
             let mut paste =
                 crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
             let title = paste.metadata.take().map(|x| x.title);
 
-            Ok(Data {
+            Ok(Self {
                 id: UserPasteId { user, id },
                 title,
                 last_modified: paste.last_modified,
@@ -72,18 +71,18 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
         })
     }
 
-    fn meta(arg: &Data) -> Result<Meta> {
-        let pob = arg.build.pob();
+    fn meta(&self) -> Result<Meta> {
+        let pob = self.build.pob();
         let config = pob::TitleConfig { no_level: true };
 
-        let title: Cow<str> = arg
+        let title: Cow<str> = self
             .title
             .as_ref()
             .map(|x| x.into())
             .unwrap_or_else(|| pob::title_with_config(pob, &config).into());
         let title = match pob.max_tree_version() {
-            Some(version) => format!("{title} [{version}] by {}", arg.id.user),
-            None => format!("{title} by {}", arg.id.user),
+            Some(version) => format!("{title} [{version}] by {}", self.id.user),
+            None => format!("{title} by {}", self.id.user),
         }
         .into();
 
@@ -94,7 +93,7 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
             .into();
         let color = meta::get_color(pob.ascendancy_or_class_name());
 
-        let oembed = format!("/oembed.json?user={}", arg.id.user).into();
+        let oembed = format!("/oembed.json?user={}", self.id.user).into();
 
         Ok(Meta {
             title,
@@ -104,50 +103,50 @@ impl<G: Html> RoutedComponent<G> for UserPastePage<G> {
             oembed,
         })
     }
+
+    fn render<G: Html>(self, cx: Scope) -> View<G> {
+        view! { cx, UserPastePageComponent(self) }
+    }
 }
 
-#[component(UserPastePage<G>)]
-pub fn user_paste_page(
-    Data {
+#[component]
+fn UserPastePageComponent<G: Html>(
+    cx: Scope,
+    UserPastePage {
         id,
         title,
         last_modified,
         build,
-    }: Data,
+    }: UserPastePage,
 ) -> View<G> {
-    let deleted = Signal::new(false);
+    let build = create_ref(cx, build);
+    let back_to_user = create_ref(cx, id.to_user_url());
+    let deleted = create_signal(cx, false);
 
-    let back_to_user = id.to_user_url();
-    let navigate_after_delete = back_to_user.clone();
+    let data_nodes = serialize_for_attribute::<G>(build.nodes());
 
-    let data_nodes = serialize_for_attribute(build.nodes());
-
-    let toolbox = PasteToolboxProps {
-        id: id.clone(),
-        on_delete: deleted.clone(),
-    };
     let name = id.user.clone();
     let props = ViewPasteProps {
-        id: id.into(),
+        id: id.clone().into(),
         title,
         last_modified,
         build,
     };
 
-    effect!(deleted, {
+    create_effect(cx, || {
         if *deleted.get() {
-            sycamore_router::navigate(&navigate_after_delete);
+            sycamore_router::navigate(back_to_user);
         }
     });
 
-    view! {
+    view! { cx,
         div(data-nodes=data_nodes) {}
         div(class="flex justify-between") {
             a(href=back_to_user, class="flex items-center mb-4 text-sky-400") {
                 span(dangerously_set_inner_html=svg::BACK, class="h-[16px] mr-2")
                     span() { (name) } "'s builds"
             }
-            PasteToolbox(toolbox)
+            PasteToolbox(id=id, on_delete=deleted)
         }
         ViewPaste(props)
     }

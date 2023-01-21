@@ -1,26 +1,21 @@
 use sycamore::prelude::*;
 
-use crate::utils::if_browser;
-
-#[cfg(not(feature = "ssr"))]
 thread_local!(static PROGRESS: State = State::new());
 
-#[cfg(not(feature = "ssr"))]
 struct State {
-    progress: Signal<i32>,
+    progress: RcSignal<i32>,
     worker: std::cell::Cell<Option<gloo_timers::callback::Interval>>,
     finish: std::cell::Cell<Option<gloo_timers::callback::Timeout>>,
-    width: Signal<f32>,
+    width: RcSignal<f32>,
 }
 
-#[cfg(not(feature = "ssr"))]
 impl State {
     fn new() -> Self {
         Self {
-            progress: Signal::new(0),
+            progress: create_rc_signal(0),
             worker: std::cell::Cell::new(None),
             finish: std::cell::Cell::new(None),
-            width: Signal::new(0.0),
+            width: create_rc_signal(0.0),
         }
     }
 
@@ -28,7 +23,7 @@ impl State {
         self.progress.set(*self.progress.get() + 1);
 
         if *self.progress.get() == 1 {
-            self.finish.set(None);
+            // self.finish.set(None);
 
             let width = self.width.clone();
             width.set(10.0);
@@ -68,35 +63,28 @@ pub struct InFlight;
 
 impl Drop for InFlight {
     fn drop(&mut self) {
-        #[cfg(not(feature = "ssr"))]
         PROGRESS.with(|state| state.end_request());
     }
 }
 
 #[must_use]
 pub fn start_request() -> InFlight {
-    #[cfg(not(feature = "ssr"))]
     PROGRESS.with(|state| state.start_request());
     InFlight
 }
 
-#[component(Progress<G>)]
-pub fn progress() -> View<G> {
-    let style = if_browser!(
-        {
-            let width = PROGRESS.with(|state| state.width.clone());
-            crate::memo!(width, {
-                if *width.get() == 0.0 {
-                    format!("width: {}%; transition: none", width.get())
-                } else {
-                    format!("width: {}%", width.get())
-                }
-            })
-        },
-        Signal::new("")
-    );
+#[component]
+pub fn Progress<G: Html>(cx: Scope) -> View<G> {
+    let width = PROGRESS.with(|state| state.width.clone());
+    let style = create_memo(cx, move || {
+        if *width.get() == 0.0 {
+            format!("width: {}%; transition: none", width.get())
+        } else {
+            format!("width: {}%", width.get())
+        }
+    });
 
-    view! {
+    view! { cx,
         div(class="fixed transition-[width] duration-300 ease-linear top-0 left-0 h-0.5 z-50 bg-sky-400",
             style=style.get()) {
         }

@@ -8,8 +8,8 @@ pub struct HeadArgs {
     pub preload: Vec<Prefetch>,
 }
 
-#[component(Head<G>)]
-pub fn head(args: HeadArgs) -> View<G> {
+#[component]
+pub fn Head<G: Html>(cx: Scope, args: HeadArgs) -> View<G> {
     let meta = args.meta;
     let title = meta.title.clone();
     let image = match meta.image.is_empty() {
@@ -23,7 +23,7 @@ pub fn head(args: HeadArgs) -> View<G> {
         .map(|preload| {
             let typ = preload.typ();
             let href = preload.into_url();
-            view! { link(rel="preload", href=href, as=typ) }
+            view! { cx, link(rel="preload", href=href, as=typ) }
         })
         .collect::<Vec<_>>();
     let preload = View::new_fragment(preload);
@@ -33,7 +33,7 @@ pub fn head(args: HeadArgs) -> View<G> {
         .into_iter()
         .map(|prefetch| {
             let href = prefetch.into_url();
-            view! {
+            view! { cx,
                 link(rel="prefetch", href=href)
             }
         })
@@ -42,7 +42,7 @@ pub fn head(args: HeadArgs) -> View<G> {
 
     let meta_title = meta.title.clone();
     let meta_description = meta.description.clone();
-    view! {
+    view! { cx,
         title { (title) }
         meta(name="title", content=meta_title)
         meta(name="description", content=meta_description)

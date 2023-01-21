@@ -8,8 +8,8 @@ use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlElement, PointerEvent};
 
 use crate::build::Build;
-use crate::components::{PobColoredSelect, PobColoredSelectProps};
-use crate::{memo, Prefetch, ResponseContext};
+use crate::components::PobColoredSelect;
+use crate::{Prefetch, ResponseContext};
 
 #[derive(Debug)]
 struct Tree {
@@ -19,8 +19,8 @@ struct Tree {
     nodes: Rc<Nodes>,
 }
 
-#[component(PobTreePreview<G>)]
-pub fn pob_tree_preview(build: Build) -> View<G> {
+#[component]
+pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let trees = build
         .trees()
         .map(|(nodes, spec)| Tree {
@@ -32,7 +32,7 @@ pub fn pob_tree_preview(build: Build) -> View<G> {
         .collect::<Vec<_>>();
 
     if trees.is_empty() {
-        return view! {};
+        return view! { cx, };
     }
 
     if TypeId::of::<G>() == TypeId::of::<SsrNode>() {
@@ -48,26 +48,23 @@ pub fn pob_tree_preview(build: Build) -> View<G> {
     let value = current_tree.image_url.clone();
     let style = format!("background-image: url({value})");
 
-    let node_ref = NodeRef::new();
-    let nodes = Signal::new(Rc::clone(&current_tree.nodes));
+    let node_ref = create_node_ref(cx);
+    let nodes = create_signal(cx, Rc::clone(&current_tree.nodes));
 
-    let select = render_select(
-        trees,
-        cloned!(node_ref, nodes => move |tree| {
-            let property = format!("url({})", tree.image_url);
-            let _ = crate::utils::from_ref::<_, HtmlElement>(&node_ref)
-                .style()
-                .set_property("background-image", &property);
-            nodes.set(Rc::clone(&tree.nodes));
-        }),
-    );
+    let select = render_select(cx, trees, move |tree| {
+        let property = format!("url({})", tree.image_url);
+        let _ = crate::utils::from_ref::<_, HtmlElement>(node_ref)
+            .style()
+            .set_property("background-image", &property);
+        nodes.set(Rc::clone(&tree.nodes));
+    });
 
-    let state = Rc::new(RefCell::new(TouchState::new(node_ref.clone())));
-    let on_move_start = cloned!(state => move |event: Event| {
+    let state = create_ref(cx, RefCell::new(TouchState::new(node_ref.clone())));
+    let on_move_start = |event: Event| {
         let event = event.unchecked_into::<PointerEvent>();
         state.borrow_mut().add_pointer(&event);
-    });
-    let on_move_move = cloned!(state => move |event: Event| {
+    };
+    let on_move_move = |event: Event| {
         let event = event.unchecked_into::<PointerEvent>();
         let mut state = state.borrow_mut();
 
@@ -82,11 +79,14 @@ pub fn pob_tree_preview(build: Build) -> View<G> {
             state.move_canvas(dx, dy);
             state.apply();
         } else if state.size() == 2 {
-            let other = state.pointers().find(|p| p.id != event.pointer_id()).unwrap();
+            let other = state
+                .pointers()
+                .find(|p| p.id != event.pointer_id())
+                .unwrap();
 
             let distance = f32::hypot(
                 other.x as f32 - event.client_x() as f32,
-                other.y as f32 - event.client_y() as f32
+                other.y as f32 - event.client_y() as f32,
             );
 
             state.zoom_pinch(distance);
@@ -94,22 +94,22 @@ pub fn pob_tree_preview(build: Build) -> View<G> {
         }
 
         state.update_pointer(&event);
-    });
-    let on_move_end = cloned!(state => move |event: Event| {
+    };
+    let on_move_end = |event: Event| {
         let event = event.unchecked_into::<PointerEvent>();
         state.borrow_mut().remove_pointer(&event);
-    });
+    };
 
-    let nodes = memo!(nodes, render_nodes(&nodes.get()));
+    let nodes = create_memo(cx, move || render_nodes(cx, &nodes.get()));
 
-    view! {
+    view! { cx,
         (select)
         div(class="grid grid-cols-10 gap-3") {
             div(class="col-span-10 lg:col-span-7 h-[450px] md:h-[800px] cursor-move md:overflow-auto mt-2",
                 on:pointerdown=on_move_start,
                 on:pointermove=on_move_move,
-                on:pointerup=on_move_end.clone(),
-                on:pointerleave=on_move_end.clone(),
+                on:pointerup=on_move_end,
+                on:pointerleave=on_move_end,
                 on:pointercancel=on_move_end,
             ) {
                 div(ref=node_ref,
@@ -128,9 +128,9 @@ pub fn pob_tree_preview(build: Build) -> View<G> {
     }
 }
 
-pub fn render_nodes<G: GenericNode + Html>(nodes: &Nodes) -> View<G> {
+pub fn render_nodes<G: GenericNode + Html>(cx: Scope, nodes: &Nodes) -> View<G> {
     if nodes.is_empty() {
-        return view! {
+        return view! { cx,
             div(class="text-stone-200 hidden lg:block text-center") {
                 "No Keystones and Masteries"
             }
@@ -140,47 +140,47 @@ pub fn render_nodes<G: GenericNode + Html>(nodes: &Nodes) -> View<G> {
     let keystones = nodes
         .keystones
         .iter()
-        .map(|node| render_keystone(node))
+        .map(|node| render_keystone(cx, node))
         .collect();
     let keystones = View::new_fragment(keystones);
 
     let masteries = nodes
         .masteries
         .iter()
-        .map(|node| render_mastery(node))
+        .map(|node| render_mastery(cx, node))
         .collect();
     let masteries = View::new_fragment(masteries);
 
-    view! {
+    view! { cx,
         div(class="grid grid-cols-fit-keystone gap-2 lg:gap-1") { (keystones) }
         div(class="grid grid-cols-fit-mastery gap-2 lg:gap-1") { (masteries) }
     }
 }
 
-fn render_keystone<G: GenericNode + Html>(node: &Node) -> View<G> {
+fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &Node) -> View<G> {
     let name = node.name.to_owned();
     let stats = node.stats.iter().join("\n");
 
-    view! {
+    view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3", title=stats) {
             div(class="text-stone-200 text-sm md:text-base") { (name) }
         }
     }
 }
 
-fn render_mastery<G: GenericNode + Html>(node: &Node) -> View<G> {
+fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &Node) -> View<G> {
     let name = node.name.to_owned();
     let stats = node
         .stats
         .iter()
         .map(|stat| {
             let stat = stat.clone();
-            view! { li(class="leading-tight") { (stat) } }
+            view! { cx, li(class="leading-tight") { (stat) } }
         })
         .collect();
     let stats = View::new_fragment(stats);
 
-    view! {
+    view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3") {
             div(class="mb-2 text-stone-200 text-sm md:text-base") { (name) }
             ul(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (stats) }
@@ -188,23 +188,28 @@ fn render_mastery<G: GenericNode + Html>(node: &Node) -> View<G> {
     }
 }
 
-fn render_select<G: GenericNode + Html, F>(trees: Vec<Tree>, on_change: F) -> View<G>
+fn render_select<'a, G: GenericNode + Html, F>(
+    cx: Scope<'a>,
+    trees: Vec<Tree>,
+    on_change: F,
+) -> View<G>
 where
-    F: Fn(&Tree) + 'static,
+    F: Fn(&Tree) + 'a,
 {
     if trees.len() <= 1 {
-        return view! {};
+        return view! { cx, };
     }
 
     let options = trees.iter().map(|t| t.name.clone()).collect();
     let selected = trees.iter().position(|t| t.active);
+    let on_change = move |index| {
+        if let Some(index) = index {
+            on_change(&trees[index])
+        }
+    };
 
-    view! {
-        PobColoredSelect(PobColoredSelectProps {
-            options,
-            selected,
-            on_change: move |index| if let Some(index) = index { on_change(&trees[index]) },
-        })
+    view! { cx,
+        PobColoredSelect(options=options, selected=selected, on_change=on_change)
     }
 }
 

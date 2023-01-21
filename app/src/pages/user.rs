@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use shared::{
     model::{PasteSummary, UserPasteId},
     User,
@@ -7,44 +5,44 @@ use shared::{
 use sycamore::prelude::*;
 
 use crate::{
-    components::{PasteToolbox, PasteToolboxProps},
+    components::PasteToolbox,
     consts::IMG_ONERROR_INVISIBLE,
     future::LocalBoxFuture,
-    memo_cond,
     router::RoutedComponent,
-    utils::{deserialize_attribute, pretty_date_ts, serialize_for_attribute},
+    utils::{deserialize_attribute, memo_cond, pretty_date_ts, serialize_for_attribute},
     Meta, Result,
 };
 
-pub struct Data {
+pub struct UserPage {
     name: User,
     pastes: Vec<PasteSummary>,
 }
 
-impl<G: Html> RoutedComponent<G> for UserPage<G> {
+impl RoutedComponent for UserPage {
     type RouteArg = User;
 
-    fn from_context(name: Self::RouteArg, ctx: crate::Context) -> Result<Data> {
-        Ok(Data {
+    fn from_context(name: Self::RouteArg, ctx: crate::Context) -> Result<Self> {
+        Ok(Self {
             name,
             pastes: ctx.get_user().unwrap().to_vec(),
         })
     }
 
-    fn from_hydration(name: Self::RouteArg, element: web_sys::Element) -> Result<Data> {
+    fn from_hydration(name: Self::RouteArg, element: web_sys::Element) -> Result<Self> {
         let pastes = deserialize_attribute(&element, "data-ssr").unwrap_or_default();
 
-        Ok(Data { name, pastes })
+        Ok(Self { name, pastes })
     }
 
-    fn from_dynamic<'a>(name: Self::RouteArg) -> LocalBoxFuture<'a, Result<Data>> {
+    fn from_dynamic<'a>(name: Self::RouteArg) -> LocalBoxFuture<'a, Result<Self>> {
         Box::pin(async move {
             let pastes = crate::api::get_user(&name).await?;
-            Ok(Data { name, pastes })
+            Ok(Self { name, pastes })
         })
     }
 
-    fn meta(Data { name, pastes }: &Data) -> Result<Meta> {
+    fn meta(&self) -> Result<Meta> {
+        let Self { name, pastes } = self;
         let title = format!("{name}'s builds").into();
 
         let mut summary = pastes
@@ -69,35 +67,40 @@ impl<G: Html> RoutedComponent<G> for UserPage<G> {
             ..Default::default()
         })
     }
+
+    fn render<G: Html>(self, cx: Scope) -> View<G> {
+        view! { cx, UserPageComponent(self) }
+    }
 }
 
-#[component(UserPage<G>)]
-pub fn user_page(Data { name, pastes }: Data) -> View<G> {
-    let data_ssr = serialize_for_attribute(&pastes);
+#[component]
+pub fn UserPageComponent<G: Html>(cx: Scope, UserPage { name, pastes }: UserPage) -> View<G> {
+    let data_ssr = serialize_for_attribute::<G>(&pastes);
 
     let p = pastes
         .into_iter()
-        .map(Rc::new)
         .map(|summary| {
-            let deleted = Signal::new(false);
+            let deleted = create_signal(cx, false);
+            let summary = create_ref(cx, summary); // TODO: Rc this?
             let content = memo_cond!(
+                cx,
                 deleted,
-                view! {},
-                summary_to_view(summary.clone(), deleted.clone())
+                view! { cx, },
+                summary_to_view(cx, summary, deleted)
             );
-            view! { (&*content.get()) }
+            view! { cx, (&*content.get()) }
         })
         .collect::<Vec<_>>();
 
     let p = if !p.is_empty() {
         View::new_fragment(p)
     } else {
-        view! {
+        view! { cx,
             span(class="text-center") { "There is nothing here .." }
         }
     };
 
-    view! {
+    view! { cx,
         h1(class="text-amber-50 text-xl mb-4") {
             span { (name) }
             span { "'s builds" }
@@ -109,9 +112,10 @@ pub fn user_page(Data { name, pastes }: Data) -> View<G> {
     }
 }
 
-fn summary_to_view<G: GenericNode + Html>(
-    summary: Rc<PasteSummary>,
-    on_delete: Signal<bool>,
+fn summary_to_view<'a, G: GenericNode + Html>(
+    cx: Scope<'a>,
+    summary: &'a PasteSummary,
+    on_delete: &'a Signal<bool>,
 ) -> View<G> {
     let url = summary.to_url();
     let image = crate::assets::ascendancy_image(&summary.ascendancy_or_class).unwrap_or("");
@@ -123,14 +127,7 @@ fn summary_to_view<G: GenericNode + Html>(
     };
     let open_in_pob_url = id.to_pob_open_url();
 
-    let last_modified = summary.last_modified;
-
-    let summary2 = summary.clone();
-    let summary3 = summary.clone();
-
-    let toolbox = PasteToolboxProps { id, on_delete };
-
-    view! {
+    view! { cx,
         div(class="p-3 even:bg-slate-700 border-solid border-[color:var(--col)]
                 hover:border-l-4 hover:bg-[color:var(--bg-col)]",
             style=format!("--col: {color}; --bg-col: {color}66")
@@ -141,8 +138,8 @@ fn summary_to_view<G: GenericNode + Html>(
                     alt="Ascendancy Thumbnail",
                     onerror=IMG_ONERROR_INVISIBLE) {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
-                    span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary2.version) } }
-                    span() { (summary3.main_skill_name) }
+                    span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary.version) } }
+                    span() { (summary.main_skill_name) }
                 }
                 div(class="
                     flex-1 sm:flex-initial flex flex-col items-end justify-between gap-2
@@ -153,10 +150,10 @@ fn summary_to_view<G: GenericNode + Html>(
                         class="btn btn-primary"
                      ) { "Open in PoB" }
 
-                    PasteToolbox(toolbox)
+                    PasteToolbox(id=id, on_delete=on_delete)
 
                     div(class="text-right text-sm text-slate-400") {
-                        (pretty_date_ts(last_modified))
+                        (pretty_date_ts(summary.last_modified))
                     }
                 }
             }

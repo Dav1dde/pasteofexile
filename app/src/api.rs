@@ -1,6 +1,6 @@
 use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
-use shared::model::{Paste, PasteId, PasteSummary};
+use shared::model::{Paste, PasteId, PasteSummary, UserPasteId};
 
 use crate::{Error, Result};
 
@@ -51,8 +51,7 @@ pub async fn get_paste(id: &PasteId) -> Result<Paste> {
     Ok(resp.json().await?)
 }
 
-#[cfg(not(feature = "ssr"))]
-pub async fn delete_paste(id: &PasteId) -> Result<()> {
+pub async fn delete_paste(id: &UserPasteId) -> Result<()> {
     let _in_flight = crate::progress::start_request();
     let resp = Request::delete(&format!("/api/internal/paste/{id}"))
         .send()

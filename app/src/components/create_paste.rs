@@ -1,9 +1,9 @@
 use pob::SerdePathOfBuilding;
 use shared::{model::UserPasteId, validation};
-use sycamore::{context::use_context, prelude::*};
+use sycamore::{prelude::*, reactive::use_context};
 use wasm_bindgen::JsCast;
 
-use crate::{memo, memo_cond, session::SessionValue, svg::SPINNER};
+use crate::{session::SessionValue, svg::SPINNER, utils::memo_cond};
 
 pub enum CreatePasteProps {
     None,
@@ -49,20 +49,24 @@ impl Default for CreatePasteProps {
     }
 }
 
-#[component(CreatePaste<G>)]
-pub fn create_paste(props: CreatePasteProps) -> View<G> {
+#[component]
+pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
     let is_update = props.is_update();
 
-    let value = Signal::new(props.content().unwrap_or_default());
-    let loading = Signal::new(false);
-    let error = Signal::new(String::new());
-    let as_user = Signal::new(is_update);
-    let custom_title = Signal::new(props.title().unwrap_or_default());
-    let custom_id = Signal::new(props.paste_id().map(|up| up.id.clone()).unwrap_or_default());
+    let props = create_ref(cx, props);
+    let value = create_signal(cx, props.content().unwrap_or_default());
+    let loading = create_signal(cx, false);
+    let error = create_signal(cx, String::new());
+    let as_user = create_signal(cx, is_update);
+    let custom_title = create_signal(cx, props.title().unwrap_or_default());
+    let custom_id = create_signal(
+        cx,
+        props.paste_id().map(|up| up.id.clone()).unwrap_or_default(),
+    );
 
-    let session = use_context::<SessionValue>();
+    let session = use_context::<SessionValue>(cx);
 
-    let pob = memo!(value, error, {
+    let pob = create_memo(cx, || {
         let _ = error.get(); // register signal
 
         let value = &*value.get();
@@ -80,24 +84,18 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         }
     });
 
-    let raw_title = memo!(pob, (*pob.get()).as_ref().map(crate::pob::title));
-    let title = memo!(
-        raw_title,
-        (*raw_title.get())
-            .as_ref()
-            .cloned()
-            .unwrap_or_else(|| if is_update {
+    let raw_title = create_memo(cx, || (*pob.get()).as_ref().map(crate::pob::title));
+    let title = create_memo(cx, move || {
+        (*raw_title.get()).as_ref().cloned().unwrap_or_else(|| {
+            if is_update {
                 "Update your Build".to_owned()
             } else {
                 "Share your Build".to_owned()
-            })
-    );
+            }
+        })
+    });
 
-    #[cfg(not(feature = "ssr"))]
-    let paste_id = props.paste_id().cloned();
-    #[cfg(not(feature = "ssr"))]
-    let btn_submit = cloned!(loading, value, error, as_user, title, custom_title, custom_id, paste_id => move |_| {
-        use wasm_bindgen_futures::spawn_local;
+    let btn_submit = move |_| {
         use crate::api;
 
         if *loading.get() {
@@ -112,16 +110,21 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         let title = title.get();
         let custom_title = custom_title.get();
         let custom_id = custom_id.get();
-        let future = cloned!(loading, error, paste_id => async move {
-            let id = paste_id.map(|e| e.clone().into());
-            let title = if custom_title.is_empty() { &*title } else { &*custom_title };
+
+        let future = async move {
+            let id = props.paste_id().map(|e| e.clone().into());
+            let title = if custom_title.is_empty() {
+                &*title
+            } else {
+                &*custom_title
+            };
 
             let params = api::CreatePaste {
                 id: id.as_ref(),
                 as_user,
                 title,
                 custom_id: (!custom_id.is_empty()).then_some(&*custom_id),
-                content: &*value,
+                content: &value,
             };
             match api::create_paste(params).await {
                 Err(err) => {
@@ -133,16 +136,14 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     sycamore_router::navigate(&id.to_url());
                 }
             };
-        });
+        };
 
         loading.set(true);
-        spawn_local(future);
-    });
-    #[cfg(feature = "ssr")]
-    let btn_submit = |_| {};
+        sycamore::futures::spawn_local_scoped(cx, future);
+    };
 
     // TODO: allow pasting of PoBs that cannot be properly parsed but appear to be valid
-    let btn_submit_disabled = memo!(loading, pob, as_user, custom_title, custom_id, {
+    let btn_submit_disabled = create_memo(cx, || {
         // TODO: show error/validation messages, this memo probably needs to return a `Validation`
         // and the button subscribes to memo with `is_valid()` and `error` merges from the
         // validation as well.
@@ -163,14 +164,15 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
         false
     });
     let btn_content = memo_cond!(
+        cx,
         loading,
         SPINNER,
         if is_update { "Update" } else { "Create" }
     );
 
-    let on_input = cloned!(error => move |_| error.set("".to_owned()));
+    let on_input = |_| error.set("".to_owned());
 
-    let on_custom_id = cloned!(custom_id => move |event: web_sys::Event| {
+    let on_custom_id = |event: web_sys::Event| {
         let event = event.unchecked_into::<web_sys::InputEvent>();
         if event.is_composing() {
             return;
@@ -188,26 +190,24 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
             .collect::<String>();
         target.set_value(&value);
         custom_id.set(value);
-    });
+    };
 
     let as_user_content = memo_cond!(
+        cx,
         as_user,
         {
-            let title = raw_title.clone();
-            let title2 = (*raw_title.get()).clone().unwrap_or_default();
-            let custom_id = custom_id.clone();
-            let on_custom_id = on_custom_id.clone();
-            view! {
+            let initial_title = (*raw_title.get()).clone().unwrap_or_default();
+            view! { cx,
                 div() { "Title" }
                 input(
                     class="input",
                     type="text",
                     maxlength=90,
                     minlength=3,
-                    value=title2,
+                    value=initial_title,
                     aria-label="Title",
-                    placeholder=title.get().as_deref().unwrap_or_default(),
-                    bind:value=custom_title.clone(),
+                    placeholder=raw_title.get().as_deref().unwrap_or_default(),
+                    bind:value=custom_title,
                 ) {}
 
                 div(title="Id of the build, reusing an Id overwrites the previous build") { "Id" }
@@ -224,11 +224,11 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                     on:input=on_custom_id) { }
             }
         },
-        view! {}
+        view! { cx, }
     );
 
     let cancel = if is_update {
-        view! {
+        view! { cx,
             button(
                 title="Back",
                 tabindex="-1",
@@ -238,11 +238,10 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
             ) { "Cancel" }
         }
     } else {
-        view! {}
+        view! { cx, }
     };
 
-    let value2 = value.clone();
-    view! {
+    view! { cx,
         div(class="flex flex-col gap-y-3") {
             h1(class="dark:text-slate-100 text-slate-900", data-marker-title="") { (title.get()) }
             textarea(
@@ -256,7 +255,7 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                 data-marker-content="",
                 aria-label="Path of Building buildcode",
             ) {
-                (value2.get())
+                (value.get())
             }
             div(class="grid grid-cols-[min-content_1fr] gap-3 items-center empty:hidden") {
                 (&*as_user_content.get())
@@ -265,14 +264,14 @@ pub fn create_paste(props: CreatePasteProps) -> View<G> {
                 div(class="flex-auto flex items-center text-red-500") { (*error.get()) }
                 div() { // need the div for hydration to not break
                     (if session.get().is_logged_in() && !is_update {
-                        view! {
+                        view! { cx,
                             label() {
-                                input(type="checkbox", class="mx-2", bind:checked=as_user.clone()) {}
+                                input(type="checkbox", class="mx-2", bind:checked=as_user) {}
                                 "Share on Profile"
                             }
                         }
                     } else {
-                        view! {}
+                        view! { cx, }
                     })
                 }
                 (cancel)

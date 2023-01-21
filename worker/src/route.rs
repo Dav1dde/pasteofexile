@@ -21,19 +21,19 @@ impl Route {
         // the most specific routes (no `/<paste>` route)
         match req.method() {
             Method::Get => {
-                let route = GetEndpoints::match_path(&path);
+                let route = GetEndpoints::default().match_path(&path);
                 if !matches!(route, GetEndpoints::NotFound) {
                     return Self::Api(Api::Get(route));
                 }
             }
             Method::Post => {
-                let route = PostEndpoints::match_path(&path);
+                let route = PostEndpoints::default().match_path(&path);
                 if !matches!(route, PostEndpoints::NotFound) {
                     return Self::Api(Api::Post(route));
                 }
             }
             Method::Delete => {
-                let route = DeleteEndpoints::match_path(&path);
+                let route = DeleteEndpoints::default().match_path(&path);
                 if !matches!(route, DeleteEndpoints::NotFound) {
                     return Self::Api(Api::Delete(route));
                 }
@@ -49,7 +49,7 @@ impl Route {
             }
 
             // App is a catch all
-            let app = app::Route::match_path(&path);
+            let app = app::Route::default().match_path(&path);
             if !matches!(app, app::Route::NotFound) {
                 return Self::App(app);
             }

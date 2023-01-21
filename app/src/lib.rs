@@ -1,3 +1,4 @@
+use session::use_session;
 use sycamore::prelude::*;
 
 mod api;
@@ -30,7 +31,7 @@ pub use session::User;
 
 #[cfg(feature = "ssr")]
 pub fn render_to_string(context: Context) -> (String, ResponseContext) {
-    ResponseContext::with(|| sycamore::render_to_string(|| view! { App(Some(context)) }))
+    ResponseContext::with(|| sycamore::render_to_string(|cx| view! { cx, App(Some(context)) }))
 }
 
 #[cfg(feature = "ssr")]
@@ -38,7 +39,7 @@ pub type Head = head::HeadArgs;
 
 #[cfg(feature = "ssr")]
 pub fn render_head(args: Head) -> String {
-    let mut result = sycamore::render_to_string(|| view! { head::Head(args) });
+    let mut result = sycamore::render_to_string(|cx| view! { cx, head::Head(args) });
 
     // workaround to replace data-hk with data-xx to not interfer with hydration
     let bytes = unsafe { result.as_bytes_mut() };
@@ -53,39 +54,39 @@ pub fn render_head(args: Head) -> String {
     result
 }
 
-#[component(App<G>)]
-pub fn app(ctx: Option<Context>) -> View<G> {
+#[component]
+pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
     // we need to manually handle clicking here, since the nav isn't wrapped in a router
     let navigate_index = |ev: web_sys::Event| {
         sycamore_router::navigate("/");
         ev.prevent_default();
     };
 
-    view! {
+    use_session::<G>(cx);
+
+    view! { cx,
         progress::Progress()
-        session::SessionWrapper(|| view! {
-            div(class="h-screen flex flex-col gap-10") {
-                nav(class="bg-slate-200 dark:bg-slate-900 dark:shadow-lg") {
-                    div(class="flex justify-between	p-4 lg:px-8 mx-auto max-w-[1920px]") {
-                        a(href="/", on:click=navigate_index) {
-                            span() { "POB" }
-                            span(class="text-sky-500 dark:text-sky-400") { "b.in" }
-                        }
-                        components::LoginStatus()
+        div(class="h-screen flex flex-col gap-10") {
+            nav(class="bg-slate-200 dark:bg-slate-900 dark:shadow-lg") {
+                div(class="flex justify-between	p-4 lg:px-8 mx-auto max-w-[1920px]") {
+                    a(href="/", on:click=navigate_index) {
+                        span() { "POB" }
+                        span(class="text-sky-500 dark:text-sky-400") { "b.in" }
                     }
-                }
-                main(class="max-w-screen-xl px-5 xl:px-0 w-full flex-auto self-center") {
-                    router::Router(ctx)
-                }
-                footer(class="bg-slate-900 text-slate-400 text-xs self-center w-full
-                       flex flex-wrap justify-between items-center gap-2
-                       shadow-lg shadow-slate-100/50 py-2 px-4 lg:px-8") {
-                    div() { "pobb.in isn't affiliated with or endorsed by Grinding Gear Games in any way" }
-                    a(href="https://github.com/Dav1dde/pasteofexile", target="_blank",
-                      class="w-4 h-4", aria-label="Source code on GitHub",
-                      dangerously_set_inner_html=svg::GITHUB) {}
+                    components::LoginStatus()
                 }
             }
-        })
+            main(class="max-w-screen-xl px-5 xl:px-0 w-full flex-auto self-center") {
+                router::Router(ctx)
+            }
+            footer(class="bg-slate-900 text-slate-400 text-xs self-center w-full
+                    flex flex-wrap justify-between items-center gap-2
+                    shadow-lg shadow-slate-100/50 py-2 px-4 lg:px-8") {
+                div() { "pobb.in isn't affiliated with or endorsed by Grinding Gear Games in any way" }
+                a(href="https://github.com/Dav1dde/pasteofexile", target="_blank",
+                    class="w-4 h-4", aria-label="Source code on GitHub",
+                    dangerously_set_inner_html=svg::GITHUB) {}
+            }
+        }
     }
 }

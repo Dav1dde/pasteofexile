@@ -1,40 +1,43 @@
 use shared::model::UserPasteId;
 use sycamore::prelude::*;
 
-pub struct PasteToolboxProps {
+use crate::{
+    session::SessionValue,
+    svg,
+    utils::{async_callback, memo_cond},
+};
+
+#[derive(Prop)]
+pub struct PasteToolboxProps<'a> {
     pub id: UserPasteId,
-    pub on_delete: Signal<bool>,
+    pub on_delete: &'a Signal<bool>,
 }
 
-#[cfg(not(feature = "ssr"))]
-#[component(PasteToolbox<G>)]
-pub fn paste_toolbox(
-    PasteToolboxProps {
-        id,
-        on_delete: _on_delete,
-    }: PasteToolboxProps,
+#[component]
+pub fn PasteToolbox<'a, G: Html>(
+    cx: Scope<'a>,
+    PasteToolboxProps { id, on_delete }: PasteToolboxProps<'a>,
 ) -> View<G> {
-    use crate::{async_callback, memo, memo_cond, session::SessionValue, svg};
+    let session = sycamore::reactive::use_context::<SessionValue>(cx);
+    let id = create_ref(cx, id);
 
-    let session = sycamore::context::use_context::<SessionValue>();
-
-    let is_current_user = memo!(session, id, {
+    let is_current_user = create_memo(cx, || {
         let session = session.get();
         Some(id.user.as_str()) == session.user().map(|u| u.name.as_str())
     });
 
-    let on_delete = async_callback!(
-        id,
-        _on_delete,
+    // TODO wtf is this
+    let on_delete_cb = async_callback!(
+        cx,
         {
-            match crate::api::delete_paste(&id.into()).await {
+            match crate::api::delete_paste(id).await {
                 Err(err) => tracing::error!("deletion failed: {:?}", err),
-                Ok(_) => _on_delete.set(true),
+                Ok(_) => on_delete.set(true),
             }
         },
         {
             // TODO: show paste identifier/title
-            let message = format!("Are you sure you want to delete this build?");
+            let message = "Are you sure you want to delete this build?".to_owned();
             web_sys::window()
                 .unwrap()
                 .confirm_with_message(&message)
@@ -43,32 +46,24 @@ pub fn paste_toolbox(
     );
 
     let controls = memo_cond!(
+        cx,
         is_current_user,
         {
             let edit_href = id.to_paste_edit_url();
-            let on_delete = on_delete.clone();
-            view! {
+            view! { cx,
                 div(class="flex justify-end gap-2 h-4") {
                     a(href=edit_href, class="cursor-pointer", title="Edit", dangerously_set_inner_html=svg::PEN) {}
-                    span(on:click=on_delete,
+                    span(on:click=on_delete_cb,
                          class="text-red-600 cursor-pointer",
                          title="Delete",
                          dangerously_set_inner_html=svg::TRASH) {}
                 }
             }
         },
-        view! {}
+        view! { cx, }
     );
 
-    view! {
+    view! { cx,
         div() { (&*controls.get()) }
-    }
-}
-
-#[cfg(feature = "ssr")]
-#[component(PasteToolbox<G>)]
-pub fn paste_toolbox(_props: PasteToolboxProps) -> View<G> {
-    view! {
-        div() {}
     }
 }

@@ -6,107 +6,55 @@ use wasm_bindgen::JsCast;
 
 // TODO: move these `macro_export`'s to `use`
 
-#[macro_export]
-macro_rules! memo {
-    ($signal:ident, $x:expr) => {
-        create_memo(cloned!($signal => move || {
-            $x
-        }))
-    };
-    ($($signal:ident),+, { $($token:tt)+ }) => {
-        create_memo(cloned!($($signal),+ => move || {
-            $($token)+
-        }))
-    };
-}
-
-#[macro_export]
 macro_rules! memo_cond {
-    ($signal:ident, $if:expr, $else:expr) => {{
-        create_memo(cloned!($signal => move || {
-            if *$signal.get() {
-                $if
-            } else {
-                $else
-            }
-        }))
+    ($cx:expr, $signal:ident, $if:expr, $else:expr) => {{
+        create_memo($cx, move || if *$signal.get() { $if } else { $else })
     }};
 }
+pub(crate) use memo_cond;
 
-#[macro_export]
-macro_rules! effect {
-    ($signal:ident, $x:expr) => {
-        create_effect(cloned!($signal => move || {
-            $x
-        }))
-    };
-    ($signal1:ident, $signal2:ident, $x:expr) => {
-        create_effect(cloned!(($signal1, $signal2) => move || {
-            $x
-        }))
+macro_rules! view_cond {
+    ($cx:expr, $if:expr, { $($token:tt)* }) => {
+        if $if {
+            let cx = $cx;
+            view! { cx, $($token)* }
+        } else {
+            let cx = $cx;
+            view! { cx, }
+        }
     };
 }
+pub(crate) use view_cond;
 
-#[macro_export]
 macro_rules! try_block {
     { $($token:tt)* } => {
         (move || { $($token)* })()
     }
 }
+pub(crate) use try_block;
 
-#[macro_export]
 macro_rules! try_block_async {
     { $($token:tt)* } => {
         (move || async move { $($token)* })().await
     }
 }
+pub(crate) use try_block_async;
 
-#[allow(unused)]
-macro_rules! spawn_local {
-    ($($id:ident),+, { $($token:tt)* }) => {
-        wasm_bindgen_futures::spawn_local(cloned!($($id),+ => async move {
-            $($token)*
-        }))
-    };
-}
-#[allow(unused)]
-pub(crate) use spawn_local;
-
-#[macro_export]
 macro_rules! async_callback {
-    ($($id:ident),+, { $($token:tt)* }, $filter:expr) => {{
-        #[cfg(not(feature = "ssr"))]
-        let ret = cloned!($($id),+ => move |_| {
+    ($cx:expr, { $($token:tt)* }, $filter:expr) => {{
+        move |_| {
             if !($filter) {
                 return;
             }
 
-            wasm_bindgen_futures::spawn_local(cloned!($($id),+ => async move {
+            sycamore::futures::spawn_local_scoped($cx, async move {
                 $($token)*
-            }))
-        });
-        #[cfg(feature = "ssr")]
-        let ret = |_| {};
-        ret
+            })
+        }
     }};
 }
+pub(crate) use async_callback;
 
-macro_rules! if_browser {
-    ($browser:expr, $server:expr) => {{
-        #[cfg(not(feature = "ssr"))] { $browser }
-        #[cfg(feature = "ssr")] { $server }
-    }};
-    { $browser:expr } => {{
-        #[cfg(not(feature = "ssr"))] { $browser }
-    }};
-}
-pub(crate) use if_browser;
-
-pub fn is_hydrating() -> bool {
-    sycamore::utils::hydrate::get_current_id().is_some()
-}
-
-#[cfg(not(feature = "ssr"))]
 pub fn document<T: JsCast>() -> T {
     web_sys::window()
         .unwrap()
@@ -161,13 +109,13 @@ pub fn deserialize_from_attribute<T: DeserializeOwned>(data: &str) -> T {
     serde_json::from_str(&data).expect("deserialize")
 }
 
-pub fn serialize_for_attribute<T: Serialize + ?Sized>(value: &T) -> String {
-    if_browser!(
-        String::new(),
-        base64::encode_config(
-            serde_json::to_string(&value).expect("serialize in for attribute"),
-            base64::URL_SAFE_NO_PAD,
-        )
+pub fn serialize_for_attribute<G: Html>(value: &(impl Serialize + ?Sized)) -> String {
+    if G::IS_BROWSER {
+        return String::new();
+    }
+    base64::encode_config(
+        serde_json::to_string(&value).expect("serialize in for attribute"),
+        base64::URL_SAFE_NO_PAD,
     )
 }
 

@@ -8,9 +8,7 @@ edition = "2021"
 default = ["client"]
 ssr = ["sycamore/ssr", "strum"]
 client = [
-    "sycamore/experimental-hydrate",
     "wasm-bindgen-futures",
-    "gloo-timers",
     "console_error_panic_hook",
     "tracing-subscriber",
     "tracing-wasm"
@@ -20,14 +18,9 @@ client = [
 pob = { path = "../pob/" }
 shared = { path = "../shared/" }
 
-# sycamore = { version = "0.7", features = ["futures"] }
-# sycamore-router = "0.7"
-# sycamore = { path = "../../sycamore/packages/sycamore", features = ["futures"] }
-# sycamore-router = { path = "../../sycamore/packages/sycamore-router" }
-sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures"] }
-sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore-router" }
+sycamore = { version = "0.8", features = ["suspense"] }
+sycamore-router = "0.8"
 
-# TODO: lot's of this stuff is only required in the client feature
 web-sys = { version = "0.3", features = [
     "Window", "HtmlDocument", "HtmlHeadElement", "HtmlTextAreaElement", "Selection",
     "CssStyleDeclaration", "PointerEvent", "HtmlSelectElement", "InputEvent"
@@ -50,10 +43,10 @@ cfg-if = "1"
 thiserror = "1"
 strum = { version = "0.24", features = ["derive"], optional = true }
 
-gloo-timers = { version = "0.2", features = ["futures"], optional = true }
+gloo-timers = { version = "0.2.6", features = ["futures"] }
 thousands = "0.2"
 itertools = "0.10"
 
 
 [dev-dependencies]
-sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["ssr"] }
+sycamore = { version = "0.8", features = ["ssr"] }

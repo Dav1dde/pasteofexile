@@ -1,29 +1,31 @@
 use itertools::Itertools;
 use pob::{PathOfBuilding, Skill};
-use sycamore::prelude::*;
+use sycamore::{prelude::*, web::NoHydrate};
 
 use crate::{
     build::Build,
-    components::{PobColoredSelect, PobColoredSelectProps, PobColoredText},
+    components::{PobColoredSelect, PobColoredText},
     pob::formatting::strip_colors,
 };
 
-#[component(PobGems<G>)]
-pub fn pob_gems(build: Build) -> View<G> {
+#[component]
+pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
+    let build = create_ref(cx, build);
+
     let mut skill_sets = build.skill_sets();
 
     if skill_sets.is_empty() {
-        return view! { div() { } };
+        return view! { cx, div() { } };
     } else if skill_sets.len() == 1 {
-        let skills = render_skills(skill_sets.remove(0).skills);
-        return view! {
+        let skills = render_skills(cx, skill_sets.remove(0).skills);
+        return view! { cx,
             div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
                 (skills)
             }
         };
     }
 
-    let content = Signal::new(view! {});
+    let content = create_signal(cx, view! { cx, });
 
     let options = skill_sets
         .iter()
@@ -34,33 +36,29 @@ pub fn pob_gems(build: Build) -> View<G> {
         })
         .collect();
     let selected = skill_sets.iter().position(|ss| ss.is_selected);
-    let on_change = cloned!((build, content) => move |index| {
+    let on_change = move |index| {
         let Some(index) = index else { return };
         if let Some(ss) = build.skill_sets().into_iter().nth(index) {
-            content.set(render_skills(ss.skills));
+            content.set(render_skills::<G>(cx, ss.skills));
         }
-    });
+    };
 
     if let Some(ss) = skill_sets.into_iter().find(|ss| ss.is_selected) {
-        content.set(render_skills(ss.skills));
+        content.set(render_skills(cx, ss.skills));
     }
 
-    view! {
-        PobColoredSelect(PobColoredSelectProps {
-            options,
-            selected,
-            on_change,
-        })
+    view! { cx,
+        PobColoredSelect(options=options, selected=selected, on_change=on_change)
 
-        div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
-            div() {
-            (&*content.get())
+        NoHydrate {
+            div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
+                div() { (&*content.get()) }
             }
         }
     }
 }
 
-fn render_skills<G: GenericNode + Html>(skills: Vec<Skill>) -> View<G> {
+fn render_skills<G: GenericNode + Html>(cx: Scope, skills: Vec<Skill>) -> View<G> {
     let iter_skills = skills
         .into_iter()
         .filter(is_enabled)
@@ -75,7 +73,7 @@ fn render_skills<G: GenericNode + Html>(skills: Vec<Skill>) -> View<G> {
                 .map(|s| s.label.unwrap().to_owned())
                 .map(|label| {
                     let title = strip_colors(&label);
-                    view! { div(class="truncate", title=title) { PobColoredText(label) } }
+                    view! { cx, div(class="truncate", title=title) { PobColoredText(&label) } }
                 })
                 .collect::<Vec<_>>();
 
@@ -86,10 +84,14 @@ fn render_skills<G: GenericNode + Html>(skills: Vec<Skill>) -> View<G> {
             };
 
             let labels = View::new_fragment(labels);
-            skills.push(view! { div(class=class) { (labels) } });
+            skills.push(view! { cx, div(class=class) { (labels) } });
         } else {
             // a bunch of skills with gems
-            skills.extend(group.filter(has_active_gem).map(render_skill));
+            skills.extend(
+                group
+                    .filter(has_active_gem)
+                    .map(|skill| render_skill(cx, skill)),
+            );
         }
     }
 
@@ -127,7 +129,7 @@ fn has_active_gem(skill: &Skill) -> bool {
     skill.gems.iter().any(|g| g.is_active)
 }
 
-fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
+fn render_skill<G: GenericNode>(cx: Scope, skill: Skill) -> View<G> {
     let gems = skill
         .gems
         .into_iter()
@@ -160,14 +162,14 @@ fn render_skill<G: GenericNode>(skill: Skill) -> View<G> {
             };
 
             let title = format!("{} ({}/{})", name, gem.level, gem.quality);
-            view! { div(class=class, title=title) { (name) } }
+            view! { cx, div(class=class, title=title) { (name) } }
         })
         .collect::<Vec<View<G>>>();
     let gems = View::new_fragment(gems);
 
     let class = "break-inside-avoid mt-5 first:mt-0";
 
-    view! {
+    view! { cx,
         div(class=class) {
             (gems)
         }

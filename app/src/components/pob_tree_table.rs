@@ -1,10 +1,10 @@
 use pob::{PathOfBuilding, TreeSpec};
-use sycamore::prelude::*;
+use sycamore::{prelude::*, web::NoHydrate};
 
 use crate::{build::Build, components::PobColoredText};
 
-#[component(PobTreeTable<G>)]
-pub fn pob_tree_table(build: Build) -> View<G> {
+#[component]
+pub fn PobTreeTable<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let rows = build
         .tree_specs()
         .into_iter()
@@ -13,15 +13,15 @@ pub fn pob_tree_table(build: Build) -> View<G> {
         .map(|spec| {
             if spec.nodes.len() == 2 {
                 // Empty tree: assume this is just a separator
-                return view! { div(dangerously_set_inner_html="&nbsp;") {} div() {} };
+                return view! { cx, div(dangerously_set_inner_html="&nbsp;") {} div() {} };
             }
 
-            let title = spec.title.unwrap_or("<Default>").to_owned();
+            let title = spec.title.unwrap_or("<Default>");
 
             let title = match spec.url {
                 Some(url) => {
                     let url = url.to_owned();
-                    view! { a(
+                    view! { cx, a(
                         href=url,
                         rel="external",
                         target="_blank",
@@ -29,13 +29,13 @@ pub fn pob_tree_table(build: Build) -> View<G> {
                     ) { PobColoredText(title) } }
                 }
                 None => {
-                    view! { span(class="dark:text-amber-50 text-slate-800") { PobColoredText(title) } }
+                    view! { cx, span(class="dark:text-amber-50 text-slate-800") { PobColoredText(title) } }
                 }
             };
 
             let (nodes, level) = resolve_level(spec.nodes.len());
             let description = format!("Level {level} ({nodes} passives)");
-            view! {
+            view! { cx,
                 div(class=if spec.active { "font-bold" } else { "" }) { (title) }
                 div(class="mb-3 sm:mb-0") { (description) }
             }
@@ -45,11 +45,11 @@ pub fn pob_tree_table(build: Build) -> View<G> {
     let rows = View::new_fragment(rows);
 
     // TODO: try flexbox with 50% 50%
-    view! {
+    view! { cx, NoHydrate {
         div(class="grid grid-cols-1 overflow-x-auto sm:grid-cols-[minmax(max-content,_350px)_max-content] gap-x-8 sm:gap-y-1 sm:ml-3") {
             (rows)
         }
-    }
+    } }
 }
 
 fn filter_valid_url(spec: &TreeSpec) -> bool {

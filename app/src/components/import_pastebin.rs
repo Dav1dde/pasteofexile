@@ -1,13 +1,13 @@
 use sycamore::prelude::*;
 
-use crate::{memo, memo_cond, svg};
+use crate::{svg, utils::memo_cond};
 
-#[component(ImportPastebin<G>)]
-pub fn import_pastebin() -> View<G> {
-    let value = Signal::new(String::new());
-    let loading = Signal::new(false);
+#[component]
+pub fn ImportPastebin<G: Html>(cx: Scope) -> View<G> {
+    let value = create_signal(cx, String::new());
+    let loading = create_signal(cx, false);
 
-    let pastebin_id = memo!(value, {
+    let pastebin_id = create_memo(cx, || {
         value
             .get()
             .strip_prefix("https://pastebin.com/")
@@ -15,20 +15,18 @@ pub fn import_pastebin() -> View<G> {
             .map(|id| id.to_owned())
     });
 
-    let btn_disabled = memo!(pastebin_id, loading, {
-        *loading.get() || pastebin_id.get().is_none()
-    });
+    let btn_disabled = create_memo(cx, || *loading.get() || pastebin_id.get().is_none());
 
-    let submit = cloned!(pastebin_id, loading => move |_| {
+    let submit = |_| {
         if let Some(id) = pastebin_id.get().as_ref() {
             loading.set(true);
             sycamore_router::navigate(id);
         }
-    });
+    };
 
-    let btn_content = memo_cond!(loading, svg::SPINNER, "Import");
+    let btn_content = memo_cond!(cx, loading, svg::SPINNER, "Import");
 
-    view! {
+    view! { cx,
         div(class="flex flex-col gap-y-1") {
             div(class="dark:text-slate-200 text-slate-800") { "Import from pastebin.com" }
             form(class="flex flex-wrap items-center justify-end gap-3") {
