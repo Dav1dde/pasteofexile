@@ -1,50 +1,46 @@
 [package]
 name = "worker-app" # Can't use worker because it collides with worker-rs
-version = "0.1.0"
-authors = ["David Herberth <github@dav1d.de>"]
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [features]
-debug = ["console_error_panic_hook"]
 use-kv-storage = []
 
 [dependencies]
-app = { path = "../app", features = ["ssr"], default-features = false }
+app = { path = "../app", features = ["ssr"] }
 pob = { path = "../pob/", features = ["better-errors"] }
 poe-tree = { path = "../poe-tree/" }
 shared = { path = "../shared/" }
 
-worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "3e547f2a", package = "worker" }
-# worker = { path = "../../workers-rs/worker/" }
+worker.workspace = true
 
-serde_json = "1"
-serde = "1"
+serde_json.workspace = true
+serde.workspace = true
 
-# sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore", features = ["futures"] }
-# sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "f1fd670", package = "sycamore-router" }
-sycamore = "0.8"
-sycamore-router = "0.8"
+sycamore-router.workspace = true
 
-web-sys = { version = "0.3", features = ["Crypto", "SubtleCrypto", "CryptoKey", "HmacImportParams", "WorkerGlobalScope"] }
-wasm-bindgen = "0.2"
-js-sys = "0.3"
+web-sys = { workspace = true, features = [
+    "Crypto", "SubtleCrypto", "CryptoKey", "HmacImportParams", "WorkerGlobalScope"
+] }
+wasm-bindgen.workspace = true
+js-sys.workspace = true
 
-url = { version = "2", features = ["serde"] }
-percent-encoding = "2"
-base64 = "0.13"
-thiserror = "1"
-git-version = "0.3"
-time = { version = "0.3", features = ["formatting", "parsing"] }
-uuid = "1"
-strum = { version = "0.24", features = ["derive"] }
-pin-project-lite = "0.2"
+url.workspace = true
+percent-encoding.workspace = true
+base64.workspace = true
+thiserror.workspace = true
+git-version.workspace = true
+time = { workspace = true, features = ["formatting", "parsing"] }
+uuid.workspace = true
+strum.workspace = true
+pin-project-lite.workspace = true
 
-console_error_panic_hook = { version = "0.1", optional = true }
-tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing.workspace = true
+tracing-subscriber.workspace = true
 
 [build-dependencies]
 regex = "1"

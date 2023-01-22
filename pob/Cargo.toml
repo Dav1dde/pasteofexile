@@ -1,18 +1,17 @@
 [package]
 name = "pob"
-version = "0.1.0"
-authors = ["David Herberth <github@dav1d.de>"]
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [features]
 better-errors = ["serde_path_to_error"]
 
 [dependencies]
-flate2 = "1"
-log = "0.4"
-base64 = "0.13"
-serde = { version = "1.0.139", features = ["derive"] }
-quick-xml = { version = "0.22", features = ["serialize"] }
-thiserror = "1"
-encoding = "0.2"
-serde_path_to_error = { version = "0.1", optional = true }
+flate2.workspace = true
+base64.workspace = true
+serde.workspace = true
+quick-xml = { workspace = true, features = ["serialize"] }
+thiserror.workspace = true
+encoding.workspace = true
+serde_path_to_error = { workspace = true, optional = true }

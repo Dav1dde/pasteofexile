@@ -1,9 +1,9 @@
 [package]
 name = "shared"
-version = "0.1.0"
-authors = ["David Herberth <github@dav1d.de>"]
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
-percent-encoding = "2"
+serde.workspace = true
+percent-encoding.workspace = true

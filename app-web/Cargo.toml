@@ -1,16 +1,16 @@
 [package]
 name = "app-web"
-version = "0.1.0"
-authors = ["David Herberth <github@dav1d.de>"]
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
 app = { path = "../app/" }
 
-sycamore = { version = "0.8", features = ["suspense"] }
+sycamore.workspace = true
 
-web-sys = "0.3"
+web-sys.workspace = true
 
-console_error_panic_hook = "0.1"
-tracing-subscriber = "0.3"
-tracing-wasm = "0.2"
+console_error_panic_hook.workspace = true
+tracing-subscriber.workspace = true
+tracing-wasm.workspace = true
