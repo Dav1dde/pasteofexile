@@ -48,7 +48,7 @@ async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
     });
 
     // Not sure if I like that, this requries trunk to run before building the worker.
-    let index = include_str!("../../app/dist/index.html")
+    let index = include_str!("../../app-web/dist/index.html")
         .replace("<!-- %head% -->", &head)
         .replace("<!-- %app% -->", &app);
 

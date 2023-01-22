@@ -1,0 +1,16 @@
+[package]
+name = "app-web"
+version = "0.1.0"
+authors = ["David Herberth <github@dav1d.de>"]
+edition = "2021"
+
+[dependencies]
+app = { path = "../app/" }
+
+sycamore = { version = "0.8", features = ["suspense"] }
+
+web-sys = "0.3"
+
+console_error_panic_hook = "0.1"
+tracing-subscriber = "0.3"
+tracing-wasm = "0.2"

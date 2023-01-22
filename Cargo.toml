@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "app",
+    "app-web",
     "pob",
     "poe-tree",
     "shared",
@@ -11,11 +12,5 @@ exclude = ["snapshot"]
 [profile.release]
 panic = 'abort'
 codegen-units = 1
-opt-level = 3 # switch back to "s" or "z" when hitting the worker limit
+opt-level = 'z'
 lto = true
-
-[profile.release.package.app]
-opt-level = 'z'
-
-[profile.release.package.pob]
-opt-level = 'z'

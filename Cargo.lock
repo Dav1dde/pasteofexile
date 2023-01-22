@@ -58,7 +58,6 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "cfg-if 1.0.0",
- "console_error_panic_hook",
  "gloo-timers",
  "itertools",
  "js-sys",
@@ -73,10 +72,20 @@ dependencies = [
  "thiserror",
  "thousands",
  "tracing",
- "tracing-subscriber",
- "tracing-wasm",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "app-web"
+version = "0.1.0"
+dependencies = [
+ "app",
+ "console_error_panic_hook",
+ "sycamore",
+ "tracing-subscriber",
+ "tracing-wasm",
  "web-sys",
 ]
 

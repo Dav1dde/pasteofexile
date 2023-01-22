@@ -6,7 +6,7 @@ use web_sys::Element;
 use crate::{
     future::LocalBoxFuture,
     pages,
-    utils::{deserialize_from_attribute, serialize_for_attribute, try_block, try_block_async},
+    utils::{deserialize_from_attribute, serialize_json_b64, try_block, try_block_async},
     Context, Error, Meta, ResponseContext, Result,
 };
 
@@ -291,7 +291,7 @@ impl Page {
         // Sync with `Self::restore`.
         let Self::Error(status_code, message) = self else { return None };
 
-        let state = serialize_for_attribute::<SsrNode>(&(status_code, message));
+        let state = serialize_json_b64(&(status_code, message));
         Some(("error", Some(state)))
     }
 

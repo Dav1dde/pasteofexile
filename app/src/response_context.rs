@@ -31,6 +31,7 @@ impl ResponseContext {
         }
     }
 
+    #[cfg(feature = "ssr")]
     pub(crate) fn with<F, R>(f: F) -> (R, ResponseContext)
     where
         F: FnOnce() -> R,

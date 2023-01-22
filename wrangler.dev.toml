@@ -24,8 +24,8 @@ globs = ["worker/**/*.wasm"]
 type  = "CompiledWasm"
 
 [site]
-bucket = "./app/dist"
-exclude = ["./app/dist/.stage"]
+bucket = "./app-web/dist"
+exclude = ["./app-web/dist/.stage"]
 
 [miniflare]
 cache = false

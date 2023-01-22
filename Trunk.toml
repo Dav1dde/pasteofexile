@@ -1,11 +1,11 @@
 [build]
-target = "app/index.html"
-dist = "app/dist"
+target = "app-web/index.html"
+dist = "app-web/dist"
 
 [clean]
-dist = "app/dist"
+dist = "app-web/dist"
 
 [[hooks]]
 stage = "pre_build"
 command = "sh"
-command_arguments = ["-c", "yarn tailwindcss -i app/tailwind.css -o $TRUNK_STAGING_DIR/styles.css --minify"]
+command_arguments = ["-c", "yarn tailwindcss -i app-web/tailwind.css -o $TRUNK_STAGING_DIR/styles.css --minify"]

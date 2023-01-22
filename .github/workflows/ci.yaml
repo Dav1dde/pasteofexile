@@ -14,7 +14,7 @@ jobs:
           toolchain: stable
           override: true
       - uses: Swatinem/rust-cache@v1
-      - run: mkdir app/dist && touch app/dist/index.html
+      - run: mkdir app-web/dist && touch app-web/dist/index.html
       - uses: actions-rs/cargo@v1
         with:
           command: test
@@ -45,6 +45,6 @@ jobs:
           components: clippy
           override: true
       - uses: Swatinem/rust-cache@v1
-      - run: mkdir app/dist && touch app/dist/index.html
+      - run: mkdir app-web/dist && touch app-web/dist/index.html
       - run: cargo +nightly clippy --all-features -- -D warnings
 

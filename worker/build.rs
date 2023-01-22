@@ -11,7 +11,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         File::create(Path::new(&env::var_os("OUT_DIR").unwrap()).join("app_metadata.rs"))?;
 
     let link_re = regex::Regex::new(r#"<link ([^>]+)>"#).unwrap();
-    let index = read_to_string("../app/dist/index.html").expect("app/dist/index.html");
+    let index = read_to_string("../app-web/dist/index.html").expect("app-web/dist/index.html");
 
     let early_hints = link_re
         .captures_iter(&index)
@@ -20,7 +20,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .join(", ");
     writeln!(out, "pub const EARLY_HINTS: &str = r#\"{early_hints}\"#;")?;
 
-    println!("cargo:rerun-if-changed=../app/dist/");
+    println!("cargo:rerun-if-changed=../app-web/dist/");
 
     Ok(())
 }
