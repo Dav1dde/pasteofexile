@@ -11,9 +11,9 @@ elif [[ "$1" == "--dev" ]]; then
     TRUNK_ARGS=""
     if [[ ! -z "$B2" ]]; then
         echo "Using b2 storage"
-        WORKER_BUILD_ARGS="--dev -- --features debug"
+        WORKER_BUILD_ARGS="--dev"
     else
-        WORKER_BUILD_ARGS="--dev -- --features debug,use-kv-storage"
+        WORKER_BUILD_ARGS="--dev -- --features use-kv-storage"
     fi
 else
     echo "expected --release or --dev"

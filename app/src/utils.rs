@@ -113,6 +113,11 @@ pub fn serialize_for_attribute<G: Html>(value: &(impl Serialize + ?Sized)) -> St
     if G::IS_BROWSER {
         return String::new();
     }
+
+    serialize_json_b64(value)
+}
+
+pub fn serialize_json_b64(value: &(impl Serialize + ?Sized)) -> String {
     base64::encode_config(
         serde_json::to_string(&value).expect("serialize in for attribute"),
         base64::URL_SAFE_NO_PAD,

@@ -34,6 +34,7 @@ impl Prefetch {
 }
 
 #[derive(Debug)]
+#[cfg_attr(not(feature = "ssr"), allow(dead_code))]
 pub struct Meta {
     pub(crate) title: Cow<'static, str>,
     pub(crate) description: Cow<'static, str>,

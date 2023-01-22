@@ -1,4 +1,4 @@
-use std::{any::TypeId, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use itertools::Itertools;
 use pob::TreeSpec;
@@ -35,7 +35,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         return view! { cx, };
     }
 
-    if TypeId::of::<G>() == TypeId::of::<SsrNode>() {
+    if !G::IS_BROWSER {
         for tree in trees.iter() {
             if tree.active {
                 ResponseContext::preload(Prefetch::Image(tree.image_url.clone()));
