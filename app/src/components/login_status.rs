@@ -18,7 +18,7 @@ pub fn LoginStatus<G: Html>(cx: Scope) -> View<G> {
 
         match &*session.get() {
             Session::None => {
-                view! { cx, a(class="text-sky-500 dark:text-sky-400", href="/login", rel="external") { "Login" } }
+                view! { cx, a(class="text-sky-400 hover:text-sky-200", href="/login", rel="external") { "Login" } }
             }
             Session::LoggedIn(user) => {
                 let name = user.name.clone();
@@ -29,7 +29,7 @@ pub fn LoginStatus<G: Html>(cx: Scope) -> View<G> {
                         a(href=href) { (name) }
                         a(on:click=logout,
                           title="Logout",
-                          class="cursor-pointer h-4/6 text-sky-500 dark:text-sky-400",
+                          class="cursor-pointer h-4/6 text-sky-400 hover:text-red-600",
                           dangerously_set_inner_html=svg::LOGOUT) {}
                     }
                 }

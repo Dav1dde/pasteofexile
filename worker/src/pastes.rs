@@ -56,12 +56,11 @@ impl Pastes {
                 let id = item.name.rsplit_once('/').unwrap().1.to_owned();
 
                 PasteSummary {
-                    id,
-                    user: Some(user.clone()),
+                    id: PasteId::new_user(user.clone(), id),
                     title: metadata.title,
                     ascendancy_or_class: metadata.ascendancy_or_class,
-                    version: metadata.version.unwrap_or_default(),
-                    main_skill_name: metadata.main_skill_name.unwrap_or_default(),
+                    version: metadata.version,
+                    main_skill_name: metadata.main_skill_name,
                     last_modified: item.last_modified,
                 }
             })

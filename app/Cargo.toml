@@ -16,7 +16,8 @@ sycamore-router.workspace = true
 
 web-sys = { workspace = true, features = [
     "Window", "HtmlDocument", "HtmlHeadElement", "HtmlTextAreaElement", "Selection",
-    "CssStyleDeclaration", "PointerEvent", "HtmlSelectElement", "InputEvent"
+    "CssStyleDeclaration", "PointerEvent", "HtmlSelectElement", "InputEvent",
+    "Storage", "AddEventListenerOptions",
 ] }
 js-sys.workspace = true
 wasm-bindgen.workspace = true

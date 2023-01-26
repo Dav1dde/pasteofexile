@@ -1,6 +1,6 @@
 use ::pob::{PathOfBuilding, PathOfBuildingExt};
 use shared::model::PasteId;
-use sycamore::prelude::*;
+use sycamore::{futures::spawn_local_scoped, prelude::*};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
 
@@ -9,6 +9,7 @@ use crate::{
     components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
     consts::IMG_ONERROR_HIDDEN,
     pob::{self, Element},
+    storage::Storage,
     utils::{async_callback, document, from_ref, view_cond},
 };
 
@@ -50,6 +51,8 @@ pub fn ViewPaste<'a, G: Html>(
     }: ViewPasteProps<'a>,
 ) -> View<G> {
     let title = title.unwrap_or_else(|| pob::title(build.pob()));
+
+    push_paste_to_history::<G>(cx, &id, &title, last_modified, build);
 
     let version = build.max_tree_version().unwrap_or_default();
     let since = crate::utils::pretty_date_ts(last_modified);
@@ -204,4 +207,30 @@ fn has_displayable_tree(pob: &impl PathOfBuilding) -> bool {
             .first()
             .map(|spec| spec.nodes.len() > 1)
             .unwrap_or(false)
+}
+
+fn push_paste_to_history<G: Html>(
+    cx: Scope,
+    id: &PasteId,
+    title: &str,
+    last_modified: u64,
+    build: &Build,
+) {
+    if G::IS_BROWSER {
+        let storage = use_context::<Storage>(cx);
+
+        let s = shared::model::PasteSummary {
+            id: id.clone(),
+            title: title.to_owned(),
+            ascendancy_or_class: build.ascendancy_or_class_name().to_owned(),
+            version: build.max_tree_version(),
+            main_skill_name: build.main_skill_name().map(|s| s.to_owned()),
+            last_modified,
+        };
+
+        spawn_local_scoped(cx, async move {
+            gloo_timers::future::sleep(std::time::Duration::from_millis(500)).await;
+            storage.visited().add(s);
+        });
+    }
 }

@@ -2,9 +2,12 @@ use std::str::FromStr;
 
 use serde::{de::DeserializeOwned, Serialize};
 use sycamore::prelude::*;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, UnwrapThrowExt};
 
-// TODO: move these `macro_export`'s to `use`
+pub mod hooks;
+mod storage;
+
+pub use storage::LocalStorage;
 
 macro_rules! memo_cond {
     ($cx:expr, $signal:ident, $if:expr, $else:expr) => {{
@@ -25,6 +28,13 @@ macro_rules! view_cond {
     };
 }
 pub(crate) use view_cond;
+
+macro_rules! view_if {
+    ($cx:expr, $signal:expr, { $($token:tt)* }) => {
+        create_memo($cx, move || crate::utils::view_cond!($cx, *$signal.get(), { $($token)* }))
+    };
+}
+pub(crate) use view_if;
 
 macro_rules! try_block {
     { $($token:tt)* } => {
@@ -54,6 +64,22 @@ macro_rules! async_callback {
     }};
 }
 pub(crate) use async_callback;
+use web_sys::HtmlAnchorElement;
+
+/// Custom click handler that stops click propagation,
+/// and handles a router navigation.
+///
+/// This is required if there are multiple nested anchor tags.
+pub fn on_click_anchor(ev: web_sys::Event) {
+    let anchor = ev
+        .current_target()
+        .unwrap_throw()
+        .dyn_into::<HtmlAnchorElement>()
+        .unwrap_throw();
+    sycamore_router::navigate(&anchor.get_attribute("href").unwrap_throw());
+    ev.stop_propagation();
+    ev.prevent_default();
+}
 
 pub fn document<T: JsCast>() -> T {
     web_sys::window()
@@ -61,6 +87,15 @@ pub fn document<T: JsCast>() -> T {
         .document()
         .unwrap()
         .unchecked_into()
+}
+
+/// Checks if the current viewport size is at least `md:`.
+pub fn is_at_least_medium_breakpoint() -> bool {
+    web_sys::window()
+        .and_then(|window| window.inner_width().ok())
+        .and_then(|val| val.as_f64())
+        .map(|width| width >= 768.0)
+        .unwrap_or(true)
 }
 
 pub fn from_ref<G: GenericNode, T: JsCast>(node_ref: &NodeRef<G>) -> T {

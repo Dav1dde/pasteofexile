@@ -21,6 +21,13 @@
         @apply bg-slate-500 w-full px-2 py-1 rounded-sm outline-none
             read-only:text-slate-400 read-only:bg-slate-700;
     }
+
+    .modal-right {
+        @apply fixed z-10 top-0 right-0 bottom-0 
+            translate-x-[calc(100%+10px)] transition-transform duration-500
+            bg-slate-900 opacity-90 shadow-lg shadow-sky-500
+            left-0 md:left-auto md:w-[500px];
+    }
 }
 
 .dark {

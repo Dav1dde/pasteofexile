@@ -1,7 +1,4 @@
-use shared::{
-    model::{PasteSummary, UserPasteId},
-    User,
-};
+use shared::{model::PasteSummary, User};
 use sycamore::prelude::*;
 
 use crate::{
@@ -121,11 +118,12 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     let image = crate::assets::ascendancy_image(&summary.ascendancy_or_class).unwrap_or("");
     let color = crate::meta::get_color(&summary.ascendancy_or_class);
 
-    let id = UserPasteId {
-        id: summary.id.clone(),
-        user: summary.user.clone().unwrap(),
-    };
+    let id = summary.id.clone().unwrap_user();
     let open_in_pob_url = id.to_pob_open_url();
+
+    // TODO: this sucks and is annoying
+    let version = summary.version.clone().unwrap_or_default();
+    let main_skill_name = summary.main_skill_name.clone().unwrap_or_default();
 
     view! { cx,
         div(class="p-3 even:bg-slate-700 border-solid border-[color:var(--col)]
@@ -138,17 +136,15 @@ fn summary_to_view<'a, G: GenericNode + Html>(
                     alt="Ascendancy Thumbnail",
                     onerror=IMG_ONERROR_INVISIBLE) {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
-                    span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (summary.version) } }
-                    span() { (summary.main_skill_name) }
+                    span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (version) } }
+                    span() { (main_skill_name) }
                 }
-                div(class="
-                    flex-1 sm:flex-initial flex flex-col items-end justify-between gap-2
-                    whitespace-nowrap") {
-                    a(
-                        href=open_in_pob_url,
-                        title="Open build in Path of Building",
-                        class="btn btn-primary"
-                     ) { "Open in PoB" }
+                div(class="flex-1 sm:flex-initial flex flex-col items-end justify-between
+                           gap-2 whitespace-nowrap self-end") {
+                    a(href=open_in_pob_url,
+                      title="Open build in Path of Building",
+                      class="btn btn-primary hidden md:block"
+                    ) { "Open in PoB" }
 
                     PasteToolbox(id=id, on_delete=on_delete)
 

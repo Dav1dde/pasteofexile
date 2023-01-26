@@ -56,21 +56,16 @@ pub struct PasteMetadata {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PasteSummary {
-    pub id: String,
-    pub user: Option<crate::User>,
+    pub id: PasteId,
     pub title: String,
     pub ascendancy_or_class: String, // TODO: this should be an enum
-    pub version: String,
-    pub main_skill_name: String,
+    pub version: Option<String>,
+    pub main_skill_name: Option<String>,
     pub last_modified: u64,
 }
 
 impl PasteSummary {
     pub fn to_url(&self) -> String {
-        if let Some(ref user) = self.user {
-            format!("/u/{user}/{}", self.id)
-        } else {
-            format!("/{}", self.id)
-        }
+        self.id.to_url()
     }
 }

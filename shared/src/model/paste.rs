@@ -2,7 +2,7 @@ use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UserPasteId {
     pub user: crate::User,
     pub id: String,
@@ -49,8 +49,7 @@ impl fmt::Display for UserPasteId {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PasteId {
     // TODO: newtype for this?
     Paste(String),
@@ -174,5 +173,25 @@ impl FromStr for PasteId {
         };
 
         Ok(r)
+    }
+}
+
+impl<'de> Deserialize<'de> for PasteId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(serde::de::Error::custom)
+    }
+}
+
+impl Serialize for PasteId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
     }
 }

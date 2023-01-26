@@ -1,4 +1,5 @@
-use session::use_session;
+use session::provide_session;
+use storage::provide_storage;
 use sycamore::prelude::*;
 
 mod api;
@@ -16,6 +17,7 @@ mod progress;
 mod response_context;
 mod router;
 mod session;
+mod storage;
 mod svg;
 mod utils;
 
@@ -56,18 +58,23 @@ pub fn render_head(args: Head) -> String {
 
 #[component]
 pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
-    use_session::<G>(cx);
+    provide_session::<G>(cx);
+    provide_storage::<G>(cx);
 
     let view: View<G> = view! { cx,
         progress::Progress()
         div(class="h-screen flex flex-col gap-10") {
-            nav(class="bg-slate-200 dark:bg-slate-900 dark:shadow-lg") {
+            nav(class="bg-slate-900 shadow-lg") {
                 div(class="flex justify-between	p-4 lg:px-8 mx-auto max-w-[1920px]") {
                     a(href="/") {
                         span() { "POB" }
-                        span(class="text-sky-500 dark:text-sky-400") { "b.in" }
+                        span(class="text-sky-400") { "b.in" }
                     }
-                    components::LoginStatus()
+                    div(class="flex items-center gap-3") {
+                        components::LoginStatus()
+                        div(class="bg-slate-300 w-px h-3/5") {}
+                        components::PasteHistory()
+                    }
                 }
             }
             main(class="max-w-screen-xl px-5 xl:px-0 w-full flex-auto self-center") {

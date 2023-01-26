@@ -59,7 +59,7 @@ impl Session {
 
 pub type SessionValue = RcSignal<Session>;
 
-pub fn use_session<G: Html>(cx: Scope) {
+pub fn provide_session<G: Html>(cx: Scope) {
     let signal = create_rc_signal(Session::None);
 
     if G::IS_BROWSER {
