@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 use-kv-storage = []
+debug = []
 
 [dependencies]
 app = { path = "../app", features = ["ssr"] }
