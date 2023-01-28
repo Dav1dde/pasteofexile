@@ -56,20 +56,14 @@ pub fn render_head(args: Head) -> String {
 
 #[component]
 pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
-    // we need to manually handle clicking here, since the nav isn't wrapped in a router
-    let navigate_index = |ev: web_sys::Event| {
-        sycamore_router::navigate("/");
-        ev.prevent_default();
-    };
-
     use_session::<G>(cx);
 
-    view! { cx,
+    let view: View<G> = view! { cx,
         progress::Progress()
         div(class="h-screen flex flex-col gap-10") {
             nav(class="bg-slate-200 dark:bg-slate-900 dark:shadow-lg") {
                 div(class="flex justify-between	p-4 lg:px-8 mx-auto max-w-[1920px]") {
-                    a(href="/", on:click=navigate_index) {
+                    a(href="/") {
                         span() { "POB" }
                         span(class="text-sky-500 dark:text-sky-400") { "b.in" }
                     }
@@ -88,5 +82,20 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
                     dangerously_set_inner_html=svg::GITHUB) {}
             }
         }
+    };
+
+    if G::IS_BROWSER {
+        // We need to hack the router together here,
+        // since a bunch of stuff is not wrapped in the router, so the clicks don't get captured.
+        use sycamore_router::Integration;
+        let integration = sycamore_router::HistoryIntegration::new();
+        let view = view.clone();
+        create_effect_scoped(cx, move |cx| {
+            for node in view.clone().flatten() {
+                node.event(cx, "click", integration.click_handler());
+            }
+        });
     }
+
+    view
 }

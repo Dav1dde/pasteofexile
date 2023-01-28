@@ -113,7 +113,12 @@ fn switch<'a, G: Html>(cx: Scope<'a>, switch: Switch<'a>) -> View<G> {
                 }
 
                 sycamore::futures::spawn_local_scoped(cx, async move {
-                    view.set(render(cx, Page::from_dynamic(&route).await))
+                    view.set(render(cx, Page::from_dynamic(&route).await));
+
+                    let scroll_top = HistoryIntegration::scroll_offset_y().unwrap_or(0.0);
+                    web_sys::window()
+                        .unwrap()
+                        .scroll_to_with_x_and_y(0.0, scroll_top);
                 });
             });
         }
