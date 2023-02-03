@@ -58,19 +58,31 @@ impl SerdePathOfBuilding {
             None => return false,
         };
 
-        self.pob
+        let Some(active_item_set) = self.pob.items.active_item_set else { return false };
+        let active_item_set = self
+            .pob
             .items
-            .items
+            .item_sets
             .iter()
-            .filter(|item| {
-                self.pob
-                    .items
-                    .slots
-                    .iter()
-                    .any(|slot| item.id == slot.item_id)
-            })
-            .flat_map(|item| item.content.content.lines())
-            .any(|stat| stat == keystone)
+            .find(|set| set.id == active_item_set);
+        let Some(active_item_set) = active_item_set else {
+            return false;
+        };
+
+        // Item pieces that can potentially have a keystone on them
+        [
+            active_item_set.gear.body_armour,
+            active_item_set.gear.helmet,
+            active_item_set.gear.weapon1,
+            active_item_set.gear.weapon2,
+            active_item_set.gear.gloves,
+            active_item_set.gear.boots,
+            active_item_set.gear.belt,
+        ]
+        .into_iter()
+        .filter_map(|item| item.and_then(|id| self.pob.items.items.get(&id)))
+        .flat_map(|item| item.content.content.lines())
+        .any(|stat| stat == keystone)
     }
 }
 
@@ -175,6 +187,58 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .collect()
     }
 
+    fn item_by_id(&self, id: u16) -> Option<&str> {
+        self.pob
+            .items
+            .items
+            .get(&id)
+            .map(|item| item.content.content.as_str())
+    }
+
+    fn item_sets(&self) -> Vec<crate::ItemSet> {
+        let item = |id| {
+            self.pob
+                .items
+                .items
+                .get(&id)
+                .map(|item| item.content.content.as_str())
+        };
+
+        self.pob
+            .items
+            .item_sets
+            .iter()
+            .map(|set| {
+                let gear = &set.gear;
+                let gear = crate::Gear {
+                    weapon1: gear.weapon1.and_then(item),
+                    weapon2: gear.weapon2.and_then(item),
+                    helmet: gear.helmet.and_then(item),
+                    body_armour: gear.body_armour.and_then(item),
+                    gloves: gear.gloves.and_then(item),
+                    boots: gear.boots.and_then(item),
+                    amulet: gear.amulet.and_then(item),
+                    ring1: gear.ring1.and_then(item),
+                    ring2: gear.ring2.and_then(item),
+                    belt: gear.belt.and_then(item),
+                    flask1: gear.flask1.and_then(item),
+                    flask2: gear.flask2.and_then(item),
+                    flask3: gear.flask3.and_then(item),
+                    flask4: gear.flask4.and_then(item),
+                    flask5: gear.flask5.and_then(item),
+                    sockets: gear.sockets.iter().filter_map(|&id| item(id)).collect(),
+                };
+
+                crate::ItemSet {
+                    id: set.id,
+                    title: set.title.as_deref(),
+                    gear,
+                    is_selected: Some(set.id) == self.pob.items.active_item_set,
+                }
+            })
+            .collect()
+    }
+
     fn tree_specs(&self) -> Vec<crate::TreeSpec> {
         self.pob
             .tree
@@ -186,6 +250,15 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                 url: spec.url.as_deref(),
                 version: spec.version.as_deref(),
                 nodes: &spec.nodes,
+                sockets: spec
+                    .sockets
+                    .sockets
+                    .iter()
+                    .map(|s| crate::Socket {
+                        node_id: s.node_id,
+                        item_id: s.item_id,
+                    })
+                    .collect(),
                 mastery_effects: &spec.mastery_effects,
                 active: self.pob.tree.active_spec as usize == i + 1,
             })
@@ -337,6 +410,10 @@ mod tests {
         // No overflows
         assert_eq!(20, pob.skill_sets()[0].skills[0].gems[1].level);
         assert_eq!(20, pob.skill_sets()[0].skills[0].gems[1].quality);
+
+        assert_eq!(2, pob.item_sets().len());
+        assert_eq!(None, pob.item_sets()[0].title);
+        assert_eq!(Some("Perfect Gear"), pob.item_sets()[1].title);
 
         // TODO: test configs
     }

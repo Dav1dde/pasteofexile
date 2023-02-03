@@ -30,6 +30,33 @@
     }
 }
 
+.pob-item[data-rarity="White"] {
+    --separator: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsSeparatorWhite.webp");
+}
+.pob-item[data-rarity="Magic"] {
+    --separator: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsSeparatorMagic.webp");
+}
+.pob-item[data-rarity="Rare"] {
+    --separator: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsSeparatorRare.webp");
+}
+.pob-item[data-rarity="Unique"] {
+    --separator: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsSeparatorUnique.webp");
+}
+
+.pob-item > div:before {
+    content: ' ';
+    background: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/EyrieItemSymbol.webp") center no-repeat;
+    width: 20px;
+}
+
+.pob-item ul:not(:last-child):after {
+    content: ' ';
+    display: block;
+    background: var(--separator) center no-repeat;
+    height: 8px;
+    margin: 1px 0;
+}
+
 .dark {
     color-scheme: dark;
 }
@@ -65,4 +92,110 @@
     height: 0.75rem;
     margin-left: 0.5rem;
     background: conic-gradient(from 90deg at 1px 1px, rgba(0, 0, 0, 0) 90deg, currentColor 0) 0px 0.69rem;
+}
+
+.inventory {
+    --col-size: 4rem;
+    --border-radius: 10px;
+
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, var(--col-size)));
+    grid-gap: 0.5rem;
+    grid-template-areas:
+        "Weapon  Weapon .       Helm       Helm       .      Offhand Offhand"
+        "Weapon  Weapon .       Helm       Helm       .      Offhand Offhand"
+        "Weapon  Weapon .       BodyArmour BodyArmour Amulet Offhand Offhand"
+        "Weapon  Weapon RingL   BodyArmour BodyArmour RingR  Offhand Offhand"
+        ".       Gloves Gloves  BodyArmour BodyArmour Boots  Boots   ."
+        ".       Gloves Gloves  Belt       Belt       Boots  Boots   ."
+        "Trinket flasks flasks  flasks     flasks     flasks flasks  ."
+        ".       flasks flasks  flasks     flasks     flasks flasks  .";
+}
+
+@layer components {
+    .item {
+        height: 100%;
+        width: 100%;
+        object-fit: scale-down;
+        border-radius: var(--border-radius);
+        padding: 5px;
+        box-shadow: inset 0 0 12px 0 rgb(0 0 0 / 60%);
+        user-select: none;
+        @apply bg-slate-900;
+    }
+}
+.weapon1 {
+    grid-area: Weapon;
+    aspect-ratio: 3;
+}
+.helmet {
+    grid-area: Helm;
+    aspect-ratio: 1;
+}
+.amulet {
+    grid-area: Amulet;
+    aspect-ratio: 1;
+}
+.weapon2 {
+    grid-area: Offhand;
+    aspect-ratio: 3;
+}
+.ring1 {
+    grid-area: RingL;
+    aspect-ratio: 1;
+}
+.body_armour {
+    grid-area: BodyArmour;
+    aspect-ratio: 3;
+}
+.ring2 {
+    grid-area: RingR;
+    aspect-ratio: 1;
+}
+.gloves {
+    grid-area: Gloves;
+    aspect-ratio: 1;
+}
+.belt {
+    grid-area: Belt;
+    aspect-ratio: 2;
+}
+.boots {
+    grid-area: Boots;
+    aspect-ratio: 1;
+}
+.flasks {
+    grid-area: flasks;
+
+    --border-radius: 5px;
+
+    display: grid;
+    margin: 0 auto;
+
+    grid-template-columns: repeat(5, minmax(0, var(--col-size)));
+    grid-gap: 0.5rem;
+    grid-template-areas: "Flask0 Flask1 Flask2 Flask3 Flask4";
+}
+.flask1 {
+    grid-area: Flask0;
+    aspect-ratio: 0.5;
+}
+.flask2 {
+    grid-area: Flask1;
+    aspect-ratio: 0.5;
+}
+.flask3 {
+    grid-area: Flask2;
+    aspect-ratio: 0.5;
+}
+.flask4 {
+    grid-area: Flask3;
+    aspect-ratio: 0.5;
+}
+.flask5 {
+    grid-area: Flask4;
+    aspect-ratio: 0.5;
+}
+.socket {
+    aspect-ratio: 1;
 }

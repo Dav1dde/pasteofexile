@@ -1,4 +1,6 @@
-use serde::{de, Deserialize};
+use std::collections::HashMap;
+
+use serde::{de, Deserialize, Deserializer};
 
 use crate::serde::utils;
 
@@ -220,17 +222,64 @@ pub(crate) struct Spec {
     pub mastery_effects: Vec<(u32, u32)>,
     #[serde(default, rename = "URL")]
     pub url: Option<String>,
+    #[serde(default, rename = "Sockets")]
+    pub sockets: Sockets,
     #[serde(default, rename = "treeVersion")]
     pub version: Option<String>,
 }
 
 #[derive(Default, Debug, Deserialize)]
+pub(crate) struct Sockets {
+    #[serde(default, rename = "Socket")]
+    pub sockets: Vec<Socket>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Socket {
+    #[serde(default, rename = "nodeId")]
+    pub node_id: u32,
+    #[serde(default, rename = "itemId")]
+    pub item_id: u16,
+}
+
+#[derive(Default, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Items {
-    #[serde(default, rename = "Item")]
-    pub items: Vec<Item>,
-    #[serde(default, rename = "Slot")]
-    pub slots: Vec<Slot>,
+    pub active_item_set: Option<u16>,
+    #[serde(default, rename = "Item", deserialize_with = "deserialize_items")]
+    pub items: HashMap<u16, Item>,
+    #[serde(default, rename = "ItemSet")]
+    pub item_sets: Vec<ItemSet>,
+}
+
+fn deserialize_items<'de, D>(deserializer: D) -> Result<HashMap<u16, Item>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Visitor;
+
+    impl<'de> de::Visitor<'de> for Visitor {
+        type Value = HashMap<u16, Item>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("list of pob items")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: de::SeqAccess<'de>,
+        {
+            let mut result = HashMap::with_capacity(seq.size_hint().unwrap_or(0));
+
+            while let Some(item) = seq.next_element::<Item>()? {
+                result.insert(item.id, item);
+            }
+
+            Ok(result)
+        }
+    }
+
+    deserializer.deserialize_seq(Visitor)
 }
 
 #[derive(Default, Debug, Deserialize)]
@@ -282,6 +331,102 @@ impl<'de> de::Deserialize<'de> for ItemContent {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Slot {
     pub item_id: u16,
+    pub name: String,
+}
+
+#[derive(Default, Debug, Deserialize)]
+pub(crate) struct ItemSet {
+    pub id: u16,
+    pub title: Option<String>,
+    #[serde(default, rename = "$value")]
+    pub gear: Gear,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct Gear {
+    pub weapon1: Option<u16>,
+    pub weapon2: Option<u16>,
+    pub weapon1_swap: Option<u16>,
+    pub weapon2_swap: Option<u16>,
+    pub helmet: Option<u16>,
+    pub body_armour: Option<u16>,
+    pub gloves: Option<u16>,
+    pub boots: Option<u16>,
+    pub amulet: Option<u16>,
+    pub ring1: Option<u16>,
+    pub ring2: Option<u16>,
+    pub belt: Option<u16>,
+    pub flask1: Option<u16>,
+    pub flask2: Option<u16>,
+    pub flask3: Option<u16>,
+    pub flask4: Option<u16>,
+    pub flask5: Option<u16>,
+    pub sockets: Vec<u16>,
+}
+
+impl<'de> de::Deserialize<'de> for Gear {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = Gear;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("expected pob item")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: de::SeqAccess<'de>,
+            {
+                let mut result = Gear::default();
+
+                #[derive(Deserialize)]
+                enum Inner {
+                    Slot(Slot),
+                    // There are non slot entries mixed into the slots
+                    // just ignore them.
+                    #[serde(other)]
+                    Unknown,
+                }
+
+                while let Some(slot) = seq.next_element::<Inner>()? {
+                    let Inner::Slot(slot) = slot else { continue; };
+                    if slot.item_id == 0 {
+                        continue;
+                    }
+
+                    match slot.name.as_str() {
+                        "Weapon 1" => result.weapon1 = Some(slot.item_id),
+                        "Weapon 2" => result.weapon2 = Some(slot.item_id),
+                        "Weapon 1 Swap" => result.weapon1_swap = Some(slot.item_id),
+                        "Weapon 2 Swap" => result.weapon2_swap = Some(slot.item_id),
+                        "Helmet" => result.helmet = Some(slot.item_id),
+                        "Body Armour" => result.body_armour = Some(slot.item_id),
+                        "Gloves" => result.gloves = Some(slot.item_id),
+                        "Boots" => result.boots = Some(slot.item_id),
+                        "Amulet" => result.amulet = Some(slot.item_id),
+                        "Ring 1" => result.ring1 = Some(slot.item_id),
+                        "Ring 2" => result.ring2 = Some(slot.item_id),
+                        "Belt" => result.belt = Some(slot.item_id),
+                        "Flask 1" => result.flask1 = Some(slot.item_id),
+                        "Flask 2" => result.flask2 = Some(slot.item_id),
+                        "Flask 3" => result.flask3 = Some(slot.item_id),
+                        "Flask 4" => result.flask4 = Some(slot.item_id),
+                        "Flask 5" => result.flask5 = Some(slot.item_id),
+                        _ => result.sockets.push(slot.item_id),
+                    }
+                }
+
+                Ok(result)
+            }
+        }
+
+        deserializer.deserialize_seq(Visitor)
+    }
 }
 
 #[derive(Default, Debug, Deserialize)]

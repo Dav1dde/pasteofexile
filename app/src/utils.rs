@@ -98,12 +98,22 @@ pub fn is_at_least_medium_breakpoint() -> bool {
         .unwrap_or(true)
 }
 
-pub fn from_ref<G: GenericNode, T: JsCast>(node_ref: &NodeRef<G>) -> T {
+pub fn from_ref<T: JsCast>(node_ref: &NodeRef<impl GenericNode>) -> T {
     if let Some(node) = node_ref.try_get::<HydrateNode>() {
         node.unchecked_into()
     } else {
         node_ref.get::<DomNode>().unchecked_into()
     }
+}
+
+pub fn try_from_ref<T: JsCast>(node_ref: &NodeRef<impl GenericNode>) -> Option<T> {
+    if let Some(node) = node_ref.try_get::<HydrateNode>() {
+        return Some(node.unchecked_into());
+    }
+
+    node_ref
+        .try_get::<DomNode>()
+        .map(|node| node.unchecked_into())
 }
 
 pub fn find_text(element: &web_sys::Element, selector: &str) -> Option<String> {
@@ -158,6 +168,19 @@ pub fn serialize_json_b64(value: &(impl Serialize + ?Sized)) -> String {
         base64::URL_SAFE_NO_PAD,
     )
 }
+
+pub trait IteratorExt: Iterator {
+    fn collect_view<G: Html>(self) -> View<G>
+    where
+        Self: Sized,
+        Self::Item: Into<View<G>>,
+    {
+        let views = self.map(Into::into).collect();
+        View::new_fragment(views)
+    }
+}
+
+impl<T: ?Sized> IteratorExt for T where T: Iterator {}
 
 pub fn pretty_date_ts(ts: u64) -> String {
     let now = js_sys::Date::new_0().get_time();

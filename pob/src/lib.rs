@@ -3,6 +3,7 @@ use std::str::FromStr;
 mod config;
 mod error;
 mod gems;
+mod items;
 mod passives;
 mod serde;
 mod stats;
@@ -10,6 +11,7 @@ mod utils;
 
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
+pub use self::items::{Influence, Item, Mod, Rarity};
 pub use self::passives::Keystone;
 pub use self::serde::SerdePathOfBuilding;
 pub use self::stats::Stat;
@@ -30,6 +32,9 @@ pub trait PathOfBuilding {
 
     fn skill_sets(&self) -> Vec<SkillSet>;
 
+    fn item_by_id(&self, id: u16) -> Option<&str>;
+    fn item_sets(&self) -> Vec<ItemSet>;
+
     fn tree_specs(&self) -> Vec<TreeSpec>;
     fn has_tree_node(&self, node: u32) -> bool;
     fn has_keystone(&self, keystone: Keystone) -> bool;
@@ -42,9 +47,16 @@ pub struct TreeSpec<'a> {
     pub version: Option<&'a str>,
     pub nodes: &'a [u32],
     pub mastery_effects: &'a [(u32, u32)],
+    pub sockets: Vec<Socket>,
 
     /// Whether the tree spec is active/selected
     pub active: bool,
+}
+
+#[derive(Debug)]
+pub struct Socket {
+    pub node_id: u32,
+    pub item_id: u16,
 }
 
 #[derive(Debug)]
@@ -74,6 +86,34 @@ pub struct Gem<'a> {
     pub is_active: bool,
     pub is_support: bool,
     pub is_selected: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct ItemSet<'a> {
+    pub id: u16,
+    pub title: Option<&'a str>,
+    pub gear: Gear<'a>,
+    pub is_selected: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct Gear<'a> {
+    pub weapon1: Option<&'a str>,
+    pub weapon2: Option<&'a str>,
+    pub helmet: Option<&'a str>,
+    pub body_armour: Option<&'a str>,
+    pub gloves: Option<&'a str>,
+    pub boots: Option<&'a str>,
+    pub amulet: Option<&'a str>,
+    pub ring1: Option<&'a str>,
+    pub ring2: Option<&'a str>,
+    pub belt: Option<&'a str>,
+    pub flask1: Option<&'a str>,
+    pub flask2: Option<&'a str>,
+    pub flask3: Option<&'a str>,
+    pub flask4: Option<&'a str>,
+    pub flask5: Option<&'a str>,
+    pub sockets: Vec<&'a str>,
 }
 
 pub trait PathOfBuildingExt: PathOfBuilding {

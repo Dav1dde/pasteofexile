@@ -4,13 +4,14 @@ use sycamore::{futures::spawn_local_scoped, prelude::*};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
 
+use super::PobGearPreview;
 use crate::{
     build::Build,
-    components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
+    components::{PobColoredText, PobGems, PobTreePreview},
     consts::IMG_ONERROR_HIDDEN,
     pob::{self, Element},
     storage::Storage,
-    utils::{async_callback, document, from_ref, view_cond},
+    utils::{async_callback, document, from_ref, view_cond, IteratorExt},
 };
 
 pub struct ViewPasteProps<'a> {
@@ -70,7 +71,7 @@ pub fn ViewPaste<'a, G: Html>(
     });
     let tree_preview = view_cond!(cx, has_displayable_tree(build.pob()), {
         div(class="basis-full") {
-            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
+            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-12 border-b border-solid") { "Tree Preview" }
             PobTreePreview(build)
         }
     });
@@ -89,7 +90,7 @@ pub fn ViewPaste<'a, G: Html>(
         {
             copy_state.set(CopyState::Progress);
 
-            from_ref::<_, web_sys::HtmlTextAreaElement>(content_ref).select();
+            from_ref::<web_sys::HtmlTextAreaElement>(content_ref).select();
 
             let document: web_sys::HtmlDocument = document();
             let state = if document.exec_command("copy").is_ok() {
@@ -124,8 +125,7 @@ pub fn ViewPaste<'a, G: Html>(
         .into_iter()
         .map(|stat| render(cx, stat))
         .map(|stat| view! { cx, div(class="flex-row gap-x-5") { (stat) } })
-        .collect();
-    let summary = View::new_fragment(summary);
+        .collect_view();
 
     let src =
         crate::assets::ascendancy_image(build.pob().ascendancy_or_class_name()).unwrap_or_default();
@@ -175,13 +175,13 @@ pub fn ViewPaste<'a, G: Html>(
             }
         }
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
+            div(class="flex-auto w-60") {
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gear" }
+                PobGearPreview(build)
+            }
             div(class="flex-auto w-full lg:w-auto") {
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
                 PobGems(build)
-            }
-            div(class="flex-1 max-w-full lg:max-w-[43%]") {
-                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
-                PobTreeTable(build)
             }
         }
         (tree_preview)
@@ -190,13 +190,11 @@ pub fn ViewPaste<'a, G: Html>(
     }
 }
 
-fn render<G: GenericNode>(cx: Scope, elements: Vec<Element>) -> View<G> {
-    View::new_fragment(
-        elements
-            .into_iter()
-            .filter_map(|e| e.render_to_view(cx))
-            .collect(),
-    )
+fn render<G: Html>(cx: Scope, elements: Vec<Element>) -> View<G> {
+    elements
+        .into_iter()
+        .filter_map(|e| e.render_to_view(cx))
+        .collect_view()
 }
 
 fn has_displayable_tree(pob: &impl PathOfBuilding) -> bool {

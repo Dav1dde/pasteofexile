@@ -1,14 +1,15 @@
 use sycamore::prelude::*;
 
-use crate::pob::formatting::{Color, ColoredText};
+use crate::{
+    pob::formatting::{Color, ColoredText},
+    utils::IteratorExt,
+};
 
 #[component]
 pub fn PobColoredText<G: Html>(cx: Scope, text: &str) -> View<G> {
-    let t = ColoredText::new(text)
+    ColoredText::new(text)
         .map(|cs| render_fragment(cx, cs))
-        .collect();
-
-    View::new_fragment(t)
+        .collect_view()
 }
 
 pub enum Style {

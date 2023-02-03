@@ -9,6 +9,7 @@ use web_sys::{Event, HtmlElement, PointerEvent};
 
 use crate::build::Build;
 use crate::components::PobColoredSelect;
+use crate::utils::IteratorExt;
 use crate::{Prefetch, ResponseContext};
 
 #[derive(Debug)]
@@ -51,12 +52,15 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let node_ref = create_node_ref(cx);
     let nodes = create_signal(cx, Rc::clone(&current_tree.nodes));
 
-    let select = render_select(cx, trees, move |tree| {
+    // TODO: this updates the currently active tree, but it doesn't read from it
+    // the select would need to be updated as well if the tree changes, kinda tricky...
+    let select = render_select(cx, trees, move |index, tree| {
         let property = format!("url({})", tree.image_url);
-        let _ = crate::utils::from_ref::<_, HtmlElement>(node_ref)
+        let _ = crate::utils::from_ref::<HtmlElement>(node_ref)
             .style()
             .set_property("background-image", &property);
         nodes.set(Rc::clone(&tree.nodes));
+        build.active_tree().set(index);
     });
 
     let state = create_ref(cx, RefCell::new(TouchState::new(node_ref.clone())));
@@ -113,7 +117,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                 on:pointercancel=on_move_end,
             ) {
                 div(ref=node_ref,
-                    class="h-full w-full bg-center bg-no-repeat touch-pan-y
+                    class="h-full w-full bg-center bg-no-repeat touch-pan
                     transition-[background-image] duration-1000 will-change-[background-image]",
                     style=style) {
                 }
@@ -141,15 +145,13 @@ pub fn render_nodes<G: GenericNode + Html>(cx: Scope, nodes: &Nodes) -> View<G> 
         .keystones
         .iter()
         .map(|node| render_keystone(cx, node))
-        .collect();
-    let keystones = View::new_fragment(keystones);
+        .collect_view();
 
     let masteries = nodes
         .masteries
         .iter()
         .map(|node| render_mastery(cx, node))
-        .collect();
-    let masteries = View::new_fragment(masteries);
+        .collect_view();
 
     view! { cx,
         div(class="grid grid-cols-fit-keystone gap-2 lg:gap-1") { (keystones) }
@@ -194,7 +196,7 @@ fn render_select<'a, G: GenericNode + Html, F>(
     on_change: F,
 ) -> View<G>
 where
-    F: Fn(&Tree) + 'a,
+    F: Fn(usize, &Tree) + 'a,
 {
     if trees.len() <= 1 {
         return view! { cx, };
@@ -204,7 +206,7 @@ where
     let selected = trees.iter().position(|t| t.active);
     let on_change = move |index| {
         if let Some(index) = index {
-            on_change(&trees[index])
+            on_change(index, &trees[index])
         }
     };
 
@@ -300,14 +302,14 @@ impl<G: GenericNode> TouchState<G> {
         if self.zoom.is_none() {
             // Zoomed at least once, now enable drag of the tree
             // instead of scrolling the page (pan-y).
-            let _ = crate::utils::from_ref::<_, HtmlElement>(&self.node)
+            let _ = crate::utils::from_ref::<HtmlElement>(&self.node)
                 .style()
                 .set_property("touch-action", "none");
         }
 
         if let Some(distance) = self.distance {
             let zoom = self.zoom.unwrap_or_else(|| {
-                let element = crate::utils::from_ref::<_, HtmlElement>(&self.node);
+                let element = crate::utils::from_ref::<HtmlElement>(&self.node);
                 get_background_size(&element)
             });
 
@@ -324,7 +326,7 @@ impl<G: GenericNode> TouchState<G> {
     }
 
     fn apply(&self) {
-        let element = &crate::utils::from_ref::<_, HtmlElement>(&self.node);
+        let element = &crate::utils::from_ref::<HtmlElement>(&self.node);
         let position = format!(
             "calc(50% + {}px) calc(50% + {}px)",
             self.center_x, self.center_y

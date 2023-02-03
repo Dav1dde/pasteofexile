@@ -1,6 +1,6 @@
 use sycamore::prelude::*;
 
-use crate::{Meta, Prefetch};
+use crate::{utils::IteratorExt, Meta, Prefetch};
 
 pub struct HeadArgs {
     pub meta: Meta,
@@ -25,8 +25,7 @@ pub fn Head<G: Html>(cx: Scope, args: HeadArgs) -> View<G> {
             let href = preload.into_url();
             view! { cx, link(rel="preload", href=href, as=typ) }
         })
-        .collect::<Vec<_>>();
-    let preload = View::new_fragment(preload);
+        .collect_view();
 
     let prefetch = args
         .prefetch
@@ -37,8 +36,7 @@ pub fn Head<G: Html>(cx: Scope, args: HeadArgs) -> View<G> {
                 link(rel="prefetch", href=href)
             }
         })
-        .collect::<Vec<_>>();
-    let prefetch = View::new_fragment(prefetch);
+        .collect_view();
 
     let meta_title = meta.title.clone();
     let meta_description = meta.description.clone();

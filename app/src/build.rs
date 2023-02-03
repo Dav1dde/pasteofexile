@@ -2,12 +2,14 @@ use std::convert::TryFrom;
 
 use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec};
 use shared::model::Nodes;
+use sycamore::reactive::{create_rc_signal, RcSignal};
 
 pub struct Build {
     // required because access through method does break sycamore
     pub content: String,
     pob: SerdePathOfBuilding,
     nodes: Vec<Nodes>,
+    active_tree: RcSignal<usize>,
 }
 
 impl Build {
@@ -18,16 +20,27 @@ impl Build {
     pub fn nodes(&self) -> &[Nodes] {
         &self.nodes
     }
+
+    pub fn active_tree(&self) -> &RcSignal<usize> {
+        &self.active_tree
+    }
 }
 
 impl Build {
     pub fn new(content: String, nodes: Vec<Nodes>) -> crate::Result<Self> {
         let pob = SerdePathOfBuilding::from_export(&content)?;
 
+        let active_tree = pob
+            .tree_specs()
+            .iter()
+            .position(|spec| spec.active)
+            .unwrap_or(0);
+
         Ok(Self {
             content,
             pob,
             nodes,
+            active_tree: create_rc_signal(active_tree),
         })
     }
 
@@ -56,13 +69,7 @@ impl TryFrom<crate::context::Paste> for Build {
     type Error = crate::Error;
 
     fn try_from(paste: crate::context::Paste) -> Result<Self, Self::Error> {
-        let pob = SerdePathOfBuilding::from_export(&paste.content)?;
-
-        Ok(Self {
-            content: paste.content,
-            pob,
-            nodes: paste.nodes,
-        })
+        Self::new(paste.content, paste.nodes)
     }
 }
 
@@ -70,12 +77,6 @@ impl TryFrom<shared::model::Paste> for Build {
     type Error = crate::Error;
 
     fn try_from(paste: shared::model::Paste) -> Result<Self, Self::Error> {
-        let pob = SerdePathOfBuilding::from_export(&paste.content)?;
-
-        Ok(Self {
-            content: paste.content,
-            pob,
-            nodes: paste.nodes,
-        })
+        Self::new(paste.content, paste.nodes)
     }
 }
