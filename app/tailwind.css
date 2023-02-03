@@ -66,3 +66,79 @@
     margin-left: 0.5rem;
     background: conic-gradient(from 90deg at 1px 1px, rgba(0, 0, 0, 0) 90deg, currentColor 0) 0px 0.69rem;
 }
+
+.inventory {
+    --col-size: 4rem;
+
+    display: grid;
+
+    margin: 10px 30px;
+
+    grid-template-columns: repeat(8, var(--col-size));
+    grid-template-rows: repeat(8, var(--col-size));
+    grid-gap: 0.5rem;
+    grid-template-areas:
+        "Weapon  Weapon .       Helm       Helm       .      Offhand Offhand"
+        "Weapon  Weapon .       Helm       Helm       .      Offhand Offhand"
+        "Weapon  Weapon .       BodyArmour BodyArmour Amulet Offhand Offhand"
+        "Weapon  Weapon RingL   BodyArmour BodyArmour RingR  Offhand Offhand"
+        ".       Gloves Gloves  BodyArmour BodyArmour Boots  Boots   ."
+        ".       Gloves Gloves  Belt       Belt       Boots  Boots   ."
+        "Trinket Flask0 Flask1  Flask2     Flask3     Flask4 Flask5  ."
+        ".       Flask0 Flask1  Flask2     Flask3     Flask4 Flask5  .";
+    justify-content: center;
+}
+
+.item {
+    background-position: center, center;
+    background-repeat: no-repeat;
+    background-color: rgba(25, 26, 150, 0.25);
+    border: 1px solid orange;
+    border-radius: 1px;
+}
+
+.weapon1 {
+    grid-area: Weapon;
+}
+.helmet {
+    grid-area: Helm;
+}
+.amulet {
+    grid-area: Amulet;
+}
+.weapon2 {
+    grid-area: Offhand;
+}
+.ring1 {
+    grid-area: RingL;
+}
+.body_armour {
+    grid-area: BodyArmour;
+}
+.ring2 {
+    grid-area: RingR;
+}
+.gloves {
+    grid-area: Gloves;
+}
+.belt {
+    grid-area: Belt;
+}
+.boots {
+    grid-area: Boots;
+}
+.flask1 {
+    grid-area: Flask0;
+}
+.flask2 {
+    grid-area: Flask1;
+}
+.flask3 {
+    grid-area: Flask2;
+}
+.flask4 {
+    grid-area: Flask3;
+}
+.flask5 {
+    grid-area: Flask4;
+}

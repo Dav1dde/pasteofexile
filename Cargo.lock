@@ -62,6 +62,7 @@ dependencies = [
  "gloo-timers",
  "itertools",
  "js-sys",
+ "percent-encoding",
  "pob",
  "reqwasm",
  "serde",

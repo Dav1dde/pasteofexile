@@ -40,3 +40,4 @@ strum = { workspace = true, optional = true }
 gloo-timers.workspace = true
 thousands.workspace = true
 itertools.workspace = true
+percent-encoding.workspace = true

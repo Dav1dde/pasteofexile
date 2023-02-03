@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::serde::model::*;
 use crate::{Config, ConfigValue, Error, Keystone, Result, Stat};
 
@@ -175,6 +177,49 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .collect()
     }
 
+    fn item_sets(&self) -> Vec<crate::ItemSet> {
+        let items = self
+            .pob
+            .items
+            .items
+            .iter()
+            .map(|item| (item.id, item.content.content.as_str()))
+            .collect::<HashMap<_, _>>();
+
+        self.pob
+            .items
+            .item_sets
+            .iter()
+            .map(|set| {
+                let gear = &set.gear;
+                let gear = crate::Gear {
+                    weapon1: gear.weapon1.and_then(|id| items.get(&id)).copied(),
+                    weapon2: gear.weapon2.and_then(|id| items.get(&id)).copied(),
+                    helmet: gear.helmet.and_then(|id| items.get(&id)).copied(),
+                    body_armour: gear.body_armour.and_then(|id| items.get(&id)).copied(),
+                    gloves: gear.gloves.and_then(|id| items.get(&id)).copied(),
+                    boots: gear.boots.and_then(|id| items.get(&id)).copied(),
+                    amulet: gear.amulet.and_then(|id| items.get(&id)).copied(),
+                    ring1: gear.ring1.and_then(|id| items.get(&id)).copied(),
+                    ring2: gear.ring2.and_then(|id| items.get(&id)).copied(),
+                    belt: gear.belt.and_then(|id| items.get(&id)).copied(),
+                    flask1: gear.flask1.and_then(|id| items.get(&id)).copied(),
+                    flask2: gear.flask2.and_then(|id| items.get(&id)).copied(),
+                    flask3: gear.flask3.and_then(|id| items.get(&id)).copied(),
+                    flask4: gear.flask4.and_then(|id| items.get(&id)).copied(),
+                    flask5: gear.flask5.and_then(|id| items.get(&id)).copied(),
+                    sockets: gear.sockets.iter().filter_map(|id| items.get(&id)).copied().collect(),
+                };
+
+                crate::ItemSet {
+                    id: set.id,
+                    title: set.title.as_deref(),
+                    gear,
+                }
+            })
+            .collect()
+    }
+
     fn tree_specs(&self) -> Vec<crate::TreeSpec> {
         self.pob
             .tree
@@ -291,6 +336,13 @@ mod tests {
     static V320_IMPENDING_DOOM: &str = include_str!("../../test/320_impending_doom.xml");
 
     #[test]
+    fn items() {
+        let pob = SerdePathOfBuilding::from_xml(V316_POISON_OCC).unwrap();
+
+        dbg!(&pob.item_sets());
+    }
+
+    #[test]
     fn parse_v316_empty() {
         let pob = SerdePathOfBuilding::from_xml(V316_EMPTY).unwrap();
         assert_eq!(1, pob.level());
@@ -337,6 +389,10 @@ mod tests {
         // No overflows
         assert_eq!(20, pob.skill_sets()[0].skills[0].gems[1].level);
         assert_eq!(20, pob.skill_sets()[0].skills[0].gems[1].quality);
+
+        assert_eq!(2, pob.item_sets().len());
+        assert_eq!(None, pob.item_sets()[0].title);
+        assert_eq!(Some("Perfect Gear"), pob.item_sets()[1].title);
 
         // TODO: test configs
     }
