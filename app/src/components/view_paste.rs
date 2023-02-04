@@ -4,6 +4,7 @@ use sycamore::{futures::spawn_local_scoped, prelude::*};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
 
+use super::PobGearPreview;
 use crate::{
     build::Build,
     components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
@@ -12,8 +13,6 @@ use crate::{
     storage::Storage,
     utils::{async_callback, document, from_ref, view_cond},
 };
-
-use super::PobGearPreview;
 
 pub struct ViewPasteProps<'a> {
     pub id: PasteId,
@@ -182,11 +181,15 @@ pub fn ViewPaste<'a, G: Html>(
                 PobGems(build)
             }
             div(class="flex-1 max-w-full lg:max-w-[43%]") {
-                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gear" }
-                PobGearPreview(build)
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
+                PobTreeTable(build)
             }
         }
         (tree_preview)
+        div(class="flex-1 max-w-full") {
+            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gear" }
+            PobGearPreview(build)
+        }
         (notes)
         div(class="h-[150px]") {}
     }

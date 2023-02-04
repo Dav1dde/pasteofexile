@@ -3,6 +3,7 @@ use std::str::FromStr;
 mod config;
 mod error;
 mod gems;
+mod items;
 mod passives;
 mod serde;
 mod stats;
@@ -10,6 +11,7 @@ mod utils;
 
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
+pub use self::items::Item;
 pub use self::passives::Keystone;
 pub use self::serde::SerdePathOfBuilding;
 pub use self::stats::Stat;

@@ -71,11 +71,9 @@
     --col-size: 4rem;
 
     display: grid;
-
-    margin: 10px 30px;
-
-    grid-template-columns: repeat(8, var(--col-size));
-    grid-template-rows: repeat(8, var(--col-size));
+    grid-template-columns: repeat(8, minmax(0, var(--col-size)));
+    /* grid-template-rows: repeat(8, var(--col-size)); */
+    grid-auto-flow: columns; 
     grid-gap: 0.5rem;
     grid-template-areas:
         "Weapon  Weapon .       Helm       Helm       .      Offhand Offhand"
@@ -84,19 +82,20 @@
         "Weapon  Weapon RingL   BodyArmour BodyArmour RingR  Offhand Offhand"
         ".       Gloves Gloves  BodyArmour BodyArmour Boots  Boots   ."
         ".       Gloves Gloves  Belt       Belt       Boots  Boots   ."
-        "Trinket Flask0 Flask1  Flask2     Flask3     Flask4 Flask5  ."
-        ".       Flask0 Flask1  Flask2     Flask3     Flask4 Flask5  .";
-    justify-content: center;
+        "Trinket flasks flasks  flasks     flasks     flasks flasks  ."
+        ".       flasks flasks  flasks     flasks     flasks flasks  .";
 }
 
-.item {
-    background-position: center, center;
-    background-repeat: no-repeat;
-    background-color: rgba(25, 26, 150, 0.25);
-    border: 1px solid orange;
-    border-radius: 1px;
+@layer components {
+    .item {
+        height: 100%;
+        width: 100%;
+        object-fit: contain;
+        border-radius: 20px;
+        padding: 5px;
+        @apply bg-slate-800;
+    }
 }
-
 .weapon1 {
     grid-area: Weapon;
 }
@@ -123,9 +122,21 @@
 }
 .belt {
     grid-area: Belt;
+    aspect-ratio: 2;
 }
 .boots {
     grid-area: Boots;
+}
+.flasks {
+    display: grid;
+    margin: 0 auto;
+    grid-area: flasks;
+
+    grid-template-columns: repeat(5, minmax(0, var(--col-size)));
+    grid-auto-flow: columns; 
+    /* grid-template-rows: repeat(1, calc(2 * var(--col-size))); */
+    grid-gap: 0.5rem;
+    grid-template-areas: "Flask0 Flask1 Flask2 Flask3 Flask4";
 }
 .flask1 {
     grid-area: Flask0;

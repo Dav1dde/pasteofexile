@@ -208,7 +208,12 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                     flask3: gear.flask3.and_then(|id| items.get(&id)).copied(),
                     flask4: gear.flask4.and_then(|id| items.get(&id)).copied(),
                     flask5: gear.flask5.and_then(|id| items.get(&id)).copied(),
-                    sockets: gear.sockets.iter().filter_map(|id| items.get(&id)).copied().collect(),
+                    sockets: gear
+                        .sockets
+                        .iter()
+                        .filter_map(|id| items.get(id))
+                        .copied()
+                        .collect(),
                 };
 
                 crate::ItemSet {
