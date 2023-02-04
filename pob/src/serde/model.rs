@@ -24,14 +24,17 @@ pub(crate) struct PathOfBuilding {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Build {
+    #[serde(rename = "@level")]
     pub level: u8,
+    #[serde(rename = "@className")]
     pub class_name: String,
+    #[serde(rename = "@ascendClassName")]
     pub ascend_class_name: String,
+    #[serde(rename = "@mainSocketGroup")]
+    pub main_socket_group: u8,
     #[serde(rename = "$value")]
     pub stats: Vec<StatType>,
-    pub main_socket_group: u8,
 }
 
 #[derive(Debug, Deserialize)]
@@ -62,14 +65,15 @@ impl StatType {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct BuildStat {
-    #[serde(rename = "stat")]
+    #[serde(rename = "@stat")]
     pub name: String,
+    #[serde(rename = "@value")]
     pub value: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Skills {
-    #[serde(default, rename = "activeSkillSet")]
+    #[serde(rename = "@activeSkillSet")]
     pub active_skill_set: Option<u16>,
 
     // Newer exports have skills nested in skill sets.
@@ -93,24 +97,23 @@ impl Skills {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct SkillSet {
-    #[serde(rename = "id")]
+    #[serde(rename = "@id")]
     pub id: u16,
-    #[serde(default, rename = "title")]
+    #[serde(rename = "@title")]
     pub title: Option<String>,
     #[serde(default, rename = "Skill")]
     pub skills: Vec<Skill>,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Skill {
-    #[serde(default, deserialize_with = "utils::u8_or_nil")]
+    #[serde(default, rename="@mainActiveSkill", deserialize_with = "utils::u8_or_nil")]
     pub main_active_skill: u8,
-    #[serde(default)]
+    #[serde(default, rename="@enabled")]
     pub enabled: bool,
-    #[serde(default)]
+    #[serde(rename="@label")]
     pub label: Option<String>,
-    #[serde(default)]
+    #[serde(rename="@slot")]
     pub slot: Option<String>,
     #[serde(default, rename = "Gem")]
     pub gems: Vec<Gem>,
@@ -165,15 +168,17 @@ impl<'de> Deserialize<'de> for Gem {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         pub(crate) struct Inner {
-            #[serde(rename = "nameSpec")]
+            #[serde(rename = "@nameSpec")]
             pub name: String,
+            #[serde(rename = "@skillId")]
             pub skill_id: Option<String>,
+            #[serde(rename = "@gemId")]
             pub gem_id: Option<String>,
-            #[serde(default = "utils::default_true")]
+            #[serde(default = "utils::default_true", rename = "@enabled")]
             pub enabled: bool,
-            #[serde(default, deserialize_with = "utils::lenient")]
+            #[serde(default, rename = "@level", deserialize_with = "utils::lenient")]
             pub level: u8,
-            #[serde(default, deserialize_with = "utils::lenient")]
+            #[serde(default, rename = "@quality", deserialize_with = "utils::lenient")]
             pub quality: u8,
         }
 
@@ -202,30 +207,28 @@ impl<'de> Deserialize<'de> for Gem {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Tree {
+    #[serde(rename = "@activeSpec")]
     pub active_spec: u8,
     #[serde(rename = "Spec")]
     pub specs: Vec<Spec>,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Spec {
-    #[serde(default)]
+    #[serde(rename = "@title")]
     pub title: Option<String>,
-    #[serde(default, deserialize_with = "utils::comma_separated")]
+    #[serde(default, rename = "@nodes", deserialize_with = "utils::comma_separated")]
     pub nodes: Vec<u32>,
-    #[serde(default, deserialize_with = "utils::lua_table")]
+    #[serde(default, rename = "@masteryEffects", deserialize_with = "utils::lua_table")]
     pub mastery_effects: Vec<(u32, u32)>,
-    #[serde(default, rename = "URL")]
-    pub url: Option<String>,
-    #[serde(default, rename = "treeVersion")]
+    #[serde(rename = "@treeVersion")]
     pub version: Option<String>,
+    #[serde(rename = "URL")]
+    pub url: Option<String>,
 }
 
 #[derive(Default, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Items {
     #[serde(default, rename = "Item")]
     pub items: Vec<Item>,
@@ -234,8 +237,8 @@ pub(crate) struct Items {
 }
 
 #[derive(Default, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Item {
+    #[serde(rename = "@id")]
     pub id: u16,
     // this might be parsable with serde_as into a `(String, Vec<()>)`
     #[serde(rename = "$value")]
@@ -279,13 +282,12 @@ impl<'de> de::Deserialize<'de> for ItemContent {
 }
 
 #[derive(Default, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Slot {
+    #[serde(rename = "@itemId")]
     pub item_id: u16,
 }
 
 #[derive(Default, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct Config {
     #[serde(default, rename = "Input")]
     pub input: Vec<Input>,
@@ -293,8 +295,12 @@ pub(crate) struct Config {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Input {
+    #[serde(rename = "@name")]
     pub name: String,
+    #[serde(rename = "@string")]
     pub string: Option<String>,
+    #[serde(rename = "@boolean")]
     pub boolean: Option<bool>,
+    #[serde(rename = "@number")]
     pub number: Option<f32>,
 }
