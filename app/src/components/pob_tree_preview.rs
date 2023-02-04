@@ -113,7 +113,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                 on:pointercancel=on_move_end,
             ) {
                 div(ref=node_ref,
-                    class="h-full w-full bg-center bg-no-repeat touch-none
+                    class="h-full w-full bg-center bg-no-repeat touch-pan-y
                     transition-[background-image] duration-1000 will-change-[background-image]",
                     style=style) {
                 }
@@ -297,10 +297,18 @@ impl<G: GenericNode> TouchState<G> {
     }
 
     fn zoom_pinch(&mut self, new_distance: f32) {
+        if self.zoom.is_none() {
+            // Zoomed at least once, now enable drag of the tree
+            // instead of scrolling the page (pan-y).
+            let _ = crate::utils::from_ref::<_, HtmlElement>(&self.node)
+                .style()
+                .set_property("touch-action", "none");
+        }
+
         if let Some(distance) = self.distance {
             let zoom = self.zoom.unwrap_or_else(|| {
-                let element = &crate::utils::from_ref::<_, HtmlElement>(&self.node);
-                get_background_size(element)
+                let element = crate::utils::from_ref::<_, HtmlElement>(&self.node);
+                get_background_size(&element)
             });
 
             let pinch = distance - new_distance;
@@ -339,11 +347,12 @@ fn get_background_size(element: &HtmlElement) -> f32 {
         .unwrap()
         .unwrap()
         .get_property_value("background-size")
-        .unwrap();
+        .ok()
+        .unwrap_or_default();
 
     if bg_size.is_empty() {
         return 100.0;
     }
 
-    bg_size.replace('%', "").parse().unwrap()
+    bg_size.replace('%', "").parse().unwrap_or(100.0)
 }
