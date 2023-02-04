@@ -28,23 +28,31 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         div(class="flex justify-center") {
             div(class="inventory flex-initial w-full lg:w-[65%] justify-center bg-slate-900 rounded-xl px-5 py-7") {
                 (slots)
-                div(class="flasks") {
-                    (flasks)
-                }
+                    div(class="flasks") {
+                        (flasks)
+                    }
             }
         }
     }
 }
 
 fn render_items<G: Html>(cx: Scope, name: &'static str, base: Option<&str>) -> View<G> {
-    let src = base
-        .and_then(|item| pob::Item::parse(item).ok())
-        .and_then(item_image_url)
-        .unwrap_or_default();
+    let item = base.and_then(|item| pob::Item::parse(item).ok());
+    let src = item.and_then(item_image_url).unwrap_or_default();
+    let alt = item
+        .and_then(|item| {
+            if item.rarity.is_unique() {
+                item.name
+            } else {
+                Some(item.base)
+            }
+        })
+        .unwrap_or(name)
+        .to_owned();
 
     let class = format!("item {name}");
     view! { cx,
-        img(src=src, class=class, onerror=IMG_ONERROR_EMPTY) {}
+        img(src=src, class=class, alt=alt, onerror=IMG_ONERROR_EMPTY, loading="lazy") {}
     }
 }
 

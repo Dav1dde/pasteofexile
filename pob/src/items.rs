@@ -10,6 +10,12 @@ pub enum Rarity {
     Unique,
 }
 
+impl Rarity {
+    pub fn is_unique(&self) -> bool {
+        matches!(self, Self::Unique)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Item<'a> {
     pub rarity: Rarity,
