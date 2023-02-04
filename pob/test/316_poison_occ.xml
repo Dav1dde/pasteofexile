@@ -1140,6 +1140,7 @@ Implicits: 0
 			<Slot name="Weapon 1Swap Abyssal Socket 2" itemId="0"/>
 			<Slot name="Belt Abyssal Socket 2" itemId="0"/>
 			<Slot name="Flask 3" itemId="32"/>
+			<SocketIdURL nodeId="61419" name="Jewel 61419" itemPbURL=""/>
 			<Slot name="Weapon 2Swap Abyssal Socket 3" itemId="0"/>
 			<Slot name="Weapon 1 Abyssal Socket 5" itemId="0"/>
 			<Slot name="Weapon 2 Abyssal Socket 5" itemId="0"/>

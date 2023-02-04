@@ -291,7 +291,7 @@ pub(crate) struct Slot {
 pub(crate) struct ItemSet {
     pub id: u16,
     pub title: Option<String>,
-    #[serde(rename = "Slot")]
+    #[serde(default, rename = "$value")]
     pub gear: Gear,
 }
 
@@ -336,7 +336,17 @@ impl<'de> de::Deserialize<'de> for Gear {
             {
                 let mut result = Gear::default();
 
-                while let Some(slot) = seq.next_element::<Slot>()? {
+                #[derive(Deserialize)]
+                enum Inner {
+                    Slot(Slot),
+                    // There are non slot entries mixed into the slots
+                    // just ignore them.
+                    #[serde(other)]
+                    Unknown,
+                }
+
+                while let Some(slot) = seq.next_element::<Inner>()? {
+                    let Inner::Slot(slot) = slot else { continue; };
                     if slot.item_id == 0 {
                         continue;
                     }

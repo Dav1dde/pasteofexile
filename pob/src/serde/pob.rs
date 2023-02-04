@@ -341,13 +341,6 @@ mod tests {
     static V320_IMPENDING_DOOM: &str = include_str!("../../test/320_impending_doom.xml");
 
     #[test]
-    fn items() {
-        let pob = SerdePathOfBuilding::from_xml(V316_POISON_OCC).unwrap();
-
-        dbg!(&pob.item_sets());
-    }
-
-    #[test]
     fn parse_v316_empty() {
         let pob = SerdePathOfBuilding::from_xml(V316_EMPTY).unwrap();
         assert_eq!(1, pob.level());
