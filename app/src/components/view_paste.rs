@@ -90,7 +90,7 @@ pub fn ViewPaste<'a, G: Html>(
         {
             copy_state.set(CopyState::Progress);
 
-            from_ref::<_, web_sys::HtmlTextAreaElement>(content_ref).select();
+            from_ref::<web_sys::HtmlTextAreaElement>(content_ref).select();
 
             let document: web_sys::HtmlDocument = document();
             let state = if document.exec_command("copy").is_ok() {

@@ -98,12 +98,22 @@ pub fn is_at_least_medium_breakpoint() -> bool {
         .unwrap_or(true)
 }
 
-pub fn from_ref<G: GenericNode, T: JsCast>(node_ref: &NodeRef<G>) -> T {
+pub fn from_ref<T: JsCast>(node_ref: &NodeRef<impl GenericNode>) -> T {
     if let Some(node) = node_ref.try_get::<HydrateNode>() {
         node.unchecked_into()
     } else {
         node_ref.get::<DomNode>().unchecked_into()
     }
+}
+
+pub fn try_from_ref<T: JsCast>(node_ref: &NodeRef<impl GenericNode>) -> Option<T> {
+    if let Some(node) = node_ref.try_get::<HydrateNode>() {
+        return Some(node.unchecked_into());
+    }
+
+    node_ref
+        .try_get::<DomNode>()
+        .map(|node| node.unchecked_into())
 }
 
 pub fn find_text(element: &web_sys::Element, selector: &str) -> Option<String> {

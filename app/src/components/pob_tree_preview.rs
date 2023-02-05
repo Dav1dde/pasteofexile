@@ -53,7 +53,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let select = render_select(cx, trees, move |tree| {
         let property = format!("url({})", tree.image_url);
-        let _ = crate::utils::from_ref::<_, HtmlElement>(node_ref)
+        let _ = crate::utils::from_ref::<HtmlElement>(node_ref)
             .style()
             .set_property("background-image", &property);
         nodes.set(Rc::clone(&tree.nodes));
@@ -300,14 +300,14 @@ impl<G: GenericNode> TouchState<G> {
         if self.zoom.is_none() {
             // Zoomed at least once, now enable drag of the tree
             // instead of scrolling the page (pan-y).
-            let _ = crate::utils::from_ref::<_, HtmlElement>(&self.node)
+            let _ = crate::utils::from_ref::<HtmlElement>(&self.node)
                 .style()
                 .set_property("touch-action", "none");
         }
 
         if let Some(distance) = self.distance {
             let zoom = self.zoom.unwrap_or_else(|| {
-                let element = crate::utils::from_ref::<_, HtmlElement>(&self.node);
+                let element = crate::utils::from_ref::<HtmlElement>(&self.node);
                 get_background_size(&element)
             });
 
@@ -324,7 +324,7 @@ impl<G: GenericNode> TouchState<G> {
     }
 
     fn apply(&self) {
-        let element = &crate::utils::from_ref::<_, HtmlElement>(&self.node);
+        let element = &crate::utils::from_ref::<HtmlElement>(&self.node);
         let position = format!(
             "calc(50% + {}px) calc(50% + {}px)",
             self.center_x, self.center_y

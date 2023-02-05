@@ -1,10 +1,23 @@
 use pob::PathOfBuilding;
 use sycamore::prelude::*;
+use wasm_bindgen::JsCast;
 
+use super::{PobItem, Popup};
 use crate::{build::Build, consts::IMG_ONERROR_EMPTY};
 
 #[component]
 pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
+    let attach = create_signal(cx, None);
+    let current_item = create_signal(cx, None);
+
+    let popup = create_memo(cx, move || {
+        if let Some(item) = &*current_item.get() {
+            view! { cx, PobItem(*item) }
+        } else {
+            view! { cx, }
+        }
+    });
+
     let item_set = build
         .pob()
         .item_sets()
@@ -14,19 +27,34 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let slots = slots(&item_set.gear)
         .into_iter()
-        .map(|(name, item)| render_items(cx, name, item))
+        .map(move |(name, item)| render_items(cx, name, item, current_item))
         .collect();
     let slots = View::new_fragment(slots);
 
     let flasks = flasks(&item_set.gear)
         .into_iter()
-        .map(|(name, item)| render_items(cx, name, item))
+        .map(move |(name, item)| render_items(cx, name, item, current_item))
         .collect();
     let flasks = View::new_fragment(flasks);
 
+    let mouseover = |event: web_sys::Event| {
+        let a = event
+            .target()
+            .filter(|target| target.is_instance_of::<web_sys::HtmlImageElement>())
+            .map(|target| target.unchecked_into::<web_sys::Element>());
+
+        attach.set(a);
+    };
+    let mouseout = |_: web_sys::Event| attach.set(None);
+
     view! { cx,
+        Popup(attach=attach) { (&*popup.get()) }
         div(class="flex justify-center") {
-            div(class="inventory flex-initial w-full lg:w-[65%] justify-center bg-slate-900 rounded-xl px-5 py-7") {
+            div(
+                class="inventory flex-initial w-full lg:w-[60%] justify-center bg-slate-900 rounded-xl px-5 py-7",
+                on:mouseover=mouseover,
+                on:mouseout=mouseout,
+            ) {
                 (slots)
                     div(class="flasks") {
                         (flasks)
@@ -36,7 +64,12 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
 }
 
-fn render_items<G: Html>(cx: Scope, name: &'static str, base: Option<&str>) -> View<G> {
+fn render_items<'a, G: Html>(
+    cx: Scope<'a>,
+    name: &'static str,
+    base: Option<&'a str>,
+    current_item: &'a Signal<Option<pob::Item<'a>>>,
+) -> View<G> {
     let item = base.and_then(|item| pob::Item::parse(item).ok());
     let src = item.and_then(item_image_url).unwrap_or_default();
     let alt = item
@@ -50,14 +83,21 @@ fn render_items<G: Html>(cx: Scope, name: &'static str, base: Option<&str>) -> V
         .unwrap_or(name)
         .to_owned();
 
+    let mouseover = move |_: web_sys::Event| current_item.set(item);
+
     let class = format!("item {name}");
     view! { cx,
-        img(src=src, class=class, alt=alt, onerror=IMG_ONERROR_EMPTY, loading="lazy") {}
+        img(src=src, class=class, alt=alt, onerror=IMG_ONERROR_EMPTY, loading="lazy", on:mouseover=mouseover) {}
     }
 }
 
 fn item_image_url(item: pob::Item<'_>) -> Option<String> {
-    let name = percent_encoding::utf8_percent_encode(item.base, percent_encoding::NON_ALPHANUMERIC);
+    let name = if item.rarity.is_unique() {
+        item.name.unwrap_or(item.base)
+    } else {
+        item.base
+    };
+    let name = percent_encoding::utf8_percent_encode(name, percent_encoding::NON_ALPHANUMERIC);
     Some(format!("https://assets.pobb.in/1/{name}.webp"))
 }
 
