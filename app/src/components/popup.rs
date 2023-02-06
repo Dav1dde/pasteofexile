@@ -26,8 +26,13 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
         };
 
         let window = web_sys::window().unwrap();
+        let viewport_width = window.inner_width().unwrap().as_f64().unwrap();
 
         // make visible to be able to query a width and height
+        // at a position where the popup can get its full width and height
+        let _ = style.set_property("left", "-1000px");
+        let _ = style.set_property("top", "0");
+        let _ = style.set_property("max-width", &format!("{viewport_width}px"));
         let _ = style.set_property("display", "block");
 
         let el_rect = element.get_bounding_client_rect();
@@ -37,12 +42,21 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
         // and content width/height
         let el_attach = (el_rect.x() + el_rect.width() / 2.0, el_rect.y()); // middle top
 
-        let p_root = (
+        // TODO: dont perfectly center if it would go out of bounds (left or right)
+        let mut p_root = (
             el_attach.0 - (p_rect.width() / 2.0) + window.scroll_x().unwrap_or(0.0),
             el_attach.1 - p_rect.height() + window.scroll_y().unwrap_or(0.0),
         );
 
-        let _ = style.set_property("left", &format!("{}px", p_root.0));
+        // correct the right overflow to the left
+        let p_x_end = p_root.0 + p_rect.width();
+        if p_x_end > viewport_width {
+            // -20px because of a weird bug where the browser makes and element
+            // smaller than it has width for, only happens on a certain amulet?
+            p_root = (p_root.0 - (p_x_end - viewport_width) - 20.0, p_root.1);
+        }
+
+        let _ = style.set_property("left", &format!("{}px", p_root.0.max(0.0)));
         let _ = style.set_property("top", &format!("{}px", p_root.1));
     });
 

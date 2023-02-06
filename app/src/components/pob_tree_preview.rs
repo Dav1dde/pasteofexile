@@ -113,7 +113,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                 on:pointercancel=on_move_end,
             ) {
                 div(ref=node_ref,
-                    class="h-full w-full bg-center bg-no-repeat touch-pan-y
+                    class="h-full w-full bg-center bg-no-repeat touch-pan
                     transition-[background-image] duration-1000 will-change-[background-image]",
                     style=style) {
                 }

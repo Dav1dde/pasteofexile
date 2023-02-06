@@ -30,8 +30,8 @@ pub struct Item<'a> {
     pub energy_shield: u16,
 
     selected_variant: &'a str,
-    implicits: u8,
-    mods: &'a str,
+    implicits: &'a str,
+    explicits: &'a str,
 }
 
 impl<'a> Item<'a> {
@@ -75,7 +75,7 @@ impl<'a> Item<'a> {
         let mut energy_shield = 0;
 
         let mut selected_variant = "";
-        let mut implicits = 0;
+        let mut num_implicits = 0;
         for line in lines.by_ref() {
             if let Some((cmd, arg)) = line.split_once(": ") {
                 macro_rules! parse {
@@ -96,7 +96,7 @@ impl<'a> Item<'a> {
                     ("Evasion", evasion),
                     ("Energy Shield", energy_shield),
 
-                    ("Implicits", implicits)
+                    ("Implicits", num_implicits)
                 };
 
                 // Section with mods starts
@@ -106,10 +106,39 @@ impl<'a> Item<'a> {
             }
         }
 
-        let mut mods = &item[0..0];
-        if let Some(first_mod) = lines.next() {
+        let mut lines = lines.peekable();
+
+        let mut implicits = &item[0..0];
+        if num_implicits > 0 {
+            if let Some(first_mod) = lines.peek() {
+                // in case we have 0 implicits
+                let first_mod_idx =
+                    unsafe { first_mod.as_ptr().offset_from(item.as_ptr()) } as usize;
+                for _ in 0..num_implicits - 1 {
+                    lines.next();
+                }
+                let last_mod_idx = lines
+                    .next()
+                    .map(|m| unsafe { m.as_ptr().offset_from(item.as_ptr()) as usize + m.len() })
+                    .unwrap_or(item.len());
+                implicits = &item[first_mod_idx..last_mod_idx];
+            }
+        }
+
+        let is_mod = |line: &&str| {
+            !line
+                .split_whitespace()
+                .next()
+                .map(|f| f.ends_with(':'))
+                .unwrap_or(false)
+        };
+        let first_explicit_mod = lines.find(is_mod);
+
+        let mut explicits = &item[0..0];
+        if let Some(first_mod) = first_explicit_mod {
+            // in case we have 0 implicits
             let first_mod_idx = unsafe { first_mod.as_ptr().offset_from(item.as_ptr()) } as usize;
-            mods = &item[first_mod_idx..];
+            explicits = &item[first_mod_idx..];
         }
 
         // TODO: corrupted, split, mirrored and influenced items
@@ -126,22 +155,29 @@ impl<'a> Item<'a> {
             energy_shield,
             selected_variant,
             implicits,
-            mods,
+            explicits,
         })
     }
 
-    pub fn implicits(&self) -> impl Iterator<Item = Mod<'a>> {
-        self.mods
+    pub fn enchants(&self) -> impl Iterator<Item = Mod<'a>> {
+        self.implicits
             .lines()
-            .take(self.implicits as usize)
             .map(Mod::parse)
             .filter(|m| m.has_variant(self.selected_variant))
+            .take_while(|m| m.crafted)
+    }
+
+    pub fn implicits(&self) -> impl Iterator<Item = Mod<'a>> {
+        self.implicits
+            .lines()
+            .map(Mod::parse)
+            .filter(|m| m.has_variant(self.selected_variant))
+            .skip_while(|m| m.crafted)
     }
 
     pub fn explicits(&self) -> impl Iterator<Item = Mod<'a>> {
-        self.mods
+        self.explicits
             .lines()
-            .skip(self.implicits as usize)
             .map(Mod::parse)
             .filter(|m| m.has_variant(self.selected_variant))
     }

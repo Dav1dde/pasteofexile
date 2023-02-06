@@ -18,6 +18,9 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
         view! { cx, li(style=style) { (line) } }
     };
 
+    let enchants = item.enchants().map(render_mod).collect();
+    let enchants = View::new_fragment(enchants);
+
     let implicits = item.implicits().map(render_mod).collect();
     let implicits = View::new_fragment(implicits);
 
@@ -40,6 +43,9 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
                 (base)
             }
             div(class="p-2 pt-1") {
+                ul(class="empty:hidden") {
+                    (enchants)
+                }
                 ul(class="empty:hidden") {
                     (implicits)
                 }
