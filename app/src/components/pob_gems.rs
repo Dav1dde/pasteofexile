@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use pob::{PathOfBuilding, Skill};
-use sycamore::{prelude::*, web::NoHydrate};
+use sycamore::prelude::*;
 
 use crate::{
     build::Build,
@@ -51,10 +51,8 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     view! { cx,
         PobColoredSelect(options=options, selected=selected, on_change=on_change)
 
-        NoHydrate {
-            div(class="columns-2xs gap-5 sm:ml-3 leading-[1.35rem]") {
-                div() { (&*content.get()) }
-            }
+        div(class="columns-2xs gap-5 sm:ml-3 leading-[1.35rem]") {
+            div() { (&*content.get()) }
         }
     }
 }
