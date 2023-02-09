@@ -29,8 +29,8 @@ opt-level = 'z'
 # sycamore = { version = "0.8.2", features = ["suspense", "hydrate"] }
 # sycamore-router = version = "0.8.2"
 # A little bit better scroll restoration, still shitty though
-sycamore = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "3f6320b", package = "sycamore", features = ["suspense", "hydrate"] }
-sycamore-router = { git = "https://github.com/sycamore-rs/sycamore.git", rev = "3f6320b", package = "sycamore-router" }
+sycamore = { git = "https://github.com/Dav1dde/sycamore.git", rev = "3f6320b", package = "sycamore", features = ["suspense", "hydrate"] }
+sycamore-router = { git = "https://github.com/Dav1dde/sycamore.git", rev = "3f6320b", package = "sycamore-router" }
 
 worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "3e547f2a", package = "worker" }
 poe-api = { git = "https://github.com/Dav1dde/poe-rs/", rev = "c4977460", default-features = false }

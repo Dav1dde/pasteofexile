@@ -1060,7 +1060,7 @@ dependencies = [
 [[package]]
 name = "sycamore"
 version = "0.8.2"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "ahash",
  "futures",
@@ -1082,7 +1082,7 @@ dependencies = [
 [[package]]
 name = "sycamore-core"
 version = "0.8.0"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "ahash",
  "sycamore-reactive",
@@ -1091,7 +1091,7 @@ dependencies = [
 [[package]]
 name = "sycamore-futures"
 version = "0.8.0"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "futures",
  "sycamore-reactive",
@@ -1102,7 +1102,7 @@ dependencies = [
 [[package]]
 name = "sycamore-macro"
 version = "0.8.2"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "once_cell",
  "proc-macro2",
@@ -1113,7 +1113,7 @@ dependencies = [
 [[package]]
 name = "sycamore-reactive"
 version = "0.8.1"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "ahash",
  "bumpalo",
@@ -1125,7 +1125,7 @@ dependencies = [
 [[package]]
 name = "sycamore-router"
 version = "0.8.0"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "sycamore",
  "sycamore-router-macro",
@@ -1136,7 +1136,7 @@ dependencies = [
 [[package]]
 name = "sycamore-router-macro"
 version = "0.8.0"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "nom",
  "proc-macro2",
@@ -1148,7 +1148,7 @@ dependencies = [
 [[package]]
 name = "sycamore-web"
 version = "0.8.2"
-source = "git+https://github.com/sycamore-rs/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
+source = "git+https://github.com/Dav1dde/sycamore.git?rev=3f6320b#3f6320bccd259c444ac335f1171557e6d946fe32"
 dependencies = [
  "html-escape",
  "indexmap",
