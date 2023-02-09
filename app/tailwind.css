@@ -91,7 +91,7 @@
 
 .inventory {
     --col-size: 4rem;
-    --border-radius: 20px;
+    --border-radius: 10px;
 
     display: grid;
     grid-template-columns: repeat(8, minmax(0, var(--col-size)));
@@ -116,7 +116,7 @@
         padding: 5px;
         box-shadow: inset 0 0 12px 0 rgb(0 0 0 / 60%);
         user-select: none;
-        @apply bg-slate-800;
+        @apply bg-slate-900;
     }
 }
 .weapon1 {

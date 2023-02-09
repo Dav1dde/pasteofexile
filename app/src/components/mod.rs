@@ -9,7 +9,6 @@ mod pob_gear_preview;
 mod pob_gems;
 mod pob_item;
 mod pob_tree_preview;
-mod pob_tree_table;
 mod popup;
 mod view_paste;
 
@@ -24,6 +23,5 @@ pub use self::pob_gear_preview::PobGearPreview;
 pub use self::pob_gems::PobGems;
 pub use self::pob_item::PobItem;
 pub use self::pob_tree_preview::PobTreePreview;
-pub use self::pob_tree_table::PobTreeTable;
 pub use self::popup::Popup;
 pub use self::view_paste::{ViewPaste, ViewPasteProps};

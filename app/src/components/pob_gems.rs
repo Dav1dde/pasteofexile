@@ -19,7 +19,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     } else if skill_sets.len() == 1 {
         let skills = render_skills(cx, skill_sets.remove(0).skills);
         return view! { cx,
-            div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
+            div(class="columns-2xs gap-5 sm:ml-3 mt-5 leading-[1.35rem]") {
                 (skills)
             }
         };
@@ -51,7 +51,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         PobColoredSelect(options=options, selected=selected, on_change=on_change)
 
         NoHydrate {
-            div(class="columns-[13rem] gap-5 sm:ml-3 leading-[1.35rem]") {
+            div(class="columns-2xs gap-5 sm:ml-3 leading-[1.35rem]") {
                 div() { (&*content.get()) }
             }
         }
@@ -167,7 +167,7 @@ fn render_skill<G: GenericNode>(cx: Scope, skill: Skill) -> View<G> {
         .collect::<Vec<View<G>>>();
     let gems = View::new_fragment(gems);
 
-    let class = "break-inside-avoid mt-5 first:mt-0";
+    let class = "break-inside-avoid mt-5 first:mt-0 bg-slate-900 px-5 py-2.5 rounded-xl";
 
     view! { cx,
         div(class=class) {

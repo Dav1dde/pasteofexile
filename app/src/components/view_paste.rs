@@ -7,7 +7,7 @@ use web_sys::HtmlTextAreaElement;
 use super::PobGearPreview;
 use crate::{
     build::Build,
-    components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
+    components::{PobColoredText, PobGems, PobTreePreview},
     consts::IMG_ONERROR_HIDDEN,
     pob::{self, Element},
     storage::Storage,
@@ -71,7 +71,7 @@ pub fn ViewPaste<'a, G: Html>(
     });
     let tree_preview = view_cond!(cx, has_displayable_tree(build.pob()), {
         div(class="basis-full") {
-            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Tree Preview" }
+            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-12 border-b border-solid") { "Tree Preview" }
             PobTreePreview(build)
         }
     });
@@ -176,20 +176,16 @@ pub fn ViewPaste<'a, G: Html>(
             }
         }
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
+            div(class="flex-auto w-60") {
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gear" }
+                PobGearPreview(build)
+            }
             div(class="flex-auto w-full lg:w-auto") {
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gems" }
                 PobGems(build)
             }
-            div(class="flex-1 max-w-full lg:max-w-[43%]") {
-                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
-                PobTreeTable(build)
-            }
         }
         (tree_preview)
-        div(class="flex-1 max-w-full") {
-            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gear" }
-            PobGearPreview(build)
-        }
         (notes)
         div(class="h-[150px]") {}
     }
