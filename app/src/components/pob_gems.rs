@@ -6,6 +6,7 @@ use crate::{
     build::Build,
     components::{PobColoredSelect, PobColoredText},
     pob::formatting::strip_colors,
+    utils::IteratorExt,
 };
 
 #[component]
@@ -75,15 +76,9 @@ fn render_skills<G: GenericNode + Html>(cx: Scope, skills: Vec<Skill>) -> View<G
                     let title = strip_colors(&label);
                     view! { cx, div(class="truncate", title=title) { PobColoredText(&label) } }
                 })
-                .collect::<Vec<_>>();
+                .collect_view();
 
-            let class = if labels.len() == 1 {
-                "break-inside-avoid leading-4 mt-5 first:mt-[0.5rem] underline"
-            } else {
-                "break-inside-avoid leading-4 mt-5 first:mt-[0.5rem]"
-            };
-
-            let labels = View::new_fragment(labels);
+            let class = "break-inside-avoid leading-4 mt-5 first:mt-[0.5rem]";
             skills.push(view! { cx, div(class=class) { (labels) } });
         } else {
             // a bunch of skills with gems
@@ -129,7 +124,7 @@ fn has_active_gem(skill: &Skill) -> bool {
     skill.gems.iter().any(|g| g.is_active)
 }
 
-fn render_skill<G: GenericNode>(cx: Scope, skill: Skill) -> View<G> {
+fn render_skill<G: Html>(cx: Scope, skill: Skill) -> View<G> {
     let gems = skill
         .gems
         .into_iter()
@@ -164,8 +159,7 @@ fn render_skill<G: GenericNode>(cx: Scope, skill: Skill) -> View<G> {
             let title = format!("{} ({}/{})", name, gem.level, gem.quality);
             view! { cx, div(class=class, title=title) { (name) } }
         })
-        .collect::<Vec<View<G>>>();
-    let gems = View::new_fragment(gems);
+        .collect_view();
 
     let class = "break-inside-avoid mt-5 first:mt-0 bg-slate-900 px-5 py-2.5 rounded-xl";
 

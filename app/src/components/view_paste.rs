@@ -11,7 +11,7 @@ use crate::{
     consts::IMG_ONERROR_HIDDEN,
     pob::{self, Element},
     storage::Storage,
-    utils::{async_callback, document, from_ref, view_cond},
+    utils::{async_callback, document, from_ref, view_cond, IteratorExt},
 };
 
 pub struct ViewPasteProps<'a> {
@@ -125,8 +125,7 @@ pub fn ViewPaste<'a, G: Html>(
         .into_iter()
         .map(|stat| render(cx, stat))
         .map(|stat| view! { cx, div(class="flex-row gap-x-5") { (stat) } })
-        .collect();
-    let summary = View::new_fragment(summary);
+        .collect_view();
 
     let src =
         crate::assets::ascendancy_image(build.pob().ascendancy_or_class_name()).unwrap_or_default();
@@ -191,13 +190,11 @@ pub fn ViewPaste<'a, G: Html>(
     }
 }
 
-fn render<G: GenericNode>(cx: Scope, elements: Vec<Element>) -> View<G> {
-    View::new_fragment(
-        elements
-            .into_iter()
-            .filter_map(|e| e.render_to_view(cx))
-            .collect(),
-    )
+fn render<G: Html>(cx: Scope, elements: Vec<Element>) -> View<G> {
+    elements
+        .into_iter()
+        .filter_map(|e| e.render_to_view(cx))
+        .collect_view()
 }
 
 fn has_displayable_tree(pob: &impl PathOfBuilding) -> bool {

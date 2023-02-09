@@ -3,7 +3,7 @@ use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 
 use super::{PobItem, Popup};
-use crate::{build::Build, consts::IMG_ONERROR_EMPTY};
+use crate::{build::Build, consts::IMG_ONERROR_EMPTY, utils::IteratorExt};
 
 #[component]
 pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
@@ -28,14 +28,12 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let slots = slots(&item_set.gear)
         .into_iter()
         .map(move |(name, item)| render_items(cx, name, item, current_item))
-        .collect();
-    let slots = View::new_fragment(slots);
+        .collect_view();
 
     let flasks = flasks(&item_set.gear)
         .into_iter()
         .map(move |(name, item)| render_items(cx, name, item, current_item))
-        .collect();
-    let flasks = View::new_fragment(flasks);
+        .collect_view();
 
     let mouseover = |event: web_sys::Event| {
         let a = event

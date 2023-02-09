@@ -9,6 +9,7 @@ use web_sys::{Event, HtmlElement, PointerEvent};
 
 use crate::build::Build;
 use crate::components::PobColoredSelect;
+use crate::utils::IteratorExt;
 use crate::{Prefetch, ResponseContext};
 
 #[derive(Debug)]
@@ -141,15 +142,13 @@ pub fn render_nodes<G: GenericNode + Html>(cx: Scope, nodes: &Nodes) -> View<G> 
         .keystones
         .iter()
         .map(|node| render_keystone(cx, node))
-        .collect();
-    let keystones = View::new_fragment(keystones);
+        .collect_view();
 
     let masteries = nodes
         .masteries
         .iter()
         .map(|node| render_mastery(cx, node))
-        .collect();
-    let masteries = View::new_fragment(masteries);
+        .collect_view();
 
     view! { cx,
         div(class="grid grid-cols-fit-keystone gap-2 lg:gap-1") { (keystones) }

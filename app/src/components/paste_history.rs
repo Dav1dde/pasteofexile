@@ -8,7 +8,7 @@ use crate::{
     svg,
     utils::{
         document, hooks::scoped_event_passive, is_at_least_medium_breakpoint, memo_cond,
-        on_click_anchor, pretty_date_ts, view_if,
+        on_click_anchor, pretty_date_ts, view_if, IteratorExt,
     },
 };
 
@@ -96,8 +96,7 @@ fn PageHistoryList<'a, G: Html>(cx: Scope<'a>, list: PasteList<'a>) -> View<G> {
         .get_all()
         .into_iter()
         .map(|item| render_history_item(cx, item))
-        .collect::<Vec<_>>();
-    let items = View::new_fragment(items);
+        .collect_view();
 
     view! { cx,
         ul(class="flex flex-col gap-2 mb-5") {

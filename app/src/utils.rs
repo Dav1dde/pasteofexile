@@ -169,6 +169,19 @@ pub fn serialize_json_b64(value: &(impl Serialize + ?Sized)) -> String {
     )
 }
 
+pub trait IteratorExt: Iterator {
+    fn collect_view<G: Html>(self) -> View<G>
+    where
+        Self: Sized,
+        Self::Item: Into<View<G>>,
+    {
+        let views = self.map(Into::into).collect();
+        View::new_fragment(views)
+    }
+}
+
+impl<T: ?Sized> IteratorExt for T where T: Iterator {}
+
 pub fn pretty_date_ts(ts: u64) -> String {
     let now = js_sys::Date::new_0().get_time();
     pretty_date(match ts > 0 {

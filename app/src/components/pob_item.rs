@@ -1,6 +1,6 @@
 use sycamore::prelude::*;
 
-use crate::utils::view_cond;
+use crate::utils::{view_cond, IteratorExt};
 
 #[component]
 pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
@@ -18,14 +18,9 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
         view! { cx, li(style=style) { (line) } }
     };
 
-    let enchants = item.enchants().map(render_mod).collect();
-    let enchants = View::new_fragment(enchants);
-
-    let implicits = item.implicits().map(render_mod).collect();
-    let implicits = View::new_fragment(implicits);
-
-    let explicits = item.explicits().map(render_mod).collect();
-    let explicits = View::new_fragment(explicits);
+    let enchants = item.enchants().map(render_mod).collect_view();
+    let implicits = item.implicits().map(render_mod).collect_view();
+    let explicits = item.explicits().map(render_mod).collect_view();
 
     let name = item.name.unwrap_or_default().to_owned();
     let base = item.base.to_owned();
