@@ -47,7 +47,7 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     view! { cx,
         Popup(attach=attach) { (&*popup.get()) }
-        div(class="flex justify-center mt-5") {
+        div(class="flex justify-center mt-5 sm:px-3") {
             div(
                 class="inventory flex-initial w-full justify-center rounded-xl",
                 on:mouseover=mouseover,
