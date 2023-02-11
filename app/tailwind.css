@@ -191,3 +191,6 @@
     grid-area: Flask4;
     aspect-ratio: 0.5;
 }
+.socket {
+    aspect-ratio: 1;
+}

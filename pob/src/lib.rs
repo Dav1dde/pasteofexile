@@ -32,6 +32,7 @@ pub trait PathOfBuilding {
 
     fn skill_sets(&self) -> Vec<SkillSet>;
 
+    fn item_by_id(&self, id: u16) -> Option<&str>;
     fn item_sets(&self) -> Vec<ItemSet>;
 
     fn tree_specs(&self) -> Vec<TreeSpec>;
@@ -46,9 +47,16 @@ pub struct TreeSpec<'a> {
     pub version: Option<&'a str>,
     pub nodes: &'a [u32],
     pub mastery_effects: &'a [(u32, u32)],
+    pub sockets: Vec<Socket>,
 
     /// Whether the tree spec is active/selected
     pub active: bool,
+}
+
+#[derive(Debug)]
+pub struct Socket {
+    pub node_id: u32,
+    pub item_id: u16,
 }
 
 #[derive(Debug)]

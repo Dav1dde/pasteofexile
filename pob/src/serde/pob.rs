@@ -177,6 +177,16 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .collect()
     }
 
+    fn item_by_id(&self, id: u16) -> Option<&str> {
+        // TODO: maybe this lookup should be done with a hashmap and combined with item_sets
+        self.pob
+            .items
+            .items
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| item.content.content.as_str())
+    }
+
     fn item_sets(&self) -> Vec<crate::ItemSet> {
         let items = self
             .pob
@@ -236,6 +246,15 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                 url: spec.url.as_deref(),
                 version: spec.version.as_deref(),
                 nodes: &spec.nodes,
+                sockets: spec
+                    .sockets
+                    .sockets
+                    .iter()
+                    .map(|s| crate::Socket {
+                        node_id: s.node_id,
+                        item_id: s.item_id,
+                    })
+                    .collect(),
                 mastery_effects: &spec.mastery_effects,
                 active: self.pob.tree.active_spec as usize == i + 1,
             })

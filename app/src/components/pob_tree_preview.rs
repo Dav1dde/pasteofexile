@@ -52,12 +52,15 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let node_ref = create_node_ref(cx);
     let nodes = create_signal(cx, Rc::clone(&current_tree.nodes));
 
-    let select = render_select(cx, trees, move |tree| {
+    // TODO: this updates the currently active tree, but it doesn't read from it
+    // the select would need to be updated as well if the tree changes, kinda tricky...
+    let select = render_select(cx, trees, move |index, tree| {
         let property = format!("url({})", tree.image_url);
         let _ = crate::utils::from_ref::<HtmlElement>(node_ref)
             .style()
             .set_property("background-image", &property);
         nodes.set(Rc::clone(&tree.nodes));
+        build.active_tree().set(index);
     });
 
     let state = create_ref(cx, RefCell::new(TouchState::new(node_ref.clone())));
@@ -193,7 +196,7 @@ fn render_select<'a, G: GenericNode + Html, F>(
     on_change: F,
 ) -> View<G>
 where
-    F: Fn(&Tree) + 'a,
+    F: Fn(usize, &Tree) + 'a,
 {
     if trees.len() <= 1 {
         return view! { cx, };
@@ -203,7 +206,7 @@ where
     let selected = trees.iter().position(|t| t.active);
     let on_change = move |index| {
         if let Some(index) = index {
-            on_change(&trees[index])
+            on_change(index, &trees[index])
         }
     };
 

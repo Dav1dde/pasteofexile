@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use pob::PathOfBuilding;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
@@ -35,6 +36,32 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         .map(move |(name, item)| render_items(cx, name, item, current_item))
         .collect_view();
 
+    let sockets = create_memo(cx, move || {
+        let index = build.active_tree().get();
+        // TODO: maybe this should be displayed next to the tree preview?
+        let mut tree_sockets = if let Some(tree) = build.pob().tree_specs().get(*index) {
+            tree.sockets
+                .iter()
+                // There are items included which are socketed in non activated sockets
+                .filter(|socket| tree.nodes.contains(&socket.node_id))
+                .filter_map(|socket| build.pob().item_by_id(socket.item_id))
+                .collect_vec()
+        } else {
+            Vec::new()
+        };
+        // TODO: this sorting should be better... Cluster Jewels -> Uniques -> Abyss -> Others?
+        tree_sockets.sort_unstable();
+
+        item_set
+            .gear
+            .sockets
+            .clone()
+            .into_iter()
+            .chain(tree_sockets)
+            .map(move |content| render_items(cx, "socket", Some(content), current_item))
+            .collect_view()
+    });
+
     let mouseover = |event: web_sys::Event| {
         let a = event
             .target()
@@ -47,16 +74,19 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     view! { cx,
         Popup(attach=attach) { (&*popup.get()) }
-        div(class="flex justify-center mt-5 sm:px-3") {
-            div(
-                class="inventory flex-initial w-full justify-center rounded-xl",
+        div(class="flex flex-col justify-center mt-5 sm:px-3",
                 on:mouseover=mouseover,
                 on:mouseout=mouseout,
             ) {
+            div(
+                class="inventory flex-initial w-full justify-center rounded-xl"
+            ) {
                 (slots)
-                    div(class="flasks") {
-                        (flasks)
-                    }
+                div(class="flasks") {
+                    (flasks)
+                }
+                div(class="col-span-full") {}
+                (&*sockets.get())
             }
         }
     }
