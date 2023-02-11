@@ -42,8 +42,13 @@ pub fn PobItemSet<'a, 'b, G: Html>(
             Vec::new()
         };
         tree_sockets.sort_unstable_by_key(|item| {
-            // Cluster Jewels -> Rarity -> Base Name (broken-ish for magic items) -> Name
-            (!item.is_cluster_jewel(), item.rarity, item.base, item.name)
+            // Cluster Jewels -> Unique -> Base Name -> Name
+            (
+                !item.is_cluster_jewel(),
+                !item.rarity.is_unique(),
+                item.base,
+                item.name,
+            )
         });
 
         gear.sockets
