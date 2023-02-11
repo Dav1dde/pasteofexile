@@ -85,15 +85,20 @@ fn render_item<'a, G: Html>(
     item: Option<pob::Item<'a>>,
     current_item: &'a Signal<Option<pob::Item<'a>>>,
 ) -> View<G> {
-    let image_name = item.map(|item| item_image_name(&item));
-    let src = image_name.and_then(item_image_url).unwrap_or_default();
-    let alt = image_name.unwrap_or(name).to_owned();
+    let class = format!("item {name}");
+
+    let Some(image_name) = item.map(|item| item_image_name(&item)) else {
+        return view! { cx, div(class=class) {} };
+    };
+
+    let src = item_image_url(image_name).unwrap_or_default();
 
     let mouseover = move |_: web_sys::Event| current_item.set(item);
 
-    let class = format!("item {name}");
     view! { cx,
-        img(src=src, class=class, alt=alt, onerror=IMG_ONERROR_EMPTY, loading="lazy", on:mouseover=mouseover) {}
+        img(src=src, class=class, alt=image_name,
+            onerror=IMG_ONERROR_EMPTY, loading="lazy",
+            on:mouseover=mouseover) {}
     }
 }
 
