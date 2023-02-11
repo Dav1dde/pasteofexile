@@ -243,6 +243,7 @@ pub(crate) struct Socket {
 #[derive(Default, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Items {
+    pub active_item_set: Option<u16>,
     #[serde(default, rename = "Item")]
     pub items: Vec<Item>,
     #[serde(default, rename = "Slot")] // TODO: this isn't necessary with itemset parsing
@@ -315,7 +316,8 @@ pub(crate) struct ItemSet {
 pub(crate) struct Gear {
     pub weapon1: Option<u16>,
     pub weapon2: Option<u16>,
-    // TODO: weapon swap
+    pub weapon1_swap: Option<u16>,
+    pub weapon2_swap: Option<u16>,
     pub helmet: Option<u16>,
     pub body_armour: Option<u16>,
     pub gloves: Option<u16>,
@@ -370,6 +372,8 @@ impl<'de> de::Deserialize<'de> for Gear {
                     match slot.name.as_str() {
                         "Weapon 1" => result.weapon1 = Some(slot.item_id),
                         "Weapon 2" => result.weapon2 = Some(slot.item_id),
+                        "Weapon 1 Swap" => result.weapon1_swap = Some(slot.item_id),
+                        "Weapon 2 Swap" => result.weapon2_swap = Some(slot.item_id),
                         "Helmet" => result.helmet = Some(slot.item_id),
                         "Body Armour" => result.body_armour = Some(slot.item_id),
                         "Gloves" => result.gloves = Some(slot.item_id),

@@ -93,6 +93,7 @@ pub struct ItemSet<'a> {
     pub id: u16,
     pub title: Option<&'a str>,
     pub gear: Gear<'a>,
+    pub is_selected: bool,
 }
 
 #[derive(Debug, Default)]

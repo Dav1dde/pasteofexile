@@ -230,6 +230,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                     id: set.id,
                     title: set.title.as_deref(),
                     gear,
+                    is_selected: Some(set.id) == self.pob.items.active_item_set,
                 }
             })
             .collect()

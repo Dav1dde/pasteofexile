@@ -33,7 +33,7 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
 
     view! { cx,
         div(class="bg-black/[0.8] text-center pob-item", data-rarity=data_rarity) {
-            div(class="p-2 bg-contain", style=header_style) {
+            div(class="px-5 py-2 bg-contain", style=header_style) {
                 div { (name) }
                 (base)
             }

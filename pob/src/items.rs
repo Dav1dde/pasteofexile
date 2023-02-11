@@ -2,12 +2,12 @@
 #[error("cannot parse item {0}")]
 pub struct InvalidItem(&'static str);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Rarity {
-    Normal,
-    Magic,
-    Rare,
     Unique,
+    Rare,
+    Magic,
+    Normal,
 }
 
 impl Rarity {
@@ -54,15 +54,7 @@ impl<'a> Item<'a> {
             Rarity::Rare | Rarity::Unique => lines.next(),
             _ => None,
         };
-
         let mut base = lines.next().ok_or(InvalidItem("eof, expected base"))?;
-        if !matches!(rarity, Rarity::Normal | Rarity::Unique) {
-            if let Some(flask) = extract_flask(base) {
-                name = Some(base);
-                base = flask;
-            }
-        }
-
         if matches!(rarity, Rarity::Normal) {
             name = Some(base);
         }
@@ -141,6 +133,12 @@ impl<'a> Item<'a> {
             explicits = &item[first_mod_idx..];
         }
 
+        // Postprocess magic items based on mod count ...
+        if matches!(rarity, Rarity::Magic) {
+            name = Some(base);
+            base = extract_magic_base(base, explicits.lines().count());
+        }
+
         // TODO: corrupted, split, mirrored and influenced items
 
         Ok(Item {
@@ -180,6 +178,10 @@ impl<'a> Item<'a> {
             .lines()
             .map(Mod::parse)
             .filter(|m| m.has_variant(self.selected_variant))
+    }
+
+    pub fn is_cluster_jewel(&self) -> bool {
+        self.base.contains("Cluster Jewel")
     }
 }
 
@@ -229,20 +231,20 @@ impl<'a> Mod<'a> {
     }
 }
 
-fn extract_flask(base: &str) -> Option<&str> {
-    let mut iter = base
-        .split_whitespace()
-        .rev()
-        .skip_while(|item| item != &"Flask");
-    let flask = iter.next()?;
-    let start = match iter.next() {
-        Some("Life") | Some("Mana") => iter.next(),
-        f => f,
-    }?;
+fn extract_magic_base(base: &str, num_mods: usize) -> &str {
+    if num_mods == 0 {
+        return base;
+    }
 
-    let start_idx = unsafe { start.as_ptr().offset_from(base.as_ptr()) } as usize;
-    let end_idx = unsafe { flask.as_ptr().offset_from(base.as_ptr()) + 5 } as usize;
-    Some(&base[start_idx..end_idx])
+    let end = base.find(" of").unwrap_or(base.len());
+
+    if num_mods == 1 && end != base.len() {
+        // Only suffix
+        &base[..end]
+    } else {
+        // Prefix with or without suffix
+        base[..end].split_once(' ').map_or(base, |s| s.1)
+    }
 }
 
 #[cfg(test)]
