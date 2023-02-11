@@ -27,6 +27,8 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
 
         let window = web_sys::window().unwrap();
         let viewport_width = window.inner_width().unwrap().as_f64().unwrap();
+        let scroll_x = window.scroll_x().unwrap_or(0.0);
+        let scroll_y = window.scroll_y().unwrap_or(0.0);
 
         // make visible to be able to query a width and height
         // at a position where the popup can get its full width and height
@@ -44,8 +46,8 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
 
         // TODO: dont perfectly center if it would go out of bounds (left or right)
         let mut p_root = (
-            el_attach.0 - (p_rect.width() / 2.0) + window.scroll_x().unwrap_or(0.0),
-            el_attach.1 - p_rect.height() + window.scroll_y().unwrap_or(0.0),
+            el_attach.0 - (p_rect.width() / 2.0) + scroll_x,
+            (el_attach.1 - p_rect.height() + scroll_y).max(scroll_y),
         );
 
         // correct the right overflow to the left
@@ -61,7 +63,7 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
     });
 
     view! { cx,
-        div(class="absolute z-30 hidden", ref=node_ref) {
+        div(class="absolute z-30 pointer-events-none hidden", ref=node_ref) {
             (children)
         }
     }
