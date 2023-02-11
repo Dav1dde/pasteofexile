@@ -75,7 +75,7 @@ pub fn PasteHistory<G: Html>(cx: Scope) -> View<G> {
             class="w-[16px] text-sky-400 hover:text-sky-200",
             dangerously_set_inner_html=svg::HISTORY,
         ) {}
-        div(style=open_style.get(), class="modal-right") {
+        div(style=open_style.get(), class="modal-right flex flex-col") {
             (*content.get())
         }
     }
