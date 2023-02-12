@@ -29,6 +29,10 @@ pub struct Item<'a> {
     pub evasion: u16,
     pub energy_shield: u16,
 
+    pub mirrored: bool,
+    pub split: bool,
+    pub corrupted: bool,
+
     selected_variant: &'a str,
     implicits: &'a str,
     explicits: &'a str,
@@ -117,6 +121,21 @@ impl<'a> Item<'a> {
             }
         }
 
+        let mut corrupted = false;
+        let mut mirrored = false;
+        let mut split = false;
+        let mut rev_lines = item.lines().rev().peekable();
+        let mut mods_end = None;
+        loop {
+            match rev_lines.peek() {
+                Some(&"Corrupted") => corrupted = true,
+                Some(&"Mirrored") => mirrored = true,
+                Some(&"Split") => split = true,
+                _ => break,
+            }
+            mods_end = rev_lines.next();
+        }
+
         let is_mod = |line: &&str| {
             !line
                 .split_whitespace()
@@ -130,7 +149,10 @@ impl<'a> Item<'a> {
         if let Some(first_mod) = first_explicit_mod {
             // in case we have 0 implicits
             let first_mod_idx = unsafe { first_mod.as_ptr().offset_from(item.as_ptr()) } as usize;
-            explicits = &item[first_mod_idx..];
+            let mods_end = mods_end
+                .map(|m| unsafe { m.as_ptr().offset_from(item.as_ptr()) } as usize)
+                .unwrap_or(item.len());
+            explicits = &item[first_mod_idx..mods_end];
         }
 
         // Postprocess magic items based on mod count ...
@@ -151,6 +173,9 @@ impl<'a> Item<'a> {
             armour,
             evasion,
             energy_shield,
+            corrupted,
+            mirrored,
+            split,
             selected_variant,
             implicits,
             explicits,

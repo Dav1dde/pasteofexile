@@ -159,7 +159,8 @@ fn render_skill<G: Html>(cx: Scope, skill: Skill) -> View<G> {
         })
         .collect_view();
 
-    let class = "break-inside-avoid mt-5 first:mt-0 bg-slate-900 px-5 py-2.5 rounded-xl empty:hidden";
+    let class =
+        "break-inside-avoid mt-5 first:mt-0 bg-slate-900 px-5 py-2.5 rounded-xl empty:hidden";
 
     view! { cx,
         div(class=class) {

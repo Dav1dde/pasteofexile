@@ -1,6 +1,7 @@
+use itertools::Itertools;
 use sycamore::prelude::*;
 
-use crate::utils::{view_cond, IteratorExt};
+use crate::utils::view_cond;
 
 #[component]
 pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
@@ -18,9 +19,20 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
         view! { cx, li(style=style) { (line) } }
     };
 
-    let enchants = item.enchants().map(render_mod).collect_view();
-    let implicits = item.implicits().map(render_mod).collect_view();
-    let explicits = item.explicits().map(render_mod).collect_view();
+    let enchants = item.enchants().map(render_mod).collect_vec();
+    let implicits = item.implicits().map(render_mod).collect_vec();
+    let explicits = item.explicits().map(render_mod).collect_vec();
+
+    let mut unmet = Vec::new();
+    if item.split {
+        unmet.push(view! { cx, li(style="color: #88f") { "Split" } });
+    }
+    if item.mirrored {
+        unmet.push(view! { cx, li(style="color: #88f") { "Mirrored" } });
+    }
+    if item.corrupted {
+        unmet.push(view! { cx, li(style="color: #d20000") { "Corrupted" } });
+    }
 
     let name = item.name.unwrap_or_default().to_owned();
     let base = item.base.to_owned();
@@ -38,18 +50,23 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
                 (base)
             }
             div(class="p-2 pt-1") {
-                ul(class="empty:hidden") {
-                    (enchants)
-                }
-                ul(class="empty:hidden") {
-                    (implicits)
-                }
-                ul(class="empty:hidden") {
-                    (explicits)
-                }
+                Mods(enchants)
+                Mods(implicits)
+                Mods(explicits)
+                Mods(unmet)
             }
         }
     }
+}
+
+#[component]
+pub fn Mods<G: Html>(cx: Scope, mods: Vec<View<G>>) -> View<G> {
+    if mods.is_empty() {
+        return view! { cx, };
+    }
+
+    let content = View::new_fragment(mods);
+    view! { cx, ul { (content) } }
 }
 
 fn rarity_str(rarity: pob::Rarity) -> &'static str {
