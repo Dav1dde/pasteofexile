@@ -115,7 +115,13 @@ fn item_image_name<'a>(item: &pob::Item<'a>) -> &'a str {
             return &name[..end];
         }
     }
-    item.base
+
+    match item.base {
+        "Two-Toned Boots (Evasion/Energy Shield)" => "TwoTonedEvEs",
+        "Two-Toned Boots (Armour/Evasion)" => "TwoTonedArEv",
+        "Two-Toned Boots (Armour/Energy Shield)" => "TwoTonedArEs",
+        base => base,
+    }
 }
 
 fn item_image_url(item_image_name: &str) -> Option<String> {
