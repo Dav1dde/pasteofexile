@@ -16,6 +16,23 @@ impl Rarity {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Influence {
+    Shaper,
+    Elder,
+
+    Crusader,
+    Hunter,
+    Redeemer,
+    Warlord,
+
+    SearingExarch,
+    EaterOfWorlds,
+
+    Synthesis,
+    Fracture,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Item<'a> {
     pub rarity: Rarity,
@@ -28,6 +45,9 @@ pub struct Item<'a> {
     pub armour: u16,
     pub evasion: u16,
     pub energy_shield: u16,
+
+    pub influence1: Option<Influence>,
+    pub influence2: Option<Influence>,
 
     pub mirrored: bool,
     pub split: bool,
@@ -70,6 +90,9 @@ impl<'a> Item<'a> {
         let mut evasion = 0;
         let mut energy_shield = 0;
 
+        let mut influence1 = None;
+        let mut influence2 = None;
+
         let mut selected_variant = "";
         let mut num_implicits = 0;
         for line in lines.by_ref() {
@@ -98,6 +121,31 @@ impl<'a> Item<'a> {
                 // Section with mods starts
                 if cmd == "Implicits" {
                     break;
+                }
+            } else {
+                let influence = match line {
+                    "Shaper Item" => Some(Influence::Shaper),
+                    "Elder Item" => Some(Influence::Elder),
+
+                    "Crusader Item" => Some(Influence::Crusader),
+                    "Hunter Item" => Some(Influence::Hunter),
+                    "Redeemer Item" => Some(Influence::Redeemer),
+                    "Warlord Item" => Some(Influence::Warlord),
+
+                    "Searing Exarch Item" => Some(Influence::SearingExarch),
+                    "Eater of Worlds Item" => Some(Influence::EaterOfWorlds),
+
+                    line if line.starts_with("Synthesised") => Some(Influence::Synthesis),
+
+                    _ => None,
+                };
+
+                if let Some(influence) = influence {
+                    if influence1.is_none() {
+                        influence1 = Some(influence);
+                    } else if influence2.is_none() {
+                        influence2 = Some(influence);
+                    }
                 }
             }
         }
@@ -161,7 +209,13 @@ impl<'a> Item<'a> {
             base = extract_magic_base(base, explicits.lines().count());
         }
 
-        // TODO: corrupted, split, mirrored and influenced items
+        if influence1.is_none() && explicits.lines().any(|m| m.starts_with("{fractured}")) {
+            influence1 = Some(Influence::Fracture);
+        }
+        // Copy the first influence to the second if there is not already an influence
+        if influence2.is_none() {
+            influence2 = influence1;
+        }
 
         Ok(Item {
             rarity,
@@ -173,6 +227,8 @@ impl<'a> Item<'a> {
             armour,
             evasion,
             energy_shield,
+            influence1,
+            influence2,
             corrupted,
             mirrored,
             split,

@@ -19,6 +19,13 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
         view! { cx, li(style=style) { (line) } }
     };
 
+    let influence1 = item.influence1.map_or_else(View::empty, move |influence| view! { cx,
+        div(class="absolute left-[2px] top-0 bottom-0 w-[26px]", style=influence_style(influence)) {}
+    });
+    let influence2 = item.influence2.map_or_else(View::empty, move |influence| view! { cx,
+        div(class="absolute right-[2px] top-0 bottom-0 w-[26px]", style=influence_style(influence)) {}
+    });
+
     let enchants = item.enchants().map(render_mod).collect_vec();
     let implicits = item.implicits().map(render_mod).collect_vec();
     let explicits = item.explicits().map(render_mod).collect_vec();
@@ -45,9 +52,11 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
 
     view! { cx,
         div(class="bg-black/[0.8] text-center pob-item", data-rarity=data_rarity) {
-            div(class="px-5 py-2 bg-contain", style=header_style) {
+            div(class="px-7 py-2 bg-contain relative", style=header_style) {
+                (influence1)
                 div { (name) }
                 (base)
+                (influence2)
             }
             div(class="p-2 pt-1") {
                 Mods(enchants)
@@ -96,4 +105,29 @@ fn header_style(rarity: pob::Rarity) -> String {
         url({BASE}{name}Right.webp) top right / contain no-repeat, \
         url({BASE}{name}Middle.webp) top left / contain repeat-x"
     )
+}
+
+fn influence_style(influence: pob::Influence) -> &'static str {
+    macro_rules! inf {
+        ($name:expr) => {
+            concat!(
+                "background: url(https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/",
+                $name,
+                "ItemSymbol.webp) center / contain no-repeat"
+            )
+        };
+    }
+
+    match influence {
+        pob::Influence::Shaper => inf!("Shaper"),
+        pob::Influence::Elder => inf!("Elder"),
+        pob::Influence::Crusader => inf!("Crusader"),
+        pob::Influence::Hunter => inf!("Basilisk"),
+        pob::Influence::Redeemer => inf!("Eyrie"),
+        pob::Influence::Warlord => inf!("Judicator"),
+        pob::Influence::SearingExarch => inf!("CleansingFire"),
+        pob::Influence::EaterOfWorlds => inf!("Tangled"),
+        pob::Influence::Synthesis => inf!("Synthesised"),
+        pob::Influence::Fracture => inf!("Fractured"),
+    }
 }

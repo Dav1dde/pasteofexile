@@ -11,7 +11,7 @@ mod utils;
 
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
-pub use self::items::{Item, Mod, Rarity};
+pub use self::items::{Influence, Item, Mod, Rarity};
 pub use self::passives::Keystone;
 pub use self::serde::SerdePathOfBuilding;
 pub use self::stats::Stat;
