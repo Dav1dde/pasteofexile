@@ -16,7 +16,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let mut skill_sets = build.skill_sets();
 
     if skill_sets.is_empty() {
-        return view! { cx, div() { } };
+        return view! { cx, div() { "No Skill Gems" } };
     } else if skill_sets.len() == 1 {
         let skills = render_skills(cx, skill_sets.remove(0).skills);
         return view! { cx,
