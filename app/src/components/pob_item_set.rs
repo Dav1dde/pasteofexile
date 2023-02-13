@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use percent_encoding::utf8_percent_encode;
 use pob::PathOfBuilding;
 use sycamore::prelude::*;
 
@@ -96,7 +95,7 @@ fn render_item<'a, G: Html>(
         return view! { cx, div(class=class) {} };
     };
 
-    let src = item_image_url(image_name).unwrap_or_default();
+    let src = crate::assets::item_image_url(image_name).unwrap_or_default();
 
     let mouseover = move |_: web_sys::Event| current_item.set(item);
 
@@ -122,11 +121,6 @@ fn item_image_name<'a>(item: &pob::Item<'a>) -> &'a str {
         "Two-Toned Boots (Armour/Energy Shield)" => "TwoTonedArEs",
         base => base,
     }
-}
-
-fn item_image_url(item_image_name: &str) -> Option<String> {
-    let name = utf8_percent_encode(item_image_name, percent_encoding::NON_ALPHANUMERIC);
-    Some(format!("https://assets.pobb.in/1/{name}.webp"))
 }
 
 fn slots<'a>(gear: &pob::Gear<'a>) -> [(&'static str, Option<&'a str>); 10] {

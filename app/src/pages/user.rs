@@ -3,7 +3,7 @@ use sycamore::prelude::*;
 
 use crate::{
     components::PasteToolbox,
-    consts::IMG_ONERROR_INVISIBLE,
+    consts::{IMG_ONERROR_HIDDEN, IMG_ONERROR_INVISIBLE},
     future::LocalBoxFuture,
     router::RoutedComponent,
     utils::{deserialize_attribute, memo_cond, pretty_date_ts, serialize_for_attribute},
@@ -125,6 +125,16 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     let version = summary.version.clone().unwrap_or_default();
     let main_skill_name = summary.main_skill_name.clone().unwrap_or_default();
 
+    let main_skill_image = crate::assets::item_image_url(&main_skill_name);
+    let main_skill_image = if let Some(main_skill_image) = main_skill_image {
+        let main_skill_name = main_skill_name.clone();
+        view! { cx,
+            img(src=main_skill_image, alt=main_skill_name, class="h-10 mr-1", onerror=IMG_ONERROR_HIDDEN) {}
+        }
+    } else {
+        View::empty()
+    };
+
     view! { cx,
         div(class="p-3 even:bg-slate-700 border-solid border-[color:var(--col)]
                 hover:border-l-4 hover:bg-[color:var(--bg-col)]",
@@ -137,7 +147,10 @@ fn summary_to_view<'a, G: GenericNode + Html>(
                     onerror=IMG_ONERROR_INVISIBLE) {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
                     span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (version) } }
-                    span() { (main_skill_name) }
+                    div(class="flex items-center") {
+                        span(class="flex-none") { (main_skill_image) }
+                        span { (main_skill_name) }
+                    }
                 }
                 div(class="flex-1 sm:flex-initial flex flex-col items-end justify-between
                            gap-2 whitespace-nowrap self-end") {

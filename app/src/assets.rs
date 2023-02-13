@@ -44,6 +44,12 @@ pub fn logo() -> &'static str {
     "/apple-touch-icon.png"
 }
 
+pub fn item_image_url(item_image_name: &str) -> Option<String> {
+    let name =
+        percent_encoding::utf8_percent_encode(item_image_name, percent_encoding::NON_ALPHANUMERIC);
+    Some(format!("https://assets.pobb.in/1/{name}.webp"))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::assets::ascendancy_image;
