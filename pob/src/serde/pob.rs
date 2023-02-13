@@ -156,10 +156,15 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
 
         // Old PoB, emulate skill sets (all skills in one fake skill set)
         if !self.pob.skills.skills.is_empty() {
+            let skills = to_skills(&self.pob.skills.skills, main_socket_group);
+            if skills.is_empty() {
+                return vec![];
+            }
+
             return vec![crate::SkillSet {
                 id: 1,
                 title: None,
-                skills: to_skills(&self.pob.skills.skills, main_socket_group),
+                skills,
                 is_selected: true,
             }];
         }
@@ -174,6 +179,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                 skills: to_skills(&ss.skills, main_socket_group),
                 is_selected: self.pob.skills.active_skill_set == Some(ss.id),
             })
+            .filter(|ss| !ss.skills.is_empty())
             .collect()
     }
 
