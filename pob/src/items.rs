@@ -38,13 +38,12 @@ pub struct Item<'a> {
     pub rarity: Rarity,
     pub name: Option<&'a str>,
     pub base: &'a str,
-    // TODO: mabybe 0 should be options
-    pub item_level: u8,
-    pub level_requirement: u8,
-    pub quality: u8,
-    pub armour: u16,
-    pub evasion: u16,
-    pub energy_shield: u16,
+    pub item_level: Option<u8>,
+    pub level_requirement: Option<u8>,
+    pub quality: Option<u8>,
+    pub armour: Option<u16>,
+    pub evasion: Option<u16>,
+    pub energy_shield: Option<u16>,
 
     pub influence1: Option<Influence>,
     pub influence2: Option<Influence>,
@@ -83,24 +82,24 @@ impl<'a> Item<'a> {
             name = Some(base);
         }
 
-        let mut item_level = 0;
-        let mut level_requirement = 0;
-        let mut quality = 0;
-        let mut armour = 0;
-        let mut evasion = 0;
-        let mut energy_shield = 0;
+        let mut item_level = None;
+        let mut level_requirement = None;
+        let mut quality = None;
+        let mut armour = None;
+        let mut evasion = None;
+        let mut energy_shield = None;
 
         let mut influence1 = None;
         let mut influence2 = None;
 
         let mut selected_variant = "";
-        let mut num_implicits = 0;
+        let mut num_implicits = None;
         for line in lines.by_ref() {
             if let Some((cmd, arg)) = line.split_once(": ") {
                 macro_rules! parse {
                     ($(($pat:expr, $name:ident)),*) => {
                         match cmd {
-                            $($pat => $name = arg.parse().unwrap_or($name)),*,
+                            $($pat => $name = arg.parse().ok().or($name)),*,
                             "Selected Variant" => selected_variant = arg,
                             _ => (),
                         }
@@ -149,6 +148,8 @@ impl<'a> Item<'a> {
                 }
             }
         }
+
+        let num_implicits = num_implicits.unwrap_or(0);
 
         let mut lines = lines.peekable();
 
@@ -417,7 +418,7 @@ Extra gore"#,
         )
         .unwrap();
 
-        assert_eq!(item.item_level, 0);
+        assert_eq!(item.item_level, None);
     }
 
     #[test]
@@ -448,11 +449,11 @@ Adds 1 to 23 Lightning Damage to Attacks
         )
         .unwrap();
 
-        assert_eq!(item.item_level, 85);
-        assert_eq!(item.level_requirement, 67);
-        assert_eq!(item.quality, 20);
-        assert_eq!(item.armour, 209);
-        assert_eq!(item.evasion, 208);
-        assert_eq!(item.energy_shield, 0);
+        assert_eq!(item.item_level, Some(85));
+        assert_eq!(item.level_requirement, Some(67));
+        assert_eq!(item.quality, Some(20));
+        assert_eq!(item.armour, Some(209));
+        assert_eq!(item.evasion, Some(208));
+        assert_eq!(item.energy_shield, None);
     }
 }

@@ -19,6 +19,8 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
         view! { cx, li(style=style) { (line) } }
     };
 
+    let properties = build_properties(cx, &item);
+
     let influence1 = item.influence1.map_or_else(View::empty, move |influence| view! { cx,
         div(class="absolute left-[2px] top-0 bottom-0 w-[26px]", style=influence_style(influence)) {}
     });
@@ -59,6 +61,7 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
                 (influence2)
             }
             div(class="p-2 pt-1") {
+                Mods(properties)
                 Mods(enchants)
                 Mods(implicits)
                 Mods(explicits)
@@ -78,8 +81,35 @@ pub fn Mods<G: Html>(cx: Scope, mods: Vec<View<G>>) -> View<G> {
     view! { cx, ul { (content) } }
 }
 
+fn build_properties<G: Html>(cx: Scope, item: &pob::Item) -> Vec<View<G>> {
+    let augmented = item.quality.unwrap_or(0) > 0;
+    let style = if augmented {
+        "color: #88f"
+    } else {
+        "color: #fff"
+    };
+
+    let mut result = Vec::with_capacity(4);
+
+    macro_rules! push {
+        ($name:expr, $value:expr) => {
+            if let Some(value) = $value {
+                result.push(view! { cx,
+                    li() { span(style="color: #7f7f7f") { ($name) } span(style=style) { (value) } }
+                });
+            }
+        };
+    }
+
+    push!("Quality: ", item.quality.map(|q| format!("+{q}%")));
+    push!("Armour: ", item.armour);
+    push!("Evasion Rating: ", item.evasion);
+    push!("Energy Shield: ", item.energy_shield);
+
+    result
+}
+
 fn rarity_str(rarity: pob::Rarity) -> &'static str {
-    // TODO foils and influences etc.
     match rarity {
         pob::Rarity::Normal => "White",
         pob::Rarity::Magic => "Magic",
