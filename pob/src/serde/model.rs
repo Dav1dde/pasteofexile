@@ -1,4 +1,6 @@
-use serde::{de, Deserialize};
+use std::collections::HashMap;
+
+use serde::{de, Deserialize, Deserializer};
 
 use crate::serde::utils;
 
@@ -244,12 +246,40 @@ pub(crate) struct Socket {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Items {
     pub active_item_set: Option<u16>,
-    #[serde(default, rename = "Item")]
-    pub items: Vec<Item>,
-    #[serde(default, rename = "Slot")] // TODO: this isn't necessary with itemset parsing
-    pub slots: Vec<Slot>,
+    #[serde(default, rename = "Item", deserialize_with = "deserialize_items")]
+    pub items: HashMap<u16, Item>,
     #[serde(default, rename = "ItemSet")]
     pub item_sets: Vec<ItemSet>,
+}
+
+fn deserialize_items<'de, D>(deserializer: D) -> Result<HashMap<u16, Item>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Visitor;
+
+    impl<'de> de::Visitor<'de> for Visitor {
+        type Value = HashMap<u16, Item>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("list of pob items")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: de::SeqAccess<'de>,
+        {
+            let mut result = HashMap::with_capacity(seq.size_hint().unwrap_or(0));
+
+            while let Some(item) = seq.next_element::<Item>()? {
+                result.insert(item.id, item);
+            }
+
+            Ok(result)
+        }
+    }
+
+    deserializer.deserialize_seq(Visitor)
 }
 
 #[derive(Default, Debug, Deserialize)]
