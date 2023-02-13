@@ -330,7 +330,7 @@ fn extract_magic_base(base: &str, num_mods: usize) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use crate::Item;
+    use super::*;
 
     #[test]
     fn magic_life_flask() {
@@ -454,5 +454,69 @@ Adds 1 to 23 Lightning Damage to Attacks
         assert_eq!(item.armour, 209);
         assert_eq!(item.evasion, 208);
         assert_eq!(item.energy_shield, 0);
+        assert_eq!(item.influence1, Some(Influence::Fracture));
+        assert_eq!(item.influence2, Some(Influence::Fracture));
+    }
+
+    #[test]
+    fn influences() {
+        let item = Item::parse(
+            r#"Rarity: RARE
+Damnation Salvation
+Devout Chainmail
+Warlord Item
+Crusader Item
+Implicits: 0"#,
+        )
+        .unwrap();
+        assert_eq!(item.influence1, Some(Influence::Warlord));
+        assert_eq!(item.influence2, Some(Influence::Crusader));
+
+        let item = Item::parse(
+            r#"Rarity: UNIQUE
+Valyrium
+Moonstone Ring
+Elder Item
+Redeemer Item
+Implicits: 0"#,
+        )
+        .unwrap();
+        assert_eq!(item.influence1, Some(Influence::Elder));
+        assert_eq!(item.influence2, Some(Influence::Redeemer));
+
+        let item = Item::parse(
+            r#"Rarity: RARE
+Storm Rock
+Mosaic Kite Shield
+Shaper Item
+Hunter Item
+Implicits: 0"#,
+        )
+        .unwrap();
+        assert_eq!(item.influence1, Some(Influence::Shaper));
+        assert_eq!(item.influence2, Some(Influence::Hunter));
+
+        let item = Item::parse(
+            r#"Rarity: RARE
+Armageddon Halo
+Steel Circlet
+Searing Exarch Item
+Eater of Worlds Item
+Implicits: 0"#,
+        )
+        .unwrap();
+        assert_eq!(item.influence1, Some(Influence::SearingExarch));
+        assert_eq!(item.influence2, Some(Influence::EaterOfWorlds));
+
+        let item = Item::parse(
+            r#"Rarity: RARE
+Brimstone Torc
+Blue Pearl Amulet
+Synthesised Blue Pearl Amulet
+Implicits: 0"#,
+        )
+        .unwrap();
+        assert_eq!(item.influence1, Some(Influence::Synthesis));
+        assert_eq!(item.influence2, Some(Influence::Synthesis));
     }
 }
