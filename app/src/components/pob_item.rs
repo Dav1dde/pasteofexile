@@ -79,7 +79,6 @@ pub fn Mods<G: Html>(cx: Scope, mods: Vec<View<G>>) -> View<G> {
 }
 
 fn rarity_str(rarity: pob::Rarity) -> &'static str {
-    // TODO foils and influences etc.
     match rarity {
         pob::Rarity::Normal => "White",
         pob::Rarity::Magic => "Magic",
