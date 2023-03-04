@@ -189,22 +189,24 @@ pub fn offense(pob: &impl PathOfBuilding) -> Vec<Element> {
             false => pob.stat_parse(Stat::CombinedDps),
         });
 
+    Element::new("DPS")
+        .color(AMBER_50)
+        .stat_int(dps)
+        .add_to(&mut elements);
+
     let speed = if is_minion {
         pob.minion_stat_parse(Stat::Speed)
     } else {
         pob.stat_parse(Stat::Speed)
     };
 
-    Element::new("DPS")
-        .color(AMBER_50)
-        .stat_int(dps)
-        .add_to(&mut elements);
-
-    // TODO: this is cast rate for spells
-    Element::new("Speed")
-        .color(AMBER_50)
-        .stat_float(speed)
-        .add_to(&mut elements);
+    if speed > Some(0.001) {
+        // TODO: this is cast rate for spells
+        Element::new("Speed")
+            .color(AMBER_50)
+            .stat_float(speed)
+            .add_to(&mut elements);
+    }
 
     Element::new("Hit Rate")
         .color(AMBER_50)
