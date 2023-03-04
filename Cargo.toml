@@ -48,7 +48,7 @@ quick-xml = "0.22"
 
 base64 = "0.13"
 percent-encoding = "2"
-flate2 = "1"
+zune-inflate = { version = "0.2", default-features = false, features = ["zlib"] }
 encoding = "0.2"
 
 console_error_panic_hook = "0.1"

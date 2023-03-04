@@ -1,6 +1,4 @@
-use std::io::Read;
-
-use flate2::bufread::ZlibDecoder;
+use zune_inflate::DeflateDecoder;
 
 use crate::{Error, Result};
 
@@ -14,9 +12,11 @@ fn decode(data: &str) -> Result<Vec<u8>> {
 }
 
 fn deflate(inp: &[u8]) -> Result<String> {
-    let mut deflater = ZlibDecoder::new(inp);
-    let mut buf = Vec::new();
-    deflater.read_to_end(&mut buf).map_err(Error::Deflate)?;
+    let mut deflater = DeflateDecoder::new(inp);
+    let buf = deflater
+        .decode_zlib()
+        .map_err(|e| format!("{:?}", e.error))
+        .map_err(Error::Deflate)?;
 
     match String::from_utf8(buf) {
         Ok(s) => Ok(s),

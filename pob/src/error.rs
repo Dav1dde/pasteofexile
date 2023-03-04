@@ -10,8 +10,8 @@ pub enum Error {
     #[error("failed to string decode: {0}")]
     StringDecode(std::borrow::Cow<'static, str>),
 
-    #[error("failed to deflate/decompress input: {0}")]
-    Deflate(std::io::Error),
+    #[error("failed to deflate/decompress input: {0:?}")]
+    Deflate(String),
 
     #[error("failed to parse build at: {0} ({1})")]
     ParseXml(String, quick_xml::de::DeError),
