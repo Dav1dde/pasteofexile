@@ -318,14 +318,53 @@ fn extract_magic_base(base: &str, num_mods: usize) -> &str {
     }
 
     let end = base.find(" of").unwrap_or(base.len());
+    let has_suffix_in_name = end != base.len();
+    // strip off the suffix if there is one
+    let base = &base[..end];
 
-    if num_mods == 1 && end != base.len() {
+    #[allow(clippy::if_same_then_else)]
+    if has_suffix_in_name && num_mods == 1 {
         // Only suffix
-        &base[..end]
+        base
+    } else if has_suffix_in_name && num_mods == 2 && may_be_full_base(base) {
+        // 2 mods, but they both belong to the suffix and `base` is already
+        // the full base name
+        base
     } else {
         // Prefix with or without suffix
-        base[..end].split_once(' ').map_or(base, |s| s.1)
+        base.split_once(' ').map_or(base, |s| s.1)
     }
+}
+
+/// Whether the name may be a full base without prefix/Suffix for magic items.
+///
+/// This is an inaccurate way of determining whether a name is a base or not.
+///
+/// Most bases are 2 words with the exception of shields, jewels and talismans.
+/// Shields always are 3 words, abyss and cluster jewels are always 3 words,
+/// talismans are mixed.
+///
+/// This ignores talismans and just assumes talismans are 2 words.
+///
+/// There are also some bases that are only one (singular) word, like `Ring`,
+/// these bases can only obtained by 'bricking' a unique and then using a
+/// vendor recipe to obtain a craftable base, these cases are also ignored.
+///
+/// Why this guessing? Accurately determining what the base of a magic item
+/// is from a pob export would require a mod  or base db, which is quite costly
+/// in terms of storage and code size. This is hopefully good enough.
+fn may_be_full_base(name: &str) -> bool {
+    let words = if name.ends_with("Shield")
+        || name.ends_with("Cluster Jewel")
+        || name.ends_with("Abyss Jewel")
+    {
+        3
+    } else {
+        2
+    };
+
+    // Check whether if the name has exactly `words` words
+    name.split_whitespace().take(words + 1).count() == words
 }
 
 #[cfg(test)]
@@ -456,6 +495,25 @@ Adds 1 to 23 Lightning Damage to Attacks
         assert_eq!(item.energy_shield, 0);
         assert_eq!(item.influence1, Some(Influence::Fracture));
         assert_eq!(item.influence2, Some(Influence::Fracture));
+    }
+
+    #[test]
+    fn double_mod_only_suffix() {
+        let item = Item::parse(
+            r#"Rarity: MAGIC
+Sapphire Flask of the Lizard
+Unique ID: 5ef536d249d5a5dfd3905be71ad31ee10b2bf04d4fd84c1c7917a306c80b3ec3
+Item Level: 20
+Quality: 20
+LevelReq: 18
+Implicits: 1
+{crafted}Used when an adjacent Flask is used
+46% less Duration
+Immunity to Bleeding and Corrupted Blood during Effect"#,
+        )
+        .unwrap();
+
+        assert_eq!("Sapphire Flask", item.base);
     }
 
     #[test]
