@@ -160,11 +160,19 @@ pub fn add_breadcrumb(breadcrumb: Breadcrumb) {
 }
 
 pub fn add_attachment_plain(data: Rc<[u8]>, filename: impl Into<Cow<'static, str>>) {
+    add_attachment(data, Some("text/plain".into()), filename)
+}
+
+pub fn add_attachment(
+    data: Rc<[u8]>,
+    content_type: Option<Cow<'static, str>>,
+    filename: impl Into<Cow<'static, str>>,
+) {
     with_sentry_mut(move |sentry| {
         sentry.add_attachment(protocol::Attachment {
             buffer: data,
             filename: filename.into(),
-            content_type: Some("text/plain".into()),
+            content_type,
             ty: Some(protocol::AttachmentType::Attachment),
         })
     });

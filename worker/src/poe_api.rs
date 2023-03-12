@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
+use serde::Deserialize;
 use worker::Url;
 
 use crate::{
     net,
     request_context::{Env, FromEnv},
+    sentry,
 };
 
 const OAUTH_AUTHORIZE_URL: &str = "https://www.pathofexile.com/oauth/authorize";
@@ -101,7 +103,6 @@ impl Oauth {
         format!("{OAUTH_AUTHORIZE_URL}?{params}")
     }
 
-    // TODO: better errors
     #[tracing::instrument(skip(self, code))]
     pub async fn fetch_token(&self, code: &str) -> crate::Result<OauthToken> {
         let payload = url::form_urlencoded::Serializer::new(String::new())
@@ -112,10 +113,15 @@ impl Oauth {
             .finish();
 
         let mut response = net::Request::post("https://www.pathofexile.com/oauth/token")
+            .header("User-Agent", POE_API_USER_AGENT)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(&payload)
             .send()
             .await?;
+
+        if response.status_code() != 200 {
+            return Err(handle_error("Token", response).await.into());
+        }
 
         Ok(response.json().await?)
     }
@@ -135,7 +141,6 @@ impl PoeApi {
         Self { access_token }
     }
 
-    // TODO: better errors
     #[tracing::instrument(skip(self))]
     pub async fn fetch_profile(&self) -> crate::Result<Profile> {
         let mut response = net::Request::get("https://api.pathofexile.com/profile")
@@ -144,6 +149,75 @@ impl PoeApi {
             .send()
             .await?;
 
+        if response.status_code() != 200 {
+            return Err(handle_error("Profile", response).await.into());
+        }
+
         Ok(response.json().await?)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PoEApiError {
+    #[error("{call} failed with status code {status_code}. {error}: {description}")]
+    Parsed {
+        call: &'static str,
+        error: String,
+        description: String,
+        status_code: u16,
+    },
+    #[error("{call} failed with status code {status_code}")]
+    Unknown {
+        call: &'static str,
+        status_code: u16,
+    },
+}
+
+async fn handle_error(name: &'static str, mut response: worker::Response) -> PoEApiError {
+    tracing::warn!(
+        "fetching {name} failed with status code {}",
+        response.status_code()
+    );
+
+    let mut error = PoEApiError::Unknown {
+        call: name,
+        status_code: response.status_code(),
+    };
+
+    let content = match response.text().await {
+        Ok(content) => content,
+        Err(err) => {
+            tracing::warn!("failed to capture response for {name}: {err:?}");
+            return error;
+        }
+    };
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .ok()
+        .flatten()
+        .map(Cow::Owned);
+
+    if content_type.as_deref() == Some("application/json") {
+        #[derive(Deserialize)]
+        struct E {
+            error: String,
+            #[serde(default)]
+            error_description: String,
+        }
+        if let Ok(json_error) = serde_json::from_str::<E>(&content) {
+            error = PoEApiError::Parsed {
+                call: name,
+                error: json_error.error,
+                description: json_error.error_description,
+                status_code: response.status_code(),
+            }
+        }
+    };
+
+    let data = content.into_bytes().into();
+    sentry::add_attachment(data, content_type, name);
+
+    error
 }

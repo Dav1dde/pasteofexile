@@ -37,6 +37,9 @@ pub enum Error {
     #[error("Invalid Session State")]
     InvalidSessionState,
 
+    #[error(transparent)]
+    PoEApiError(#[from] crate::poe_api::PoEApiError),
+
     #[error("{0}")]
     InvalidPoB(pob::Error, String),
 
@@ -72,6 +75,7 @@ impl Error {
             Self::InvalidPoB(..) => "InvalidPoB",
             Self::InvalidId(..) => "InvalidId",
             Self::Dangerous(..) => "DangerousError",
+            Self::PoEApiError(..) => "PoEApiError",
             Self::Base64(..) => "Base64",
             Self::IOError(..) => "IOError",
             Self::Error(..) => "Error",
@@ -116,6 +120,7 @@ impl Error {
                 DangerousError::Deserialize => Level::Warning,
                 _ => Level::Error,
             },
+            Self::PoEApiError(..) => Level::Warning,
             Self::Base64(..) => Level::Error,
             Self::IOError(..) => Level::Error,
             Self::Error(..) => Level::Error,
