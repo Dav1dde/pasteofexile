@@ -10,7 +10,7 @@ use crate::{
     response,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
     sentry,
-    utils::{self, CacheControl, Etag, RequestExt},
+    utils::{self, CacheControl, Etag, LenientId, RequestExt},
     Error, Response, Result,
 };
 
@@ -59,8 +59,8 @@ pub async fn handle(rctx: &mut RequestContext, route: route::Api) -> response::R
         // Get
         Get(Oembed) => handle_oembed(rctx).await,
         Get(User(user)) => handle_user(rctx, user).await,
-        Get(PobPaste(id)) => handle_download_text(rctx, id).await,
-        Get(PobUserPaste(user, id)) => {
+        Get(PobPaste(LenientId(id))) => handle_download_text(rctx, id).await,
+        Get(PobUserPaste(user, LenientId(id))) => {
             handle_download_text(rctx, UserPasteId { user, id }.into()).await
         }
         Get(Paste(id)) => handle_download_text(rctx, PasteId::Paste(id)).await,

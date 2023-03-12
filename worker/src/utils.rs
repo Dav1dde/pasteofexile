@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 use std::time::Duration;
 
 use git_version::git_version;
@@ -231,6 +232,31 @@ impl RequestExt for Request {
             .filter_map(|part| part.split_once('='))
             .find(|(k, _)| name == k.trim())
             .map(|(_, v)| v.trim().to_owned())
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct LenientId<T>(pub T);
+
+impl<T: FromStr> FromStr for LenientId<T> {
+    type Err = <T as FromStr>::Err;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.parse() {
+            Ok(t) => Ok(Self(t)),
+            Err(orig_err) => {
+                // also handle `<username>:<id>` IDs
+                let start = s.find(':').map(|i| i + 1).unwrap_or(0);
+                let end = s[start..]
+                    .bytes()
+                    .take_while(
+                        |b| matches!(b, b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'-'),
+                    )
+                    .count();
+                tracing::info!("corrected '{}' to '{}'", s, &s[..start + end]);
+                s[..start + end].parse().map(Self).map_err(|_| orig_err)
+            }
+        }
     }
 }
 

@@ -2,7 +2,7 @@ use app::PercentRoute;
 use shared::{Id, PasteId, User};
 use worker::{Method, Request};
 
-use crate::assets;
+use crate::{assets, utils::LenientId};
 
 #[derive(Debug, Clone)]
 pub enum Route {
@@ -92,10 +92,10 @@ pub enum GetEndpoints {
     /// User scoped paste IDs are used in `pob://` protocol links.
     /// Anonymous paste IDs are coming from importing an anonymous build URL in PoB.
     #[to("/pob/<id>")]
-    PobPaste(PasteId),
+    PobPaste(LenientId<PasteId>),
     /// Path of Building endpoint for importing user paste URLs.
     #[to("/pob/u/<name>/<id>")]
-    PobUserPaste(User, Id),
+    PobUserPaste(User, LenientId<Id>),
     #[to("/login")]
     Login,
     #[to("/oauth2/authorization/poe")]

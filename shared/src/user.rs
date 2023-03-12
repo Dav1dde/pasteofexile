@@ -69,7 +69,7 @@ impl FromStr for User {
     fn from_str(username: &str) -> Result<Self, Self::Err> {
         let mut count = 0usize;
         for c in username.chars() {
-            if c == '/' {
+            if matches!(c, '/' | ':') {
                 return Err(Self::Err::Invalid);
             }
             count += 1;
