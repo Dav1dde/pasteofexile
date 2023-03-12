@@ -109,6 +109,7 @@ async fn handle(rctx: &mut RequestContext) -> Response {
     };
 
     if let Err(ref err) = response {
+        tracing::warn!("error: {err:?}");
         sentry::capture_err(err.inner());
     }
 
