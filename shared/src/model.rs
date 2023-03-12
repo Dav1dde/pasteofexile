@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use serde::{Deserialize, Serialize};
 
 use crate::PasteId;
@@ -47,19 +49,29 @@ pub struct Node {
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub ascendancy_or_class: String, // TODO: this should be an enum
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub main_skill_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rank: Option<NonZeroU8>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PasteSummary {
     pub id: PasteId,
     pub title: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub ascendancy_or_class: String, // TODO: this should be an enum
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub main_skill_name: Option<String>,
     pub last_modified: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rank: Option<NonZeroU8>,
 }
 
 impl PasteSummary {

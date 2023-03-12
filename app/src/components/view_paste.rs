@@ -224,6 +224,7 @@ fn push_paste_to_history<G: Html>(
             version: build.max_tree_version(),
             main_skill_name: build.main_skill_name().map(|s| s.to_owned()),
             last_modified,
+            rank: None,
         };
 
         spawn_local_scoped(cx, async move {

@@ -102,8 +102,7 @@ pub fn UserPageComponent<G: Html>(cx: Scope, UserPage { name, pastes }: UserPage
             span { (name) }
             span { "'s builds" }
         }
-        div(data-ssr=data_ssr,
-            class="flex flex-col gap-2") {
+        div(data-ssr=data_ssr, class="flex flex-col gap-2") {
             (p)
         }
     }
@@ -135,10 +134,13 @@ fn summary_to_view<'a, G: GenericNode + Html>(
         View::empty()
     };
 
+    let pinned = summary.rank.is_some();
+
     view! { cx,
         div(class="p-3 even:bg-slate-700 border-solid border-[color:var(--col)]
                 hover:border-l-4 hover:bg-[color:var(--bg-col)]",
-            style=format!("--col: {color}; --bg-col: {color}66")
+            style=format!("--col: {color}; --bg-col: {color}66"),
+            data-pinned=pinned,
         ) {
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
@@ -146,7 +148,10 @@ fn summary_to_view<'a, G: GenericNode + Html>(
                     alt="Ascendancy Thumbnail",
                     onerror=IMG_ONERROR_INVISIBLE) {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
-                    span(class="text-amber-50") { (summary.title) sup(class="ml-1") { (version) } }
+                    span(class="text-amber-50") {
+                        span(class=if pinned { "underline" } else { "" }) { (summary.title) }
+                        sup(class="ml-1") { (version) }
+                    }
                     div(class="flex items-center") {
                         span(class="flex-none") { (main_skill_image) }
                         span { (main_skill_name) }

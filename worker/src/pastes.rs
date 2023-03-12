@@ -73,11 +73,16 @@ impl Pastes {
                     version: metadata.version,
                     main_skill_name: metadata.main_skill_name,
                     last_modified: item.last_modified,
+                    rank: metadata.rank,
                 }
             })
             .collect::<Vec<_>>();
 
-        pastes.sort_unstable_by(|a, b| b.last_modified.cmp(&a.last_modified));
+        pastes.sort_unstable_by(|a, b| {
+            b.rank
+                .cmp(&a.rank)
+                .then(b.last_modified.cmp(&a.last_modified))
+        });
 
         let etag = pastes
             .first()

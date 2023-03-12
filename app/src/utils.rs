@@ -132,6 +132,7 @@ pub fn find_attribute<T: FromStr>(element: &web_sys::Element, attribute: &str) -
         .ok()
         .flatten()
         .and_then(|e| e.get_attribute(attribute))
+        .filter(|v| !v.is_empty())
         .and_then(|v| v.parse().ok())
 }
 

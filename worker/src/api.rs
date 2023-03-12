@@ -1,4 +1,4 @@
-use std::{borrow::Cow, rc::Rc, time::Duration};
+use std::{borrow::Cow, num::NonZeroU8, rc::Rc, time::Duration};
 
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
@@ -218,6 +218,9 @@ struct UploadRequest {
     #[serde(default)]
     custom_id: Option<String>,
 
+    #[serde(default)]
+    pinned: bool,
+
     content: String,
 }
 
@@ -245,6 +248,7 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
         validate_v!(validation::user::is_valid_custom_title(&title));
 
         metadata.title = title;
+        metadata.rank = if data.pinned { NonZeroU8::new(1) } else { None };
 
         if let Some(id) = data.id {
             validate_access!(Some(session.name.as_str()) == id.user().map(|user| user.as_str()));
@@ -340,6 +344,7 @@ fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
         ascendancy_or_class: pob.ascendancy_or_class_name().to_owned(),
         version: pob.max_tree_version(),
         main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),
+        rank: None,
     }
 }
 

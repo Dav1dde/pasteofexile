@@ -25,6 +25,7 @@ pub struct CreatePaste<'a> {
     #[serde(skip_serializing_if = "str::is_empty")]
     pub custom_id: &'a str,
     pub id: Option<&'a PasteId>,
+    pub pinned: bool,
 }
 
 #[allow(dead_code)] // Only used in !SSR

@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use pob::SerdePathOfBuilding;
 use shared::{validation, Id, UserPasteId};
 use sycamore::{prelude::*, reactive::use_context};
@@ -11,6 +13,7 @@ pub enum CreatePasteProps {
         id: UserPasteId,
         content: String,
         title: Option<String>,
+        rank: Option<NonZeroU8>,
     },
 }
 
@@ -27,6 +30,13 @@ impl CreatePasteProps {
         match self {
             // TODO: should be able to get rid of that clone
             Self::Update { title, .. } => title.clone(),
+            _ => None,
+        }
+    }
+
+    fn rank(&self) -> Option<NonZeroU8> {
+        match self {
+            Self::Update { rank, .. } => *rank,
             _ => None,
         }
     }
@@ -66,6 +76,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
             .map(|up| up.id.to_string())
             .unwrap_or_default(),
     );
+    let pinned = create_signal(cx, props.rank().is_some());
 
     let session = use_context::<SessionValue>(cx);
 
@@ -113,6 +124,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
         let title = title.get();
         let custom_title = custom_title.get();
         let custom_id = custom_id.get();
+        let pinned = *pinned.get();
 
         let future = async move {
             let id = props.paste_id().map(|e| e.clone().into());
@@ -128,6 +140,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
                 title,
                 custom_id: &custom_id,
                 content: &value,
+                pinned,
             };
             match api::create_paste(params).await {
                 Err(err) => {
@@ -224,6 +237,15 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
                     readonly=is_update,
                     value=custom_id.get(),
                     on:input=on_custom_id) { }
+
+                div(title="Pinned pastes are listed first") { "Pinned" }
+                div() {
+                input(
+                    type="checkbox",
+                    bind:checked=pinned,
+                    data-rank=props.rank().map(|m| m.get().to_string()).unwrap_or_default(),
+                ) {}
+                }
             }
         },
         view! { cx, }

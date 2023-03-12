@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use shared::{Id, User, UserPasteId};
 use sycamore::prelude::*;
 
@@ -5,7 +7,7 @@ use crate::{
     components::{CreatePaste, CreatePasteProps},
     future::LocalBoxFuture,
     router::RoutedComponent,
-    utils::find_text,
+    utils::{find_attribute, find_text},
     Meta, Result,
 };
 
@@ -13,6 +15,7 @@ pub struct UserEditPastePage {
     id: UserPasteId,
     title: Option<String>,
     content: String,
+    rank: Option<NonZeroU8>,
 }
 
 impl RoutedComponent for UserEditPastePage {
@@ -22,19 +25,22 @@ impl RoutedComponent for UserEditPastePage {
         let paste = ctx.into_paste().unwrap();
         Ok(Self {
             id: UserPasteId { user, id },
-            title: paste.metadata.map(|m| m.title),
             content: paste.content,
+            rank: paste.metadata.as_ref().and_then(|m| m.rank),
+            title: paste.metadata.map(|m| m.title),
         })
     }
 
     fn from_hydration((user, id): Self::RouteArg, element: web_sys::Element) -> Result<Self> {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
+        let rank = find_attribute(&element, "data-rank");
 
         Ok(Self {
             id: UserPasteId { user, id },
             content,
             title,
+            rank,
         })
     }
 
@@ -45,6 +51,7 @@ impl RoutedComponent for UserEditPastePage {
             Ok(Self {
                 id: id.unwrap_user(),
                 content: paste.content,
+                rank: paste.metadata.as_ref().and_then(|m| m.rank),
                 title: paste.metadata.map(|x| x.title),
             })
         })
@@ -59,8 +66,18 @@ impl RoutedComponent for UserEditPastePage {
     }
 
     fn render<G: Html>(self, cx: Scope) -> View<G> {
-        let Self { id, content, title } = self;
-        let props = CreatePasteProps::Update { id, content, title };
+        let Self {
+            id,
+            content,
+            title,
+            rank,
+        } = self;
+        let props = CreatePasteProps::Update {
+            id,
+            content,
+            title,
+            rank,
+        };
         view! { cx,
             CreatePaste(props)
         }
