@@ -137,14 +137,14 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     let pinned = summary.rank.is_some();
 
     view! { cx,
-        div(class="p-3 even:bg-slate-700 border-solid border-[color:var(--col)]
+        div(class="p-3 md:p-0 md:pr-3 even:bg-slate-700 border-solid border-[color:var(--col)]
                 hover:border-l-4 hover:bg-[color:var(--bg-col)]",
             style=format!("--col: {color}; --bg-col: {color}66"),
             data-pinned=pinned,
         ) {
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
-                    class="asc-image rounded-full",
+                    class="asc-image rounded-full md:rounded-l-none md:h-auto md:w-auto",
                     alt="Ascendancy Thumbnail",
                     onerror=IMG_ONERROR_INVISIBLE) {}
                 a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
@@ -158,7 +158,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
                     }
                 }
                 div(class="flex-1 sm:flex-initial flex flex-col items-end justify-between
-                           gap-2 whitespace-nowrap self-end") {
+                           gap-2 whitespace-nowrap self-end md:self-center") {
                     a(href=open_in_pob_url,
                       title="Open build in Path of Building",
                       class="btn btn-primary hidden md:block"

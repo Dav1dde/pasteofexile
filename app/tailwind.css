@@ -28,6 +28,10 @@
             bg-slate-900 opacity-90 shadow-lg shadow-sky-500
             left-0 md:left-auto md:w-[500px];
     }
+
+    .asc-image {
+        @apply w-[50px] h-[50px] object-cover;
+    }
 }
 
 .pob-item[data-rarity="White"] {
@@ -59,12 +63,6 @@
 
 .dark {
     color-scheme: dark;
-}
-
-.asc-image {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
 }
 
 .gem-first::before {
