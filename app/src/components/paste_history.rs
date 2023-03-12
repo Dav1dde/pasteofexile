@@ -1,4 +1,4 @@
-use shared::model::PasteId;
+use shared::PasteId;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 

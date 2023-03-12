@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use ::pob::PathOfBuildingExt;
-use shared::model::PasteId;
+use shared::{Id, PasteId};
 use sycamore::prelude::*;
 
 use crate::{
@@ -15,14 +15,14 @@ use crate::{
 };
 
 pub struct PastePage {
-    id: String,
+    id: Id,
     title: Option<String>,
     last_modified: u64,
     build: Build,
 }
 
 impl RoutedComponent for PastePage {
-    type RouteArg = String;
+    type RouteArg = Id;
 
     fn from_context(id: Self::RouteArg, ctx: crate::Context) -> Result<Self> {
         let mut paste = ctx.into_paste().unwrap();
@@ -52,13 +52,13 @@ impl RoutedComponent for PastePage {
     }
 
     fn from_dynamic<'a>(id: Self::RouteArg) -> LocalBoxFuture<'a, Result<Self>> {
+        let id = id.into();
         Box::pin(async move {
-            // TODO: get rid of this clone, there needs to be a better way to pass this around
-            let mut paste = crate::api::get_paste(&PasteId::new_id(id.clone())).await?;
+            let mut paste = crate::api::get_paste(&id).await?;
             let title = paste.metadata.take().map(|x| x.title);
 
             Ok(Self {
-                id,
+                id: id.unwrap_paste(),
                 title,
                 last_modified: paste.last_modified,
                 build: paste.try_into()?,
@@ -113,7 +113,7 @@ fn PastePageComponent<G: Html>(
 ) -> View<G> {
     let data_nodes = serialize_for_attribute::<G>(build.nodes());
     let props = ViewPasteProps {
-        id: PasteId::new_id(id),
+        id: PasteId::Paste(id),
         title,
         last_modified,
         build: create_ref(cx, build),

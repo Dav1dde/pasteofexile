@@ -19,7 +19,7 @@ impl User {
     /// Usernames are case insensitive,
     /// returns a normalized version of the username (lowercase).
     pub fn normalized(&self) -> Self {
-        Self::new_unchecked(self.0.to_lowercase())
+        Self(self.0.to_lowercase())
     }
 }
 
@@ -55,30 +55,31 @@ impl fmt::Display for User {
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidUser(&'static str);
-
-impl fmt::Display for InvalidUser {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Invalid Username: {}", self.0)
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum InvalidUser {
+    #[error("Username too long")]
+    TooLong,
+    #[error("Invalid Username")]
+    Invalid,
 }
-
-impl std::error::Error for InvalidUser {}
 
 impl FromStr for User {
     type Err = InvalidUser;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let username = percent_encoding::percent_decode_str(s)
-            .decode_utf8()
-            .map_err(|_| InvalidUser("invalid utf-8"))?;
+    fn from_str(username: &str) -> Result<Self, Self::Err> {
+        let mut count = 0usize;
+        for c in username.chars() {
+            if c == '/' {
+                return Err(Self::Err::Invalid);
+            }
+            count += 1;
 
-        if username.chars().count() > 30 {
-            return Err(InvalidUser("username too long"));
+            if count > 30 {
+                return Err(Self::Err::TooLong);
+            }
         }
 
-        Ok(Self::new_unchecked(username.into()))
+        Ok(Self(username.into()))
     }
 }
 

@@ -1,4 +1,4 @@
-use shared::model::PasteId;
+use shared::PasteId;
 
 use crate::request_context::RequestContext;
 

@@ -1,6 +1,9 @@
 use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
-use shared::model::{Paste, PasteId, PasteSummary, UserPasteId};
+use shared::{
+    model::{Paste, PasteSummary},
+    PasteId, UserPasteId,
+};
 
 use crate::{Error, Result};
 
@@ -15,7 +18,12 @@ pub struct CreatePaste<'a> {
     pub as_user: bool,
     pub content: &'a str,
     pub title: &'a str,
-    pub custom_id: Option<&'a str>,
+    // let the server side take care of validation here
+    // the ui already tries validating and disabling the button,
+    // but it's overall easier to ignore potential errors here and
+    // just let the backend raise them
+    #[serde(skip_serializing_if = "str::is_empty")]
+    pub custom_id: &'a str,
     pub id: Option<&'a PasteId>,
 }
 

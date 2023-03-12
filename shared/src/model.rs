@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-mod paste;
-
-pub use paste::*;
+use crate::PasteId;
 
 #[derive(Debug)]
 pub struct ListPaste {

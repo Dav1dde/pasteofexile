@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
 use shared::{
-    model::{ListPaste, PasteId, PasteMetadata},
-    User,
+    model::{ListPaste, PasteMetadata},
+    PasteId, User,
 };
 
 use crate::{

@@ -1,4 +1,4 @@
-use shared::model::UserPasteId;
+use shared::UserPasteId;
 use sycamore::prelude::*;
 
 use crate::{

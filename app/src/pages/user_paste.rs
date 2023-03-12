@@ -1,10 +1,7 @@
 use std::{borrow::Cow, convert::TryInto};
 
 use ::pob::PathOfBuildingExt;
-use shared::{
-    model::{PasteId, UserPasteId},
-    User,
-};
+use shared::{Id, User, UserPasteId};
 use sycamore::prelude::*;
 
 use crate::{
@@ -26,7 +23,7 @@ pub struct UserPastePage {
 }
 
 impl RoutedComponent for UserPastePage {
-    type RouteArg = (User, String);
+    type RouteArg = (User, Id);
 
     fn from_context((user, id): Self::RouteArg, ctx: crate::Context) -> Result<Self> {
         let mut paste = ctx.into_paste().unwrap();
@@ -56,14 +53,13 @@ impl RoutedComponent for UserPastePage {
     }
 
     fn from_dynamic<'a>((user, id): Self::RouteArg) -> LocalBoxFuture<'a, Result<Self>> {
+        let id = UserPasteId { user, id }.into();
         Box::pin(async move {
-            // TODO: get rid of these clones
-            let mut paste =
-                crate::api::get_paste(&PasteId::new_user(user.clone(), id.clone())).await?;
+            let mut paste = crate::api::get_paste(&id).await?;
             let title = paste.metadata.take().map(|x| x.title);
 
             Ok(Self {
-                id: UserPasteId { user, id },
+                id: id.unwrap_user(),
                 title,
                 last_modified: paste.last_modified,
                 build: paste.try_into()?,

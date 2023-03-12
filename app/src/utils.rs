@@ -5,8 +5,10 @@ use sycamore::prelude::*;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 
 pub mod hooks;
+mod route;
 mod storage;
 
+pub use route::PercentRoute;
 pub use storage::LocalStorage;
 
 macro_rules! memo_cond {

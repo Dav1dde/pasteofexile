@@ -1,4 +1,4 @@
-use shared::User;
+use shared::{Id, User};
 use sycamore::prelude::*;
 use sycamore_router::{HistoryIntegration, Router as DynRouter};
 use web_sys::Element;
@@ -6,7 +6,9 @@ use web_sys::Element;
 use crate::{
     future::LocalBoxFuture,
     pages,
-    utils::{deserialize_from_attribute, serialize_json_b64, try_block, try_block_async},
+    utils::{
+        deserialize_from_attribute, serialize_json_b64, try_block, try_block_async, PercentRoute,
+    },
     Context, Error, Meta, ResponseContext, Result,
 };
 
@@ -16,22 +18,15 @@ pub enum Route {
     #[to("/")]
     Index,
     #[to("/<id>")]
-    Paste(String),
+    Paste(Id),
     #[to("/u/<name>")]
     User(User),
     #[to("/u/<name>/<id>")]
-    UserPaste(User, String),
+    UserPaste(User, Id),
     #[to("/u/<name>/<id>/edit")]
-    UserEditPaste(User, String),
+    UserEditPaste(User, Id),
     #[not_found]
     NotFound,
-}
-
-impl Route {
-    pub fn resolve(&self, path: &str) -> Self {
-        use sycamore_router::Route;
-        self.match_path(path)
-    }
 }
 
 pub trait RoutedComponent
@@ -71,10 +66,13 @@ pub fn Router<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
 #[allow(clippy::large_enum_variant)]
 enum Switch<'a> {
     Static(Context),
-    Dynamic(&'a ReadSignal<Route>),
+    Dynamic(&'a ReadSignal<PercentRoute<Route>>),
 }
 
-fn switch_browser<'a, G: Html>(cx: Scope<'a>, route: &'a ReadSignal<Route>) -> View<G> {
+fn switch_browser<'a, G: Html>(
+    cx: Scope<'a>,
+    route: &'a ReadSignal<PercentRoute<Route>>,
+) -> View<G> {
     switch(cx, Switch::Dynamic(route))
 }
 

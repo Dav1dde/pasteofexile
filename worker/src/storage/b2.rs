@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use shared::{
-    model::{ListPaste, PasteId, PasteMetadata},
-    User,
+    model::{ListPaste, PasteMetadata},
+    PasteId, User,
 };
 
 use super::{b2_client, StoredPaste};

@@ -1,12 +1,12 @@
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use shared::{model::PasteId, User};
+use shared::{PasteId, User};
 
 pub use self::ResponseError::{ApiError, AppError};
 use crate::{
     storage::StoredPaste,
-    utils::{CacheControl, Etag},
+    utils::{b64_decode, b64_encode, CacheControl, Etag},
 };
 
 pub type Result = std::result::Result<Response, ResponseError>;
@@ -33,22 +33,28 @@ pub struct Meta {
     ///
     /// This is e.g. filled when listing pastes from a specific
     /// user and also when viewing a user scoped paste.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<User>,
     /// The stringified form of a `PasteId`.
     ///
     /// For example `abc` or `user:abc`.
     /// This uniquely identifies a paste.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub paste_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ascendancy_or_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub main_skill_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub last_modified: Option<u64>,
 }
 
 impl Meta {
     pub fn paste(id: impl Into<PasteId>, pmeta: impl PartialMeta) -> Self {
         let (user_id, paste_id) = match id.into() {
-            PasteId::Paste(paste_id) => (None, Some(paste_id)),
+            PasteId::Paste(paste_id) => (None, Some(paste_id.to_string())),
             PasteId::UserPaste(up) => {
                 let paste_id = up.to_string();
                 (Some(up.user), Some(paste_id))
@@ -298,7 +304,9 @@ impl Response {
         let mut response: Self = r.into();
 
         let meta = response.headers.get("X-Response-Meta").ok().flatten();
-        response.meta = meta.and_then(|m| serde_json::from_str(&m).ok());
+        response.meta = meta
+            .and_then(|m| b64_decode(m).ok())
+            .and_then(|m| serde_json::from_slice(&m).ok());
 
         let _ = response.headers.delete("X-Response-Meta");
         let _ = response.headers.set("Cf-Cache-Status", "HIT");
@@ -314,7 +322,7 @@ impl Response {
             .with_headers(self.headers.clone());
 
         if let Some(ref meta) = self.meta {
-            let meta = serde_json::to_string(meta).unwrap();
+            let meta = b64_encode(serde_json::to_string(meta).unwrap());
             response
                 .headers_mut()
                 .set("X-Response-Meta", &meta)

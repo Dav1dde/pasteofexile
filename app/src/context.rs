@@ -1,4 +1,7 @@
-use shared::model::{Nodes, PasteId, PasteMetadata, PasteSummary, UserPasteId};
+use shared::{
+    model::{Nodes, PasteMetadata, PasteSummary},
+    PasteId, UserPasteId,
+};
 
 use crate::Route;
 
@@ -30,8 +33,9 @@ impl Context {
     }
 
     pub fn paste(id: PasteId, paste: shared::model::Paste) -> Self {
+        let id = id.unwrap_paste();
         Self {
-            route: Ok(Route::Paste(id.into())),
+            route: Ok(Route::Paste(id)),
             inner: paste.into(),
         }
     }

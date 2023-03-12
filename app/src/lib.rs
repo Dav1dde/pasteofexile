@@ -30,6 +30,7 @@ pub use meta::{Meta, Prefetch};
 pub use response_context::ResponseContext;
 pub use router::Route;
 pub use session::User;
+pub use utils::PercentRoute;
 
 #[cfg(feature = "ssr")]
 pub fn render_to_string(context: Context) -> (String, ResponseContext) {

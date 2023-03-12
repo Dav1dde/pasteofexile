@@ -5,7 +5,17 @@ use worker::wasm_bindgen::JsCast;
 use worker::wasm_bindgen_futures::JsFuture;
 use worker::{js_sys, Result};
 
-pub async fn sha1(data: &[u8]) -> Result<Vec<u8>> {
+pub struct Sha1(Vec<u8>);
+
+impl std::ops::Deref for Sha1 {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub async fn sha1(data: &[u8]) -> Result<Sha1> {
     let worker: WorkerGlobalScope = js_sys::global().unchecked_into();
     let data = unsafe { Uint8Array::view(data) };
     let digest = JsFuture::from(
@@ -16,7 +26,7 @@ pub async fn sha1(data: &[u8]) -> Result<Vec<u8>> {
     )
     .await?;
     assert!(digest.is_instance_of::<js_sys::ArrayBuffer>());
-    Ok(Uint8Array::new(&digest).to_vec())
+    Ok(Sha1(Uint8Array::new(&digest).to_vec()))
 }
 
 pub async fn sign_hmac_256(secret: &[u8], payload: &mut [u8]) -> Result<Vec<u8>> {

@@ -1,4 +1,4 @@
-use shared::model::PasteId;
+use shared::PasteId;
 
 use super::StoredPaste;
 use crate::{net, Error, Result};

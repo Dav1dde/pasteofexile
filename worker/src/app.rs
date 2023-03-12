@@ -1,4 +1,4 @@
-use shared::model::{PasteId, UserPasteId};
+use shared::{PasteId, UserPasteId};
 
 use crate::{
     app_metadata, consts, response, sentry,
@@ -21,6 +21,7 @@ pub async fn handle_err(err: crate::Error) -> Response {
 
 async fn handle_inner(rctx: &RequestContext, route: app::Route) -> Result<Response> {
     let (info, ctx) = build_context(rctx, route).await.unwrap_or_else(|err| {
+        tracing::warn!("app error: {err:?}");
         sentry::capture_err(&err);
         let err = match err {
             Error::InvalidPoB(err, _) => app::Error::PobError(err),
@@ -77,8 +78,7 @@ async fn build_context(
             Context::not_found(),
         ),
         Paste(id) => {
-            let id = PasteId::new_id(id);
-
+            let id = PasteId::Paste(id);
             paste_page(rctx, id, Context::paste).await?
         }
         User(user) => {
@@ -94,8 +94,7 @@ async fn build_context(
             (info, Context::user(user, pastes))
         }
         UserPaste(user, id) => {
-            let id = PasteId::new_user(user, id);
-
+            let id = UserPasteId { user, id }.into();
             paste_page(rctx, id, Context::user_paste).await?
         }
         UserEditPaste(user, id) => {

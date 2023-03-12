@@ -44,7 +44,7 @@ pub enum Error {
     InvalidPoB(pob::Error, String),
 
     #[error("{0}")]
-    InvalidId(&'static str),
+    InvalidId(#[from] shared::InvalidId),
 
     #[error(transparent)]
     Dangerous(#[from] DangerousError),

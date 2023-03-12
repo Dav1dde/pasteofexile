@@ -2,12 +2,10 @@ use std::fmt;
 use std::time::Duration;
 
 use git_version::git_version;
-use shared::validation;
+use shared::Id;
 use worker::wasm_bindgen::JsCast;
 use worker::worker_sys::WorkerGlobalScope;
 use worker::{js_sys, Request, Result};
-
-use crate::Error;
 
 macro_rules! if_debug {
     ($debug:expr, $otherwise:expr) => {{
@@ -23,6 +21,8 @@ macro_rules! if_debug {
     }};
 }
 pub(crate) use if_debug;
+
+use crate::crypto::Sha1;
 
 pub fn b64_encode<T: AsRef<[u8]>>(input: T) -> String {
     base64::encode_config(input, base64::URL_SAFE_NO_PAD)
@@ -60,19 +60,14 @@ pub fn random_string<const N: usize>() -> Result<String> {
     Ok(b64_encode(random))
 }
 
-pub fn hash_to_short_id(hash: &[u8], bytes: usize) -> Result<String> {
-    hash.get(0..bytes)
-        .map(b64_encode)
-        .ok_or_else(|| "Hash too small for id".into())
+pub fn hash_to_short_id(hash: &Sha1) -> Id {
+    b64_encode(&hash[0..9])
+        .try_into()
+        .expect("base64 is always a valid id")
 }
 
-pub fn to_path(id: &str) -> crate::Result<String> {
-    validation::is_valid_id(id).ok().map_err(|msg| {
-        tracing::warn!(id, msg, "invalid id, cannot convert to path");
-        Error::InvalidId(msg)
-    })?;
-
-    // Invariants for the following unsafe code, should already be checked by the validation
+pub fn to_path(id: &Id) -> String {
+    // Invariants for the following unsafe code, should already be upheld by the newtype
     assert!(id.len() >= 3, "Id too short");
     assert!(id.is_ascii(), "Id not ascii");
 
@@ -82,7 +77,7 @@ pub fn to_path(id: &str) -> crate::Result<String> {
     result.push_str(unsafe { id.get_unchecked(1..2) });
     result.push('/');
     result.push_str(unsafe { id.get_unchecked(2..) });
-    Ok(result)
+    result
 }
 
 pub fn to_link(p: &[app::Prefetch], rel: &str) -> String {
@@ -245,11 +240,7 @@ mod tests {
 
     #[test]
     fn test_to_path() {
-        assert!(to_path("").is_err());
-        assert!(to_path("a").is_err());
-        assert!(to_path("aa").is_err());
-        assert!(to_path("aaa").is_err());
-        assert_eq!(to_path("aaaaa").unwrap(), "a/a/aaa");
+        assert_eq!(to_path(&"aaaaa".parse().unwrap()), "a/a/aaa");
     }
 
     #[test]

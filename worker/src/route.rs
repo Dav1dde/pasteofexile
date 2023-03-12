@@ -1,4 +1,5 @@
-use shared::{model::PasteId, User};
+use app::PercentRoute;
+use shared::{Id, PasteId, User};
 use worker::{Method, Request};
 
 use crate::assets;
@@ -21,19 +22,21 @@ impl Route {
         // the most specific routes (no `/<paste>` route)
         match req.method() {
             Method::Get => {
-                let route = GetEndpoints::default().match_path(&path);
+                let PercentRoute(route) = PercentRoute::<GetEndpoints>::default().match_path(&path);
                 if !matches!(route, GetEndpoints::NotFound) {
                     return Self::Api(Api::Get(route));
                 }
             }
             Method::Post => {
-                let route = PostEndpoints::default().match_path(&path);
+                let PercentRoute(route) =
+                    PercentRoute::<PostEndpoints>::default().match_path(&path);
                 if !matches!(route, PostEndpoints::NotFound) {
                     return Self::Api(Api::Post(route));
                 }
             }
             Method::Delete => {
-                let route = DeleteEndpoints::default().match_path(&path);
+                let PercentRoute(route) =
+                    PercentRoute::<DeleteEndpoints>::default().match_path(&path);
                 if !matches!(route, DeleteEndpoints::NotFound) {
                     return Self::Api(Api::Delete(route));
                 }
@@ -49,7 +52,7 @@ impl Route {
             }
 
             // App is a catch all
-            let app = app::Route::default().match_path(&path);
+            let PercentRoute(app) = PercentRoute::<app::Route>::default().match_path(&path);
             if !matches!(app, app::Route::NotFound) {
                 return Self::App(app);
             }
@@ -73,17 +76,17 @@ pub enum GetEndpoints {
     #[to("/api/internal/user/<user>")]
     User(User),
     #[to("/<id>/raw")]
-    Paste(String),
+    Paste(Id),
     #[to("/u/<name>/<id>/raw")]
-    UserPaste(User, String),
+    UserPaste(User, Id),
     #[to("/<id>/json")]
-    PasteJson(String),
+    PasteJson(Id),
     #[to("/u/<name>/<id>/json")]
-    UserPasteJson(User, String),
+    UserPasteJson(User, Id),
     #[to("/<id>/xml")]
-    PasteXml(String),
+    PasteXml(Id),
     #[to("/u/<name>/<id>/xml")]
-    UserPasteXml(User, String),
+    UserPasteXml(User, Id),
     /// Path of Building endpoint for importing builds.
     /// This supports the anonymous and user scoped paste IDs.
     /// User scoped paste IDs are used in `pob://` protocol links.
@@ -92,7 +95,7 @@ pub enum GetEndpoints {
     PobPaste(PasteId),
     /// Path of Building endpoint for importing user paste URLs.
     #[to("/pob/u/<name>/<id>")]
-    PobUserPaste(User, String),
+    PobUserPaste(User, Id),
     #[to("/login")]
     Login,
     #[to("/oauth2/authorization/poe")]

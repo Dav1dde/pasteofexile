@@ -2,10 +2,7 @@ use std::{borrow::Cow, rc::Rc, time::Duration};
 
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
 use serde::{Deserialize, Serialize};
-use shared::{
-    model::{PasteId, PasteMetadata},
-    validation, User,
-};
+use shared::{model::PasteMetadata, validation, PasteId, User, UserPasteId};
 
 use crate::{
     consts, crypto, poe_api,
@@ -64,16 +61,20 @@ pub async fn handle(rctx: &mut RequestContext, route: route::Api) -> response::R
         Get(User(user)) => handle_user(rctx, user).await,
         Get(PobPaste(id)) => handle_download_text(rctx, id).await,
         Get(PobUserPaste(user, id)) => {
-            handle_download_text(rctx, PasteId::new_user(user, id)).await
+            handle_download_text(rctx, UserPasteId { user, id }.into()).await
         }
         Get(Paste(id)) => handle_download_text(rctx, PasteId::Paste(id)).await,
-        Get(UserPaste(user, id)) => handle_download_text(rctx, PasteId::new_user(user, id)).await,
+        Get(UserPaste(user, id)) => {
+            handle_download_text(rctx, UserPasteId { user, id }.into()).await
+        }
         Get(PasteJson(id)) => handle_download_json(rctx, PasteId::Paste(id)).await,
         Get(UserPasteJson(user, id)) => {
-            handle_download_json(rctx, PasteId::new_user(user, id)).await
+            handle_download_json(rctx, UserPasteId { user, id }.into()).await
         }
         Get(PasteXml(id)) => handle_download_xml(rctx, PasteId::Paste(id)).await,
-        Get(UserPasteXml(user, id)) => handle_download_xml(rctx, PasteId::new_user(user, id)).await,
+        Get(UserPasteXml(user, id)) => {
+            handle_download_xml(rctx, UserPasteId { user, id }.into()).await
+        }
         Get(Login) => handle_login(rctx).await,
         Get(Oauht2Poe) => handle_oauth2_poe(rctx).await,
         // Post
@@ -261,7 +262,11 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
             };
             validate_v!(validation::user::is_valid_custom_id(&id));
 
-            PasteId::new_user(session.name, id)
+            UserPasteId {
+                user: session.name,
+                id: id.try_into()?,
+            }
+            .into()
         }
     } else {
         validate_access!(data.id.is_none());
@@ -270,7 +275,7 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
         // validate!(data.title.is_none(), "Cannot set title");
         // validate!(data.custom_id.is_none(), "Cannot set custom id");
 
-        PasteId::Paste(utils::hash_to_short_id(&sha1, 9)?)
+        PasteId::Paste(utils::hash_to_short_id(&sha1))
     };
 
     tracing::debug!("--> uploading paste '{}'", id);
@@ -296,7 +301,7 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
     let metadata = to_metadata(&pob);
 
     let sha1 = crypto::sha1(&data).await?;
-    let id = PasteId::new_id(utils::hash_to_short_id(&sha1, 9)?);
+    let id = PasteId::Paste(utils::hash_to_short_id(&sha1));
 
     tracing::debug!("--> uploading paste '{}'", id);
     let storage = rctx.inject::<crate::storage::Storage>();

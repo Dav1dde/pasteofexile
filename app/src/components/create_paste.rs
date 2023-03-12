@@ -1,5 +1,5 @@
 use pob::SerdePathOfBuilding;
-use shared::{model::UserPasteId, validation};
+use shared::{validation, Id, UserPasteId};
 use sycamore::{prelude::*, reactive::use_context};
 use wasm_bindgen::JsCast;
 
@@ -61,7 +61,10 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
     let custom_title = create_signal(cx, props.title().unwrap_or_default());
     let custom_id = create_signal(
         cx,
-        props.paste_id().map(|up| up.id.clone()).unwrap_or_default(),
+        props
+            .paste_id()
+            .map(|up| up.id.to_string())
+            .unwrap_or_default(),
     );
 
     let session = use_context::<SessionValue>(cx);
@@ -123,7 +126,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
                 id: id.as_ref(),
                 as_user,
                 title,
-                custom_id: (!custom_id.is_empty()).then_some(&*custom_id),
+                custom_id: &custom_id,
                 content: &value,
             };
             match api::create_paste(params).await {
@@ -152,8 +155,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
         }
         if *as_user.get() {
             // Empty means auto generated or default
-            let id = custom_id.get().is_empty()
-                || validation::user::is_valid_custom_id(&custom_id.get()).is_valid();
+            let id = custom_id.get().is_empty() || custom_id.get().parse::<Id>().is_ok();
             let title = custom_title.get().is_empty()
                 || validation::user::is_valid_custom_title(&custom_title.get()).is_valid();
             if !id || !title {

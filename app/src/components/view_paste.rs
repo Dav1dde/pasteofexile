@@ -1,5 +1,5 @@
 use ::pob::{PathOfBuilding, PathOfBuildingExt};
-use shared::model::PasteId;
+use shared::PasteId;
 use sycamore::{futures::spawn_local_scoped, prelude::*};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
