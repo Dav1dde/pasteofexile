@@ -216,22 +216,35 @@ impl serde::Serialize for TraceId {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Timestamp(pub(crate) u64);
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Timestamp(f64);
+
+// This is fine because the inner value is never NaN or Inf
+impl Eq for Timestamp {}
 
 impl Timestamp {
-    pub(crate) fn now() -> Timestamp {
-        Self(js_sys::Date::new_0().get_time() as u64)
+    pub fn now() -> Timestamp {
+        let ts = js_sys::Date::new_0().get_time();
+        debug_assert!(ts.is_finite(), "timestamp is not finite");
+        Self(ts)
     }
 
-    pub(crate) fn from_secs(secs: u64) -> Timestamp {
-        Self(secs)
+    pub fn from_secs(secs: u64) -> Timestamp {
+        Self(secs as f64 * 1000.0f64)
+    }
+
+    pub fn as_msecs(&self) -> f64 {
+        self.0
+    }
+
+    pub fn as_secs(&self) -> f64 {
+        self.as_msecs() / 1000.0
     }
 }
 
 impl Default for Timestamp {
     fn default() -> Self {
-        Self(js_sys::Date::new_0().get_time() as u64)
+        Self(js_sys::Date::new_0().get_time())
     }
 }
 
@@ -240,7 +253,7 @@ impl serde::Serialize for Timestamp {
     where
         S: serde::Serializer,
     {
-        ((self.0 as f32) / 1000.0).serialize(serializer)
+        self.as_secs().serialize(serializer)
     }
 }
 

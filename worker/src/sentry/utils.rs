@@ -21,7 +21,7 @@ pub mod ts_rfc3339 {
     where
         S: ser::Serializer,
     {
-        let d = time::Duration::milliseconds(st.0 as i64);
+        let d = time::Duration::milliseconds(st.as_msecs() as i64);
         match OffsetDateTime::UNIX_EPOCH
             .checked_add(d)
             .and_then(|dt| dt.format(&Rfc3339).ok())
