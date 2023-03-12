@@ -21,7 +21,7 @@ Required dependencies:
 
 * Node 16.7+
 * Yarn
-* Rust 1.63+ (including wasm toolchain: `rustup target add wasm32-unknown-unknown`)
+* Latest Rust (including wasm toolchain: `rustup target add wasm32-unknown-unknown`)
 * wrangler: `cargo install wrangler`
 * TrunkRS: `cargo install trunk`
 * worker-build: `cargo install worker-build`
@@ -40,30 +40,30 @@ $ ./build.sh --dev
 $ ./build.sh --release
 ```
 
-### Docker
+### Code
 
-Alternatively you can use docker to setup your build environment:
+Rust code is formatted with `cargo +nightly fmt` and linted with `cargo +nightly clippy --all-features -- -D warnings`.
 
-```sh
-$ docker build -t pasteofexile .
-$ docker run --rm -it \
-    -v "$(pwd):/pasteofexile" \
-    -p 8787:8787 \
-    -u "$(id -u):$(id -g)" \
-    pasteofexile \
-    yarn start
-```
+Commits are prefixed with their scope/crate:
 
-### Code Style
+* `poe:` relevant for the entire project
+* `app:` the frontend
+* `pob:` pob parsing and tools
+* `poe-tree`: poe tree parsing and processing
+* `shared`: mainly types shared between `app` and `worker`
+* `snapshot:` just a cli tool to generate stats
+* `worker:` the backend
 
-Rust code is formatted with `cargo fmt` and linted with `cargo +nightly clippy --all-features -- -D warnings`.
 
-Commits are prefixed with their scope:
+## Public API
 
-* `poe:` if it is relevant for the entire project
-* `app:` if it is mainly a frontend change
-* `worker:` if it is mainly a backend/worker change
-* `pob:` if it is a data parsing change in the `pob` crate
+For third-party integrations there are currently two public URLs to retrieve a build:
+
+* `/:id/raw`
+* `/u/:username/:id/raw`
+
+Please always include a `User-Agent` which identifies your application and includes contact info, e.g.:
+`User-Agent: app-name/version hosted.domain (contact: foo@bar, discord#0000)`.
 
 
 ## Contributing
@@ -73,5 +73,5 @@ Contributions are always welcome, code, design ideas, mockups etc.
 When contributing please try to follow coding conventions (`cargo fmt`, `cargo clippy`),
 code style and commit formatting.
 
-Before working on big features please open an issue first or reach out,
-in case this feature is currently out of scope or already being worked on.
+Before working on big features please open an issue/discussion first or reach out (e.g. `#tooldev-general`
+on the official discord), in case this feature is currently out of scope or already being worked on.
