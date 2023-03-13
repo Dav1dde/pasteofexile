@@ -73,6 +73,7 @@ pub enum Api {
 pub enum GetEndpoints {
     #[to("/oembed.json")]
     Oembed,
+    // TODO: maybe this should be moved to a different path?
     #[to("/api/internal/user/<user>")]
     User(User),
     #[to("/<id>/raw")]

@@ -33,6 +33,7 @@ pub(crate) async fn on_paste_change_async(mut url: url::Url, id: PasteId) {
         clear!(up.to_pob_long_load_url());
         clear!(up.to_paste_edit_url());
         clear!(up.to_user_url());
+        clear!(up.to_user_api_url());
     }
     tracing::info!("done resetting caches");
 }

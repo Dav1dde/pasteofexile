@@ -88,6 +88,10 @@ impl UserPasteId {
         format!("/u/{}", self.user)
     }
 
+    pub fn to_user_api_url(&self) -> String {
+        format!("/api/internal/user/{}", self.user)
+    }
+
     pub fn to_paste_url(&self) -> String {
         format!("/u/{}/{}", self.user, self.id)
     }
