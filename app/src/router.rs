@@ -12,7 +12,7 @@ use crate::{
     Context, Error, Meta, ResponseContext, Result,
 };
 
-#[derive(Clone, Debug, sycamore_router::Route)]
+#[derive(Clone, Debug, sycamore_router::Route, PartialEq, Eq)]
 #[cfg_attr(feature = "ssr", derive(strum::IntoStaticStr))]
 pub enum Route {
     #[to("/")]

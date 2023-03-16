@@ -172,6 +172,13 @@ pub fn serialize_json_b64(value: &(impl Serialize + ?Sized)) -> String {
     )
 }
 
+pub fn open_in_new_tab(url: &str) {
+    web_sys::window()
+        .unwrap_throw()
+        .open_with_url_and_target(url, "_blank")
+        .unwrap_throw();
+}
+
 pub trait IteratorExt: Iterator {
     fn collect_view<G: Html>(self) -> View<G>
     where

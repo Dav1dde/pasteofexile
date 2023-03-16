@@ -6,7 +6,9 @@ use crate::{
     consts::{IMG_ONERROR_HIDDEN, IMG_ONERROR_INVISIBLE},
     future::LocalBoxFuture,
     router::RoutedComponent,
-    utils::{deserialize_attribute, memo_cond, pretty_date_ts, serialize_for_attribute},
+    utils::{
+        deserialize_attribute, memo_cond, open_in_new_tab, pretty_date_ts, serialize_for_attribute,
+    },
     Meta, Result,
 };
 
@@ -113,7 +115,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     summary: &'a PasteSummary,
     on_delete: &'a Signal<bool>,
 ) -> View<G> {
-    let url = summary.to_url();
+    let url = create_ref(cx, summary.to_url());
     let image = crate::assets::ascendancy_image(&summary.ascendancy_or_class).unwrap_or("");
     let color = crate::meta::get_color(&summary.ascendancy_or_class);
 
@@ -135,20 +137,21 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     };
 
     let pinned = summary.rank.is_some();
-
     view! { cx,
         div(class="p-3 md:p-0 md:pr-3 even:bg-slate-700 border-solid border-[color:var(--col)]
-                hover:border-l-4 hover:bg-[color:var(--bg-col)]",
+                hover:border-l-4 hover:bg-[color:var(--bg-col)] cursor-pointer",
             style=format!("--col: {color}; --bg-col: {color}66"),
+            on:click=move |_| sycamore_router::navigate(url),
+            on:auxclick=move |_| open_in_new_tab(url),
             data-pinned=pinned,
         ) {
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
                     class="asc-image rounded-full md:rounded-l-none md:h-auto md:w-auto",
-                    alt="Ascendancy Thumbnail",
+                    alt=format!("{} Thumbnail", summary.ascendancy_or_class),
                     onerror=IMG_ONERROR_INVISIBLE) {}
-                a(href=url, class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
-                    span(class="text-amber-50") {
+                div(class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
+                    a(class="text-amber-50", href=url, on:auxclick=|event: web_sys::Event| event.stop_propagation()) {
                         span(class=if pinned { "underline" } else { "" }) { (summary.title) }
                         sup(class="ml-1") { (version) }
                     }
@@ -158,7 +161,8 @@ fn summary_to_view<'a, G: GenericNode + Html>(
                     }
                 }
                 div(class="flex-1 sm:flex-initial flex flex-col items-end justify-between
-                           gap-2 whitespace-nowrap self-end md:self-center") {
+                           gap-2 whitespace-nowrap self-end md:self-center cursor-auto",
+                           on:click=|e: web_sys::Event| e.stop_propagation()) {
                     a(href=open_in_pob_url,
                       title="Open build in Path of Building",
                       class="btn btn-primary hidden md:block"
