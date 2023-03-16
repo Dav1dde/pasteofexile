@@ -137,7 +137,14 @@ fn render_skill<G: Html>(cx: Scope, skill: Skill) -> View<G> {
             // This could be empty for skills from uniques (see also `pob/src/gems.rs`),
             // but PoB has a workaround so this shouldn't be empty.
             // Rather add more uniques to the existing workaround then adding another here.
-            let name = gem.name.to_owned();
+            //
+            // Fallback to skill_id, works for `Purity` and maybe other things ...
+            // better than just having it silently disappear.
+            let name = Some(gem.name)
+                .filter(|name| !name.is_empty())
+                .or(gem.skill_id)
+                .unwrap_or("<unknown>")
+                .to_owned();
             let class = match (gem.is_selected, gem.is_active) {
                 (true, _) => "truncate font-bold text-amber-50",
                 (_, true) => "truncate text-stone-100",
