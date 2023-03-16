@@ -92,6 +92,11 @@ fn render_item<'a, G: Html>(
     let class = format!("item {name}");
 
     let Some(image_name) = item.map(|item| item_image_name(&item)) else {
+        // hide offhand instead of having an empty area, most of the time
+        // it's probably empty because the main hand is a two hander
+        if name == "weapon2" {
+            return View::empty();
+        }
         return view! { cx, div(class=class) {} };
     };
 
