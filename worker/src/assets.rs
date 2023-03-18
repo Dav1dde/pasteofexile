@@ -90,6 +90,7 @@ fn get_mime(path: &str) -> Option<&'static str> {
         "svg" => "image/svg+xml",
         "txt" => "text/plain",
         "wasm" => "application/wasm",
+        "webp" => "image/webp",
         _ => return None,
     };
 

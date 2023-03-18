@@ -1,5 +1,5 @@
 use session::use_session;
-use sycamore::prelude::*;
+use sycamore::{prelude::*, web::NoSsr};
 
 mod api;
 mod assets;
@@ -28,6 +28,7 @@ pub use meta::{Meta, Prefetch};
 pub use response_context::ResponseContext;
 pub use router::Route;
 pub use session::User;
+use wasm_bindgen::{JsCast, UnwrapThrowExt};
 
 #[cfg(feature = "ssr")]
 pub fn render_to_string(context: Context) -> (String, ResponseContext) {
@@ -64,8 +65,40 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
 
     use_session::<G>(cx);
 
+    let ad = ["/assets/yourad.webp", "/assets/chaoiscoinscam.webp"]
+        [(js_sys::Date::new_0().get_time() % 2.0) as usize];
+
+    let s = |ev: web_sys::Event| {
+        let ev = ev.unchecked_into::<web_sys::KeyboardEvent>();
+
+        if ev.key_code() == 13 {
+            let _ = web_sys::window().unwrap_throw().alert_with_message(
+                "I didn't implement this ... Give me a break, this is just an April Fools Joke.",
+            );
+        }
+    };
+
     view! { cx,
         progress::Progress()
+        div(class="bg-[#f1f3f4] sticky top-0 h-7 border-white border-b-2 text-[#af6025] flex items-center px-3") {
+            span() {
+                "Path Of Exile Bar"
+            }
+            span(class="ml-2 pl-2 border-l-2 border-slate-200") {
+                "Wiki"
+            }
+            input(class="ml-1 bg-white h-[20px] text-black", placeholder="Search", on:keyup=s) {}
+            span(class="ml-2 pl-2 border-l-2 border-slate-200") {
+                a(class="text-blue-700 underline", href="https://pathofexile.com/trade", target="_blank") {
+                    "Trade Site"
+                }
+            }
+            span(class="ml-2 pl-2 border-l-2 border-slate-200") {
+                a(class="text-blue-700 underline", href="https://pathofbuilding.community/", target="_blank") {
+                    "Path of Building"
+                }
+            }
+        }
         div(class="h-screen flex flex-col gap-10") {
             nav(class="bg-slate-200 dark:bg-slate-900 dark:shadow-lg") {
                 div(class="flex justify-between	p-4 lg:px-8 mx-auto max-w-[1920px]") {
@@ -74,6 +107,11 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
                         span(class="text-sky-500 dark:text-sky-400") { "b.in" }
                     }
                     components::LoginStatus()
+                }
+            }
+            div(class="flex justify-center") {
+                NoSsr {
+                    img(class="w-[500px]", src=ad) {}
                 }
             }
             main(class="max-w-screen-xl px-5 xl:px-0 w-full flex-auto self-center") {

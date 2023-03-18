@@ -1,12 +1,12 @@
 use ::pob::{PathOfBuilding, PathOfBuildingExt};
 use shared::model::PasteId;
-use sycamore::prelude::*;
+use sycamore::{prelude::*, web::NoSsr};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
 
 use crate::{
     build::Build,
-    components::{PobColoredText, PobGems, PobTreePreview, PobTreeTable},
+    components::{PobColoredText, PobGems, PobTreePreview},
     consts::IMG_ONERROR_HIDDEN,
     pob::{self, Element},
     utils::{async_callback, document, from_ref, view_cond},
@@ -127,6 +127,12 @@ pub fn ViewPaste<'a, G: Html>(
     let src =
         crate::assets::ascendancy_image(build.pob().ascendancy_or_class_name()).unwrap_or_default();
 
+    let ad = [
+        "/assets/enlargement.webp",
+        "/assets/twomirrors.webp",
+        "/assets/quon80.webp",
+    ][(js_sys::Date::new_0().get_time() % 3.0) as usize];
+
     view! { cx,
         div(class="text-right text-sm text-slate-500", title=date, data-last-modified=last_modified) { (since) }
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
@@ -177,8 +183,7 @@ pub fn ViewPaste<'a, G: Html>(
                 PobGems(build)
             }
             div(class="flex-1 max-w-full lg:max-w-[43%]") {
-                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Tree" }
-                PobTreeTable(build)
+                NoSsr { img(class="mx-auto", src=ad) {} }
             }
         }
         (tree_preview)
