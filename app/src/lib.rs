@@ -65,8 +65,11 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
 
     use_session::<G>(cx);
 
-    let ad = ["/assets/yourad.webp", "/assets/chaoiscoinscam.webp"]
-        [(js_sys::Date::new_0().get_time() % 2.0) as usize];
+    let ad = [
+        "/assets/yourad.webp",
+        "/assets/chaoiscoinscam.webp",
+        "/assets/pobstitute.webp",
+    ][(js_sys::Date::new_0().get_time() % 3.0) as usize];
 
     let s = |ev: web_sys::Event| {
         let ev = ev.unchecked_into::<web_sys::KeyboardEvent>();
