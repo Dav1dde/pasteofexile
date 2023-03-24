@@ -53,14 +53,7 @@ impl Pastes {
             .into_iter()
             .map(|item| {
                 let metadata = item.metadata.unwrap_or_default();
-                let id = item
-                    .name
-                    .rsplit_once('/')
-                    .unwrap()
-                    .1
-                    .to_owned()
-                    .parse()
-                    .expect("only valid ids are stored");
+                let id = item.name.parse().expect("only valid ids are stored");
 
                 PasteSummary {
                     id: UserPasteId {

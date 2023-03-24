@@ -115,10 +115,11 @@ impl R2Storage {
 
     #[tracing::instrument(skip(self))]
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
+        let prefix = super::to_prefix(user);
         let objects = self
             .bucket
             .list()
-            .prefix(super::to_prefix(user))
+            .prefix(&prefix)
             .include(vec![Include::CustomMetadata])
             .limit(100)
             .execute()
@@ -130,7 +131,7 @@ impl R2Storage {
             .map(|obj| {
                 let (mtime, metadata) = to_metadata(&obj)?;
                 Ok(ListPaste {
-                    name: obj.key(),
+                    name: super::strip_prefix(&obj.key(), &prefix)?,
                     metadata,
                     last_modified: mtime,
                 })
