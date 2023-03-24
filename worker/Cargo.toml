@@ -7,9 +7,6 @@ edition.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[features]
-use-kv-storage = []
-
 [dependencies]
 app = { path = "../app", features = ["ssr"] }
 pob = { path = "../pob/", features = ["better-errors"] }

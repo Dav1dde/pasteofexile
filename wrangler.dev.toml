@@ -1,15 +1,15 @@
 name = "ssr-workers"
 type = "javascript"
 workers_dev = true
-compatibility_date = "2022-01-05"
+compatibility_date = "2023-03-23"
 
 [[kv_namespaces]]
 binding = "B2_CREDENTIALS"
 id = "<unset>"
 
-[[kv_namespaces]]
-binding = "PASTE_STORAGE"
-id = "<unset>"
+[[r2_buckets]]
+binding = 'STORAGE_BUCKET'
+bucket_name = 'r2storage'
 
 [build]
 command = "./build.sh --dev"
@@ -30,3 +30,4 @@ exclude = ["./app/dist/.stage"]
 [miniflare]
 cache = false
 kv_persist = true
+r2_persist = true

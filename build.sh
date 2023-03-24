@@ -9,12 +9,7 @@ if [[ "$1" == "--release" ]]; then
 elif [[ "$1" == "--dev" ]]; then
     echo "Building in --dev mode"
     TRUNK_ARGS=""
-    if [[ ! -z "$B2" ]]; then
-        echo "Using b2 storage"
-        WORKER_BUILD_ARGS="--dev"
-    else
-        WORKER_BUILD_ARGS="--dev -- --features use-kv-storage"
-    fi
+    WORKER_BUILD_ARGS="--dev"
 else
     echo "expected --release or --dev"
     exit 1

@@ -4,12 +4,11 @@
     "scripts": {
         "start": "miniflare -c wrangler.dev.toml --inaccurate-cpu --build-watch-path app/src --build-watch-path worker/src --build-watch-path pob/src --build-watch-path shared/src",
         "build:css": "tailwindcss -i app/tailwind.css -o app/dist/.stage/styles.css --minify",
-        "tailwindcss": "tailwindcss",
-        "miniflare": "miniflare"
+        "tailwindcss": "tailwindcss"
     },
     "dependencies": {
         "autoprefixer": "^10.4.2",
-        "miniflare": "^2.0.0",
+        "wrangler": "^2.13.0",
         "postcss": "^8.4.5",
         "tailwindcss": "^3.0.0"
     }

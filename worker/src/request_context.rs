@@ -1,5 +1,7 @@
 use std::ops::Deref;
 
+use worker::Bucket;
+
 use crate::{
     route,
     sentry::{self, TraceId},
@@ -157,6 +159,10 @@ impl Env {
 
     pub fn var(&self, name: &str) -> Option<String> {
         self.inner.var(name).ok().map(|v| v.to_string())
+    }
+
+    pub fn bucket(&self, name: &str) -> Option<Bucket> {
+        self.inner.bucket(name).ok()
     }
 }
 
