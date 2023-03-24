@@ -14,15 +14,10 @@ use crate::{
 #[allow(dead_code)]
 mod b2;
 mod b2_client;
-#[allow(dead_code)]
-mod kv;
 mod pastebin;
+mod r2;
 mod utils;
 
-#[cfg(not(feature = "use-kv-storage"))]
-use b2::B2Storage as DefaultStorage;
-#[cfg(feature = "use-kv-storage")]
-use kv::KvStorage as DefaultStorage;
 pub(crate) use utils::{to_path, to_prefix};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -36,13 +31,15 @@ pub struct StoredPaste {
 }
 
 pub struct Storage {
-    storage: DefaultStorage,
+    primary: r2::R2Storage,
+    secondary: b2::B2Storage,
 }
 
 impl FromEnv for Storage {
     fn from_env(env: &Env) -> Option<Self> {
         Some(Self {
-            storage: DefaultStorage::from_env(env)?,
+            primary: r2::R2Storage::from_env(env)?,
+            secondary: b2::B2Storage::from_env(env)?,
         })
     }
 }
@@ -51,14 +48,21 @@ impl Storage {
     pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         if pastebin::could_be_pastebin_id(id) {
             tracing::info!("fetching from pastebin.com");
-            pastebin::get(id).await
-        } else {
-            self.storage.get(id).await
+            return pastebin::get(id).await;
         }
+
+        if let Some(p) = self.primary.get(id).await? {
+            return Ok(Some(p));
+        }
+
+        self.secondary.get(id).await
     }
 
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
-        self.storage.delete(id).await
+        // Ignore errors, lazy way of ignoring errors for files that dont exist
+        let _ = self.primary.delete(id).await;
+        let _ = self.secondary.delete(id).await;
+        Ok(())
     }
 
     pub async fn put(
@@ -68,7 +72,7 @@ impl Storage {
         data: &[u8],
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
-        self.storage.put(id, sha1, data, metadata).await
+        self.primary.put(id, sha1, data, metadata).await
     }
 
     pub async fn put_auto(
@@ -81,13 +85,17 @@ impl Storage {
     ) -> Result<()> {
         // Turkey blocks b2 for some reason...
         if rctx.country().as_deref() == Some("TR") {
-            self.storage.put(id, sha1, &data, metadata).await
+            self.primary.put(id, sha1, &data, metadata).await
         } else {
-            self.storage.put_async(rctx, id, sha1, data, metadata).await
+            self.primary.put_async(rctx, id, sha1, data, metadata).await
         }
     }
 
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
-        self.storage.list(user).await
+        let r = self.primary.list(user).await?;
+        if !r.is_empty() {
+            return Ok(r);
+        }
+        self.secondary.list(user).await
     }
 }
