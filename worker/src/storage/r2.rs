@@ -39,7 +39,7 @@ impl FromEnv for R2Storage {
 impl R2Storage {
     #[tracing::instrument(skip(self))]
     pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
-        let path = super::to_path(id)?;
+        let path = super::to_path_r2(id)?;
         let Some(obj) = self.bucket.get(path).execute().await? else {
             return Ok(None);
         };
@@ -61,7 +61,7 @@ impl R2Storage {
 
     #[tracing::instrument(skip(self))]
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
-        let path = super::to_path(id)?;
+        let path = super::to_path_r2(id)?;
         self.bucket.delete(path).await?;
         Ok(())
     }
@@ -74,7 +74,7 @@ impl R2Storage {
         data: &[u8],
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
-        let path = super::to_path(id)?;
+        let path = super::to_path_r2(id)?;
 
         let metadata = metadata
             .map(serde_json::to_string)
@@ -115,7 +115,7 @@ impl R2Storage {
 
     #[tracing::instrument(skip(self))]
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
-        let prefix = super::to_prefix(user);
+        let prefix = super::to_prefix_r2(user);
         let objects = self
             .bucket
             .list()
