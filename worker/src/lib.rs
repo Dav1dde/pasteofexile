@@ -78,7 +78,7 @@ async fn cached(rctx: &mut RequestContext) -> Response {
         }
     }
 
-    let response = handle(rctx).await;
+    let mut response = handle(rctx).await;
 
     if use_cache && response.is_cacheable() {
         let for_cache = response.for_cache();
@@ -88,7 +88,7 @@ async fn cached(rctx: &mut RequestContext) -> Response {
         let key = rctx.req().inner().clone().unwrap();
         rctx.ctx().wait_until(async move {
             tracing::debug!("--> caching response");
-            let r = cache.put(key, for_cache).await;
+            let r = cache.put(&key, for_cache).await;
             debug_assert!(r.is_ok(), "failed to cache response: {r:?}");
             tracing::debug!("<-- response cached");
         });

@@ -1,5 +1,6 @@
-use std::borrow::Cow;
+use std::collections::HashMap;
 
+use once_cell::sync::OnceCell;
 use wasm_bindgen::prelude::*;
 use worker::kv::KvStore;
 
@@ -51,20 +52,27 @@ impl FromEnv for Assets {
 impl Assets {
     fn get(&self, path: &str) -> worker::kv::GetOptionsBuilder {
         let path = self.resolve(path.trim_start_matches('/'));
-        self.kv.get(&path)
+        self.kv.get(path)
     }
 
-    fn resolve<'a>(&self, name: &'a str) -> Cow<'a, str> {
-        match get_asset(name) {
-            Some(name) => Cow::Owned(name),
-            None => Cow::Borrowed(name),
-        }
+    fn resolve<'a>(&self, name: &'a str) -> &'a str {
+        get_asset(name).unwrap_or(name)
     }
 }
 
-#[wasm_bindgen(raw_module = "./assets.mjs")]
+#[wasm_bindgen(module = "__STATIC_CONTENT_MANIFEST")]
 extern "C" {
-    fn get_asset(name: &str) -> Option<String>;
+    #[wasm_bindgen(js_name = "default")]
+    static STATIC_CONTENT_MANIFEST: String;
+}
+
+fn get_asset(name: &str) -> Option<&'static str> {
+    static MANIFEST: OnceCell<HashMap<&str, &str>> = OnceCell::new();
+
+    let manifest =
+        MANIFEST.get_or_init(|| serde_json::from_str(&STATIC_CONTENT_MANIFEST).unwrap_throw());
+
+    manifest.get(name).copied()
 }
 
 fn get_mime(path: &str) -> Option<&'static str> {

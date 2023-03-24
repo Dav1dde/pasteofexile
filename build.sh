@@ -24,13 +24,4 @@ trunk build $TRUNK_ARGS
 cd worker
 worker-build $WORKER_BUILD_ARGS
 
-cat <<EOF > build/worker/assets.mjs
-import manifestJSON from '__STATIC_CONTENT_MANIFEST'
-const assetManifest = JSON.parse(manifestJSON)
-
-export function get_asset(name) {
-    return assetManifest[name];
-}
-EOF
-
 cd ..
