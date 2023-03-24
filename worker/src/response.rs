@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use shared::{PasteId, User};
+use wasm_bindgen::JsCast;
+use web_sys::ReadableStream;
 
 pub use self::ResponseError::{ApiError, AppError};
 use crate::{
@@ -314,8 +316,8 @@ impl Response {
         response
     }
 
-    pub fn for_cache(&self) -> worker::Response {
-        let body = clone_body(&self.body);
+    pub fn for_cache(&mut self) -> worker::Response {
+        let body = clone_body(&mut self.body);
         let mut response = worker::Response::from_body(body)
             .unwrap()
             .with_status(self.status_code())
@@ -333,19 +335,6 @@ impl Response {
     }
 }
 
-impl Clone for Response {
-    fn clone(&self) -> Self {
-        Self {
-            status_code: self.status_code,
-            // Cloning headers maybe sucks here, but is also good
-            // because headers can actually be read only, so cloning get's rid of that limitation
-            headers: self.headers.clone(),
-            body: clone_body(&self.body),
-            meta: self.meta.clone(),
-        }
-    }
-}
-
 impl From<Response> for worker::Response {
     fn from(r: Response) -> worker::Response {
         worker::Response::from_body(r.body)
@@ -357,22 +346,32 @@ impl From<Response> for worker::Response {
 
 impl From<worker::Response> for Response {
     fn from(wr: worker::Response) -> Response {
-        let headers = wr.headers().clone();
+        let (status_code, headers, body) = wr.into();
 
-        let mut r = Response::status(wr.status_code());
-        r.headers = headers;
-        r.body = worker::ResponseBody::Stream(worker::worker_sys::Response::from(wr));
-
-        r
+        Response {
+            status_code,
+            headers,
+            body,
+            meta: None,
+        }
     }
 }
 
-fn clone_body(rb: &worker::ResponseBody) -> worker::ResponseBody {
-    match &rb {
+fn clone_body(rb: &mut worker::ResponseBody) -> worker::ResponseBody {
+    match rb {
         worker::ResponseBody::Empty => worker::ResponseBody::Empty,
         worker::ResponseBody::Body(v) => worker::ResponseBody::Body(v.clone()),
-        worker::ResponseBody::Stream(s) => {
-            worker::ResponseBody::Stream(s.clone().expect("response body already used?"))
+        worker::ResponseBody::Stream(ref mut s) => {
+            let (body1, body2) = {
+                let branches = s.tee();
+                debug_assert_eq!(branches.length(), 2, "exactly 2 streams returned by tee()");
+                (
+                    branches.get(0).unchecked_into::<ReadableStream>(),
+                    branches.get(1).unchecked_into::<ReadableStream>(),
+                )
+            };
+            *s = body1;
+            worker::ResponseBody::Stream(body2)
         }
     }
 }

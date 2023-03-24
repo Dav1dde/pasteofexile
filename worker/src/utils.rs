@@ -4,9 +4,7 @@ use std::time::Duration;
 
 use git_version::git_version;
 use shared::Id;
-use worker::wasm_bindgen::JsCast;
-use worker::worker_sys::WorkerGlobalScope;
-use worker::{js_sys, Request, Result};
+use worker::{Request, Result};
 
 macro_rules! if_debug {
     ($debug:expr, $otherwise:expr) => {{
@@ -41,18 +39,13 @@ pub fn hex_lower(data: &[u8]) -> String {
     data.iter().map(|x| format!("{x:02x}")).collect()
 }
 
-pub fn btoa(s: &str) -> Result<String> {
-    let worker: WorkerGlobalScope = js_sys::global().unchecked_into();
-    Ok(worker.btoa(s)?)
-}
-
 pub fn basic_auth(username: &str, password: &str) -> Result<String> {
     let mut s = username.to_owned();
     s.push(':');
     s.push_str(password);
 
     let mut result = "Basic ".to_owned();
-    result.push_str(&btoa(&s)?);
+    result.push_str(&base64::encode_config(&s, base64::URL_SAFE));
     Ok(result)
 }
 
