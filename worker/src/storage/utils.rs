@@ -12,3 +12,9 @@ pub(crate) fn to_path(id: &PasteId) -> Result<String> {
 pub(crate) fn to_prefix(user: &User) -> String {
     format!("user/{}/pastes/", user.normalized())
 }
+
+pub(crate) fn strip_prefix(file: &str, prefix: &str) -> Result<String> {
+    file.strip_prefix(prefix).map(Into::into).ok_or_else(|| {
+        crate::Error::Error(format!("expected file '{file}' to start with '{prefix}'"))
+    })
+}

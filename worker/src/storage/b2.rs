@@ -147,14 +147,15 @@ impl B2Storage {
 
     #[tracing::instrument(skip(self))]
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
-        let response = self.b2.list_files(&super::to_prefix(user), 100).await?;
+        let prefix = super::to_prefix(user);
+        let response = self.b2.list_files(&prefix, 100).await?;
 
         response
             .files
             .into_iter()
             .map(|f| {
                 Ok(ListPaste {
-                    name: f.file_name,
+                    name: super::strip_prefix(&f.file_name, &prefix)?,
                     metadata: f
                         .file_info
                         .get("metadata")

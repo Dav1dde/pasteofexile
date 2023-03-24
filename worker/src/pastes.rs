@@ -53,10 +53,9 @@ impl Pastes {
             .into_iter()
             .map(|item| {
                 let metadata = item.metadata.unwrap_or_default();
-                let id = item.name.rsplit_once('/').unwrap().1.to_owned();
 
                 PasteSummary {
-                    id,
+                    id: item.name,
                     user: Some(user.clone()),
                     title: metadata.title,
                     ascendancy_or_class: metadata.ascendancy_or_class,

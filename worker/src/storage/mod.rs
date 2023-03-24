@@ -18,7 +18,7 @@ mod pastebin;
 mod r2;
 mod utils;
 
-pub(crate) use utils::{to_path, to_prefix};
+pub(crate) use utils::{strip_prefix, to_path, to_prefix};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct StoredPaste {
