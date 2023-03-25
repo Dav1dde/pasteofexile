@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use serde::{Deserialize, Serialize};
 use shared::{
     model::{ListPaste, PasteMetadata},
@@ -11,14 +9,11 @@ use crate::{
     Result,
 };
 
-#[allow(dead_code)]
-mod b2;
-mod b2_client;
 mod pastebin;
 mod r2;
 mod utils;
 
-pub(crate) use utils::{strip_prefix, to_path, to_path_r2, to_prefix, to_prefix_r2};
+pub(crate) use utils::{strip_prefix, to_path_r2, to_prefix_r2};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct StoredPaste {
@@ -31,15 +26,13 @@ pub struct StoredPaste {
 }
 
 pub struct Storage {
-    primary: r2::R2Storage,
-    secondary: b2::B2Storage,
+    r2: r2::R2Storage,
 }
 
 impl FromEnv for Storage {
     fn from_env(env: &Env) -> Option<Self> {
         Some(Self {
-            primary: r2::R2Storage::from_env(env)?,
-            secondary: b2::B2Storage::from_env(env)?,
+            r2: r2::R2Storage::from_env(env)?,
         })
     }
 }
@@ -51,18 +44,11 @@ impl Storage {
             return pastebin::get(id).await;
         }
 
-        if let Some(p) = self.primary.get(id).await? {
-            return Ok(Some(p));
-        }
-
-        self.secondary.get(id).await
+        self.r2.get(id).await
     }
 
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
-        // Ignore errors, lazy way of ignoring errors for files that dont exist
-        let _ = self.primary.delete(id).await;
-        let _ = self.secondary.delete(id).await;
-        Ok(())
+        self.r2.delete(id).await
     }
 
     pub async fn put(
@@ -72,30 +58,10 @@ impl Storage {
         data: &[u8],
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
-        self.primary.put(id, sha1, data, metadata).await
-    }
-
-    pub async fn put_auto(
-        self,
-        rctx: &crate::RequestContext,
-        id: &PasteId,
-        sha1: &[u8],
-        data: Rc<[u8]>,
-        metadata: Option<&PasteMetadata>,
-    ) -> Result<()> {
-        // Turkey blocks b2 for some reason...
-        if rctx.country().as_deref() == Some("TR") {
-            self.primary.put(id, sha1, &data, metadata).await
-        } else {
-            self.primary.put_async(rctx, id, sha1, data, metadata).await
-        }
+        self.r2.put(id, sha1, data, metadata).await
     }
 
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
-        let r = self.primary.list(user).await?;
-        if !r.is_empty() {
-            return Ok(r);
-        }
-        self.secondary.list(user).await
+        self.r2.list(user).await
     }
 }

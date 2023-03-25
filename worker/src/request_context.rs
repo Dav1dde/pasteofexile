@@ -108,7 +108,7 @@ impl RequestContext {
                 .flatten()
                 .map(|user| user.name.into()),
             ip_address: self.req.headers().get("cf-connecting-ip").ok().flatten(),
-            country: self.req.headers().get("cf-ipcountry").ok().flatten(),
+            country: self.req.cf().country(),
         }
     }
 
@@ -129,10 +129,6 @@ impl RequestContext {
 
         let dangerous = self.inject::<crate::dangerous::Dangerous>();
         Ok(Some(dangerous.verify::<app::User>(&session).await?))
-    }
-
-    pub fn country(&self) -> Option<String> {
-        self.req.cf().country()
     }
 }
 

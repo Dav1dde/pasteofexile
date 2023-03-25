@@ -3,10 +3,6 @@ type = "javascript"
 workers_dev = true
 compatibility_date = "2023-03-23"
 
-[[kv_namespaces]]
-binding = "B2_CREDENTIALS"
-id = "<unset>"
-
 [[r2_buckets]]
 binding = 'STORAGE_BUCKET'
 bucket_name = 'r2storage'
