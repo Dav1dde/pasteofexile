@@ -300,9 +300,7 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
 
     tracing::debug!("--> uploading paste '{}'", id);
     let storage = rctx.inject::<crate::storage::Storage>();
-    storage
-        .put_auto(rctx, &id, &sha1, data, Some(&metadata))
-        .await?;
+    storage.put(&id, &sha1, &data, Some(&metadata)).await?;
     tracing::debug!("<-- paste uploaing ...");
 
     let response = Response::ok()

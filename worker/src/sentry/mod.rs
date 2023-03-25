@@ -149,10 +149,6 @@ pub fn capture_err(err: &crate::Error) {
     with_sentry(|sentry| sentry.capture_err(err));
 }
 
-pub fn capture_err_level(err: &crate::Error, level: protocol::Level) {
-    with_sentry(|sentry| sentry.capture_err_level(err, level));
-}
-
 pub fn add_breadcrumb(breadcrumb: Breadcrumb) {
     with_sentry_mut(move |sentry| {
         sentry.add_breadcrumb(breadcrumb);

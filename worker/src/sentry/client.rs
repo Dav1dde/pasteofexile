@@ -54,10 +54,6 @@ impl Sentry {
         self.do_capture_err(err, err.level());
     }
 
-    pub fn capture_err_level(&self, err: &Error, level: protocol::Level) {
-        self.do_capture_err(err, level);
-    }
-
     pub(crate) fn push_trace_context(&mut self, trace_context: protocol::TraceContext) {
         self.trace_context.push(trace_context);
     }

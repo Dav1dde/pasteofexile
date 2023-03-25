@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use shared::{
@@ -97,19 +97,6 @@ impl R2Storage {
             .execute()
             .await?;
 
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self, _rctx, sha1, data))]
-    pub async fn put_async(
-        self,
-        _rctx: &crate::RequestContext,
-        id: &PasteId,
-        sha1: &[u8],
-        data: Rc<[u8]>,
-        metadata: Option<&PasteMetadata>,
-    ) -> Result<()> {
-        self.put(id, sha1, &data, metadata).await?;
         Ok(())
     }
 
