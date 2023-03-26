@@ -51,8 +51,8 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
     let data_rarity = rarity_str(item.rarity);
 
     view! { cx,
-        div(class="bg-black/[0.8] text-center pob-item", data-rarity=data_rarity) {
-            div(class="px-7 py-2 bg-contain relative", style=header_style) {
+        div(class="bg-black/[0.8] text-center pob-item font-['FontinSmallCaps']", data-rarity=data_rarity) {
+            div(class="px-7 py-2 bg-contain relative text-[1.1875rem]", style=header_style) {
                 (influence1)
                 div { (name) }
                 (base)

@@ -3,6 +3,14 @@
 @tailwind utilities;
 @tailwind variants;
 
+@font-face {
+    font-family: "FontinSmallCaps";
+    src: url("https://assets.pobb.in/1/Art/2DArt/Fonts/Fontin-SmallCaps.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 @layer components {
     .btn {
         @apply hover:cursor-pointer px-6 py-2 inline-flex justify-center rounded-lg text-sm font-semibold
