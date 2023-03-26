@@ -5,10 +5,10 @@ use worker::wasm_bindgen::JsCast;
 use worker::wasm_bindgen_futures::JsFuture;
 use worker::{js_sys, Result};
 
-pub struct Sha1(Vec<u8>);
+pub struct Sha1(pub [u8; 20]);
 
 impl std::ops::Deref for Sha1 {
-    type Target = [u8];
+    type Target = [u8; 20];
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -26,7 +26,13 @@ pub async fn sha1(data: &[u8]) -> Result<Sha1> {
     )
     .await?;
     assert!(digest.is_instance_of::<js_sys::ArrayBuffer>());
-    Ok(Sha1(Uint8Array::new(&digest).to_vec()))
+
+    let digest = Uint8Array::new(&digest);
+    assert_eq!(digest.length(), 20, "a sha1 hash must be 20 bytes");
+
+    let mut result = Sha1(Default::default());
+    digest.copy_to(&mut result.0);
+    Ok(result)
 }
 
 pub async fn sign_hmac_256(secret: &[u8], payload: &mut [u8]) -> Result<Vec<u8>> {

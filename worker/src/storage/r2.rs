@@ -9,6 +9,7 @@ use worker::{Bucket, HttpMetadata, Include, Object};
 
 use super::StoredPaste;
 use crate::{
+    crypto::Sha1,
     request_context::{Env, FromEnv},
     utils::{b64_decode, b64_encode},
     Result,
@@ -70,7 +71,7 @@ impl R2Storage {
     pub async fn put(
         &self,
         id: &PasteId,
-        sha1: &[u8],
+        sha1: &Sha1,
         data: &[u8],
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
@@ -93,7 +94,7 @@ impl R2Storage {
                 ..Default::default()
             })
             .custom_metdata(custom_metdata)
-            .sha1(sha1.try_into().unwrap_or_default())
+            .sha1(sha1.0)
             .execute()
             .await?;
 

@@ -6,6 +6,8 @@ use git_version::git_version;
 use shared::Id;
 use worker::{Request, Result};
 
+use crate::crypto::Sha1;
+
 macro_rules! if_debug {
     ($debug:expr, $otherwise:expr) => {{
         #[cfg(feature = "debug")] { $debug }
@@ -20,8 +22,6 @@ macro_rules! if_debug {
     }};
 }
 pub(crate) use if_debug;
-
-use crate::crypto::Sha1;
 
 pub fn b64_encode<T: AsRef<[u8]>>(input: T) -> String {
     base64::encode_config(input, base64::URL_SAFE_NO_PAD)

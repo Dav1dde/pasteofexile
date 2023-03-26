@@ -5,6 +5,7 @@ use shared::{
 };
 
 use crate::{
+    crypto::Sha1,
     request_context::{Env, FromEnv},
     Result,
 };
@@ -54,7 +55,7 @@ impl Storage {
     pub async fn put(
         &self,
         id: &PasteId,
-        sha1: &[u8],
+        sha1: &Sha1,
         data: &[u8],
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
