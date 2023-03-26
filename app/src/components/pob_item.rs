@@ -52,7 +52,7 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
 
     view! { cx,
         div(class="bg-black/[0.8] text-center pob-item font-['FontinSmallCaps']", data-rarity=data_rarity) {
-            div(class="px-7 py-2 bg-contain relative text-[1.1875rem]", style=header_style) {
+            div(class="px-7 py-1 bg-contain relative text-[1.1875rem] leading-6", style=header_style) {
                 (influence1)
                 div { (name) }
                 (base)
