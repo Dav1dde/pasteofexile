@@ -8,6 +8,7 @@ if [[ "$1" == "--release" ]]; then
     WORKER_BUILD_ARGS="--release"
 elif [[ "$1" == "--dev" ]]; then
     echo "Building in --dev mode"
+    export RUSTFLAGS='--cfg pobbin_develop'
     TRUNK_ARGS=""
     WORKER_BUILD_ARGS="--dev"
 else

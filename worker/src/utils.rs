@@ -8,20 +8,17 @@ use worker::{Request, Result};
 
 use crate::crypto::Sha1;
 
-macro_rules! if_debug {
-    ($debug:expr, $otherwise:expr) => {{
-        #[cfg(feature = "debug")] { $debug }
-        #[cfg(not(feature = "debug"))] { $otherwise }
+macro_rules! if_develop {
+    ($develop:expr, $otherwise:expr) => {{
+        // Use cfg!() to make sure both branches are compiled
+        // compiler will just kill dead code afterwards.
+        if cfg!(pobbin_develop) { $develop } else { $otherwise }
     }};
-    ({ $($debug:tt)* }, { $($otherwise:expr)* }) => {{
-        #[cfg(feature = "debug")] { $(debug)* }
-        #[cfg(not(feature = "debug"))] { $(otherwise)* }
-    }};
-    { $debug:expr } => {{
-        #[cfg(feature = "debug")] { $debug }
+    { $develop:expr } => {{
+        $crate::utils::if_develop!($develop, {})
     }};
 }
-pub(crate) use if_debug;
+pub(crate) use if_develop;
 
 pub fn b64_encode<T: AsRef<[u8]>>(input: T) -> String {
     base64::encode_config(input, base64::URL_SAFE_NO_PAD)

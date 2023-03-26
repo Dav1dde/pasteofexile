@@ -366,7 +366,7 @@ async fn handle_user(rctx: &RequestContext, user: User) -> Result<Response> {
 #[tracing::instrument(skip(rctx))]
 async fn handle_login(rctx: &RequestContext) -> Result<Response> {
     let req_url = rctx.url()?;
-    let host = crate::utils::if_debug!("preview.pobb.in", req_url.host_str().unwrap());
+    let host = crate::utils::if_develop!("preview.pobb.in", req_url.host_str().unwrap());
 
     let state = create_oauth_state(&req_url, rctx.referrer().as_ref())?;
     let redirect_uri = format!("https://{host}/oauth2/authorization/poe");
@@ -405,7 +405,7 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
 
     tracing::info!(%grant.state, "logging in");
 
-    crate::utils::if_debug!({}, {
+    crate::utils::if_develop!({}, {
         use crate::utils::RequestExt;
         let cookie_state = rctx.cookie("state").unwrap_or_default();
         if cookie_state != grant.state {
