@@ -130,7 +130,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     let main_skill_image = if let Some(main_skill_image) = main_skill_image {
         let main_skill_name = main_skill_name.clone();
         view! { cx,
-            img(src=main_skill_image, alt=main_skill_name, class="h-10 mr-1", onerror=IMG_ONERROR_HIDDEN) {}
+            img(src=main_skill_image, alt=main_skill_name, class="h-10 w-10 mr-1", onerror=IMG_ONERROR_HIDDEN) {}
         }
     } else {
         View::empty()
@@ -147,7 +147,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
         ) {
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
-                    class="asc-image rounded-full md:rounded-l-none md:h-auto md:w-auto",
+                    class="asc-image rounded-full md:rounded-l-none md:h-[105px] md:w-[135px]",
                     alt=format!("{} Thumbnail", summary.ascendancy_or_class),
                     onerror=IMG_ONERROR_INVISIBLE) {}
                 div(class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
