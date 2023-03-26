@@ -11,8 +11,6 @@ use crate::{
 
 #[component]
 pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
-    let build = create_ref(cx, build);
-
     let mut skill_sets = build.skill_sets();
 
     if skill_sets.is_empty() {
@@ -71,8 +69,8 @@ fn render_skills<G: GenericNode + Html>(cx: Scope, skills: Vec<Skill>) -> View<G
                 .filter(|s| s.label.is_some())
                 .map(|s| s.label.unwrap().to_owned())
                 .map(|label| {
-                    let title = strip_colors(&label);
-                    view! { cx, div(class="truncate", title=title) { PobColoredText(&label) } }
+                    let title = create_ref(cx, strip_colors(&label));
+                    view! { cx, div(class="truncate", title=title) { PobColoredText(text=&label, links=false) } }
                 })
                 .collect_view();
 

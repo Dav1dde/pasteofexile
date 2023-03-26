@@ -25,6 +25,9 @@ impl<'a> Iterator for ColoredText<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let text = self.text.take()?;
+        if text.is_empty() {
+            return None;
+        }
 
         let mut start_search = 0;
 
@@ -32,9 +35,6 @@ impl<'a> Iterator for ColoredText<'a> {
             let index = match text.get(start_search..).and_then(|s| s.find('^')) {
                 Some(index) => start_search + index,
                 None => {
-                    if text.is_empty() {
-                        return None;
-                    }
                     return Some((std::mem::replace(&mut self.style, Color::None), text));
                 }
             };

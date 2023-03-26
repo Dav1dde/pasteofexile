@@ -65,7 +65,7 @@ pub fn ViewPaste<'a, G: Html>(
         div(class="flex-auto") {
             h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
             pre(class="text-xs break-words whitespace-pre-wrap font-mono sm:ml-3") {
-                PobColoredText(build.notes())
+                PobColoredText(text=build.notes(), links=true)
             }
         }
     });

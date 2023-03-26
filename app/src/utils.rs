@@ -5,6 +5,7 @@ use sycamore::prelude::*;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 
 pub mod hooks;
+pub mod links;
 mod route;
 mod storage;
 
