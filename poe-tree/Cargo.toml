@@ -6,13 +6,14 @@ edition.workspace = true
 build = "build.rs"
 
 [features]
-default = ["tree-3_15", "tree-3_16", "tree-3_17", "tree-3_18", "tree-3_19", "tree-3_20"]
+default = ["tree-3_15", "tree-3_16", "tree-3_17", "tree-3_18", "tree-3_19", "tree-3_20", "tree-3_21"]
 tree-3_15 = []
 tree-3_16 = []
 tree-3_17 = []
 tree-3_18 = []
 tree-3_19 = []
 tree-3_20 = []
+tree-3_21 = []
 
 [dependencies]
 phf.workspace = true
