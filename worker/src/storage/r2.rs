@@ -10,6 +10,7 @@ use worker::{Bucket, HttpMetadata, Include, Object};
 use super::StoredPaste;
 use crate::{
     request_context::{Env, FromEnv},
+    retry,
     utils::{b64_decode, b64_encode},
     Result,
 };
@@ -40,7 +41,10 @@ impl R2Storage {
     #[tracing::instrument(skip(self))]
     pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         let path = super::to_path_r2(id)?;
-        let Some(obj) = self.bucket.get(path).execute().await? else {
+
+        let obj = retry::retry_all(3, |_| self.bucket.get(&path).execute()).await?;
+
+        let Some(obj) = obj else {
             return Ok(None);
         };
 
@@ -62,7 +66,9 @@ impl R2Storage {
     #[tracing::instrument(skip(self))]
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
         let path = super::to_path_r2(id)?;
-        self.bucket.delete(path).await?;
+
+        retry::retry_all(3, |_| self.bucket.delete(&path)).await?;
+
         Ok(())
     }
 
@@ -86,16 +92,18 @@ impl R2Storage {
             custom_metdata.insert("metadata".to_owned(), metadata);
         }
 
-        self.bucket
-            .put(path, worker::Data::Bytes(data))
-            .http_metadata(HttpMetadata {
-                content_type: Some("text/plain".to_owned()),
-                ..Default::default()
-            })
-            .custom_metdata(custom_metdata)
-            .sha1(sha1.try_into().unwrap_or_default())
-            .execute()
-            .await?;
+        retry::retry_all(3, |_| {
+            self.bucket
+                .put(&path, worker::Data::Bytes(data))
+                .http_metadata(HttpMetadata {
+                    content_type: Some("text/plain".to_owned()),
+                    ..Default::default()
+                })
+                .custom_metdata(custom_metdata.clone())
+                .sha1(sha1.try_into().unwrap_or_default())
+                .execute()
+        })
+        .await?;
 
         Ok(())
     }
@@ -103,14 +111,16 @@ impl R2Storage {
     #[tracing::instrument(skip(self))]
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
         let prefix = super::to_prefix_r2(user);
-        let objects = self
-            .bucket
-            .list()
-            .prefix(&prefix)
-            .include(vec![Include::CustomMetadata])
-            .limit(100)
-            .execute()
-            .await?;
+
+        let objects = retry::retry_all(3, |_| {
+            self.bucket
+                .list()
+                .prefix(&prefix)
+                .include(vec![Include::CustomMetadata])
+                .limit(100)
+                .execute()
+        })
+        .await?;
 
         objects
             .objects()
