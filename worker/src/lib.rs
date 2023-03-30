@@ -15,6 +15,7 @@ mod pastes;
 mod poe_api;
 mod request_context;
 mod response;
+mod retry;
 mod route;
 mod sentry;
 mod stats;

@@ -56,6 +56,8 @@ tracing-subscriber = "0.3"
 tracing-wasm = "0.2"
 tracing = "0.1"
 
+futures = "0.3"
+
 git-version = "0.3"
 cfg-if = "1"
 thiserror = "1"

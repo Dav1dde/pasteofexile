@@ -1639,6 +1639,7 @@ version = "0.1.0"
 dependencies = [
  "app",
  "base64",
+ "futures",
  "git-version",
  "js-sys",
  "once_cell",
