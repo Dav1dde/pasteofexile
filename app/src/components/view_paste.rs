@@ -130,7 +130,7 @@ pub fn ViewPaste<'a, G: Html>(
     let ad = [
         "/assets/enlargement.webp",
         "/assets/twomirrors.webp",
-        "/assets/quon80.webp",
+        "/assets/twitchembed.webp",
     ][(js_sys::Date::new_0().get_time() % 3.0) as usize];
 
     view! { cx,

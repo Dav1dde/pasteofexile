@@ -66,7 +66,7 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
     use_session::<G>(cx);
 
     let ad = [
-        "/assets/yourad.webp",
+        "/assets/pobbinupdate.webp",
         "/assets/chaoiscoinscam.webp",
         "/assets/pobstitute.webp",
     ][(js_sys::Date::new_0().get_time() % 3.0) as usize];
@@ -81,10 +81,41 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
         }
     };
 
+    let ss = |_: web_sys::Event| {
+        let w = web_sys::window().unwrap_throw();
+        macro_rules! lol {
+            ($msg:expr) => {
+                let r = w.confirm_with_message($msg).unwrap_or(true);
+                if r {
+                    break;
+                }
+            };
+        }
+
+        loop {
+            lol!("Do you want to install Path of Exile Bar 9000+?");
+            lol!("Why not kiddo, it's the best thing out there! So what do you say?");
+            lol!("There is no better quality of life anywhere to find!");
+            lol!("Dont you think this is better than 20 Chaos Orbs?");
+            lol!("Fuck Bro");
+            lol!("Okay, let's get back to upgrading your browser game kiddo?");
+        }
+
+        for i in 0..5 {
+            let _ = w.alert_with_message(&format!("Installing {}", ".".repeat(i)));
+        }
+
+        let _ = w.alert_with_message(
+            "Thank you for installin Path of Exile Bar 9000+.\nLiterally better than 9000 other Toolbars!",
+        );
+        let _ = w.alert_with_message("Launching ...");
+        let _ = w.alert_with_message("vk::Device::waitForFences: ErrorDeviceLost");
+    };
+
     view! { cx,
         progress::Progress()
-        div(class="bg-[#f1f3f4] sticky top-0 h-7 border-white border-b-2 text-[#af6025] flex items-center px-3") {
-            span() {
+        div(class="bg-[#f1f3f4] sticky top-0 h-8 border-white border-b-2 text-[#af6025] flex items-center px-3") {
+            span(class="bold underline") {
                 "Path Of Exile Bar"
             }
             span(class="ml-2 pl-2 border-l-2 border-slate-200") {
@@ -101,6 +132,8 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
                     "Path of Building"
                 }
             }
+            span(class="flex-1") {}
+            a(class="text-red-500 underline bold cursor-pointer", on:click=ss) { "INSTALL" }
         }
         div(class="h-screen flex flex-col gap-10") {
             nav(class="bg-slate-200 dark:bg-slate-900 dark:shadow-lg") {
