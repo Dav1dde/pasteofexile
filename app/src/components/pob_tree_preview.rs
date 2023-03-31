@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
 
 use itertools::Itertools;
 use pob::TreeSpec;
@@ -7,28 +7,34 @@ use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlElement, PointerEvent};
 
-use crate::build::Build;
-use crate::components::PobColoredSelect;
-use crate::utils::IteratorExt;
-use crate::{Prefetch, ResponseContext};
+use crate::{
+    build::Build, components::PobColoredSelect, utils::IteratorExt, Prefetch, ResponseContext,
+};
 
 #[derive(Debug)]
 struct Tree {
     name: String,
     image_url: String,
+    tree_url: String,
     active: bool,
-    nodes: Rc<Nodes>,
+    nodes: Nodes,
+    allocated: usize,
 }
 
 #[component]
 pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let trees = build
         .trees()
-        .map(|(nodes, spec)| Tree {
-            name: spec.title.unwrap_or("<Default>").to_owned(),
-            image_url: get_tree_url(&spec).unwrap(),
-            active: spec.active,
-            nodes: Rc::new(nodes.clone()),
+        .filter_map(|(nodes, spec)| {
+            let url = get_tree_url(&spec)?;
+            Some(Tree {
+                name: spec.title.unwrap_or("<Default>").to_owned(),
+                image_url: get_tree_image_url(&spec, &url)?,
+                tree_url: url,
+                active: spec.active,
+                nodes: nodes.clone(),
+                allocated: spec.nodes.len(),
+            })
         })
         .collect::<Vec<_>>();
 
@@ -44,25 +50,17 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         }
     }
 
-    let current_tree = trees.iter().find_or_first(|t| t.active).unwrap();
-
-    let value = current_tree.image_url.clone();
-    let style = format!("background-image: url({value})");
-
-    let node_ref = create_node_ref(cx);
-    let nodes = create_signal(cx, Rc::clone(&current_tree.nodes));
+    let trees = create_ref(cx, trees);
+    let current_tree = create_signal(cx, trees.iter().find_or_first(|t| t.active).unwrap());
 
     // TODO: this updates the currently active tree, but it doesn't read from it
     // the select would need to be updated as well if the tree changes, kinda tricky...
     let select = render_select(cx, trees, move |index, tree| {
-        let property = format!("url({})", tree.image_url);
-        let _ = crate::utils::from_ref::<HtmlElement>(node_ref)
-            .style()
-            .set_property("background-image", &property);
-        nodes.set(Rc::clone(&tree.nodes));
+        current_tree.set(tree);
         build.active_tree().set(index);
     });
 
+    let node_ref = create_node_ref(cx);
     let state = create_ref(cx, RefCell::new(TouchState::new(node_ref.clone())));
     let on_move_start = |event: Event| {
         let event = event.unchecked_into::<PointerEvent>();
@@ -104,10 +102,27 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         state.borrow_mut().remove_pointer(&event);
     };
 
-    let nodes = create_memo(cx, move || render_nodes(cx, &nodes.get()));
+    let nodes = create_memo(cx, move || render_nodes(cx, &current_tree.get().nodes));
+    let tree_background = create_memo(cx, || {
+        format!("background-image: url({})", current_tree.get().image_url)
+    });
+    let tree_level = create_memo(cx, move || {
+        let current_tree = current_tree.get();
+        let (nodes, level) = resolve_level(current_tree.allocated);
+        let desc = format!("Level {level} ({nodes} passives)");
+        view! { cx,
+            a(href=current_tree.tree_url, rel="external", target="_blank",
+            class="text-sky-500 dark:text-sky-400 hover:underline") {
+                (desc)
+            }
+        }
+    });
 
     view! { cx,
-        (select)
+        div(class="flex align-center h-9") {
+            div() { (select) }
+            div(class="flex-1 text-right sm:mr-3") { (&*tree_level.get()) }
+        }
         div(class="grid grid-cols-10 gap-3") {
             div(class="col-span-10 lg:col-span-7 h-[450px] md:h-[800px] cursor-move md:overflow-auto mt-2",
                 on:pointerdown=on_move_start,
@@ -119,7 +134,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                 div(ref=node_ref,
                     class="h-full w-full bg-center bg-no-repeat touch-pan
                     transition-[background-image] duration-1000 will-change-[background-image]",
-                    style=style) {
+                    style=tree_background.get()) {
                 }
             }
 
@@ -130,6 +145,47 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             }
         }
     }
+}
+
+fn resolve_level(allocated: usize) -> (usize, usize) {
+    // TODO: needs auto-generated node information for ascendancies
+    if allocated == 0 {
+        return (0, 0);
+    }
+
+    // character start node
+    let allocated = allocated - 1;
+
+    // points count towards allocated but aren't available skill tree points
+    let asc = match allocated {
+        0..=38 => 0,
+        39..=69 => 3, // 2 points + ascendancy start node
+        70..=90 => 5,
+        91..=98 => 7,
+        _ => 9,
+    };
+
+    // TODO: check for bandits
+    let bandits = match allocated {
+        0..=21 => 0,
+        _ => 2,
+    };
+
+    let quests = match allocated - asc - bandits {
+        0..=11 => 0,
+        12..=23 => 2,
+        24..=34 => 3,
+        35..=44 => 5,
+        45..=49 => 6,
+        50..=57 => 8,
+        58..=64 => 11,
+        65..=73 => 14,
+        74..=80 => 17,
+        81..=85 => 19,
+        _ => 22,
+    };
+
+    (allocated - asc, 1 + allocated - asc - bandits - quests)
 }
 
 pub fn render_nodes<G: GenericNode + Html>(cx: Scope, nodes: &Nodes) -> View<G> {
@@ -192,11 +248,11 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &Node) -> View<G> {
 
 fn render_select<'a, G: GenericNode + Html, F>(
     cx: Scope<'a>,
-    trees: Vec<Tree>,
+    trees: &'a Vec<Tree>,
     on_change: F,
 ) -> View<G>
 where
-    F: Fn(usize, &Tree) + 'a,
+    F: Fn(usize, &'a Tree) + 'a,
 {
     if trees.len() <= 1 {
         return view! { cx, };
@@ -215,12 +271,20 @@ where
     }
 }
 
-fn get_tree_url(spec: &TreeSpec) -> Option<String> {
-    spec.url
-        .and_then(|url| url.rsplit_once('/'))
+fn get_tree_image_url(spec: &TreeSpec, url: &str) -> Option<String> {
+    url.rsplit_once('/')
         .map(|(_, data)| data)
         .zip(spec.version)
         .map(|(data, ver)| format!("https://tree.pobb.in/{ver}/{data}"))
+}
+
+fn get_tree_url(spec: &TreeSpec) -> Option<String> {
+    spec.url
+        .filter(|url| {
+            url.starts_with("https://pathofexile.com")
+                || url.starts_with("https://www.pathofexile.com")
+        })
+        .map(|url| url.to_owned())
 }
 
 #[derive(Debug)]
