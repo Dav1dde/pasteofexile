@@ -66,7 +66,7 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
     use_session::<G>(cx);
 
     let ad = [
-        "/assets/pobbinupdate.webp",
+        "/assets/ff.webp",
         "/assets/chaoiscoinscam.webp",
         "/assets/pobstitute.webp",
     ][(js_sys::Date::new_0().get_time() % 3.0) as usize];
@@ -114,7 +114,7 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
 
     view! { cx,
         progress::Progress()
-        div(class="bg-[#f1f3f4] sticky top-0 h-8 border-white border-b-2 text-[#af6025] flex items-center px-3") {
+        div(class="bg-[#f1f3f4] sticky top-0 min-h-8 border-white border-b-2 text-[#af6025] flex items-center px-3") {
             span(class="bold underline") {
                 "Path Of Exile Bar"
             }

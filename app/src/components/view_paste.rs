@@ -128,10 +128,13 @@ pub fn ViewPaste<'a, G: Html>(
         crate::assets::ascendancy_image(build.pob().ascendancy_or_class_name()).unwrap_or_default();
 
     let ad = [
+        "/assets/weightloss.webp",
         "/assets/enlargement.webp",
         "/assets/twomirrors.webp",
+        "/assets/weightloss.webp",
+        "/assets/enlargement.webp",
         "/assets/twitchembed.webp",
-    ][(js_sys::Date::new_0().get_time() % 3.0) as usize];
+    ][(js_sys::Date::new_0().get_time() % 6.0) as usize];
 
     view! { cx,
         div(class="text-right text-sm text-slate-500", title=date, data-last-modified=last_modified) { (since) }
