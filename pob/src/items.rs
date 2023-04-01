@@ -14,6 +14,10 @@ impl Rarity {
     pub fn is_unique(&self) -> bool {
         matches!(self, Self::Unique)
     }
+
+    pub fn is_rare(&self) -> bool {
+        matches!(self, Self::Rare)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -79,9 +83,11 @@ impl<'a> Item<'a> {
             _ => None,
         };
         let mut base = lines.next().ok_or(InvalidItem("eof, expected base"))?;
-        if matches!(rarity, Rarity::Normal) {
+        if matches!(rarity, Rarity::Normal | Rarity::Magic) {
             name = Some(base);
         }
+        // Technically only necessary for Magic and Normal items.
+        base = fixup_item_name(base);
 
         let mut item_level = 0;
         let mut level_requirement = 0;
@@ -205,7 +211,6 @@ impl<'a> Item<'a> {
 
         // Postprocess magic items based on mod count ...
         if matches!(rarity, Rarity::Magic) {
-            name = Some(base);
             base = extract_magic_base(base, explicits.lines().count());
         }
 
@@ -236,6 +241,14 @@ impl<'a> Item<'a> {
             implicits,
             explicits,
         })
+    }
+
+    /// Attempts to make the item name PoE compatible.
+    ///
+    /// Strips common prefixes and suffixes from the name in the hopes
+    /// of extracting an actualy valid item name.
+    pub fn fixed_item_name(&self) -> Option<&'a str> {
+        self.name.map(fixup_item_name)
     }
 
     pub fn enchants(&self) -> impl Iterator<Item = Mod<'a>> {
@@ -310,6 +323,21 @@ impl<'a> Mod<'a> {
         };
         variant.split(',').any(|variant| variant == target)
     }
+}
+
+/// 'Fixes' a PoE item name, this can be an actual name (Unique)
+/// or a base item.
+///
+/// Strips prefixes used by creators (`Endgame - Mageblood`)
+/// and suffixes added by PoB.
+fn fixup_item_name(mut name: &str) -> &str {
+    // Some creators prefix their items with `{Prefix} -`,
+    // strip the prefix. Support `Foo - Bar -` prefixes.
+    name = name.rsplit_once('-').map(|(_, name)| name).unwrap_or(name);
+    // PoB generates Legion Jewels with `[Seed]` at the end:
+    // Burtal Restraint [...] -> Brutal Restraint
+    let end = name.find('[').unwrap_or(name.len());
+    return name[..end].trim();
 }
 
 fn extract_magic_base(base: &str, num_mods: usize) -> &str {
@@ -430,7 +458,7 @@ Implicits: 0
     fn unique_carcas_jack() {
         let item = Item::parse(
             r#"Rarity: UNIQUE
-Carcass Jack
+Endgame - Carcass Jack [123]
 Varnished Coat
 Evasion: 1020
 EvasionBasePercentile: 0.2766
@@ -457,6 +485,8 @@ Extra gore"#,
         .unwrap();
 
         assert_eq!(item.item_level, 0);
+        assert_eq!(item.name, Some("Endgame - Carcass Jack [123]"));
+        assert_eq!(item.fixed_item_name(), Some("Carcass Jack"));
     }
 
     #[test]
@@ -501,7 +531,7 @@ Adds 1 to 23 Lightning Damage to Attacks
     fn double_mod_only_suffix() {
         let item = Item::parse(
             r#"Rarity: MAGIC
-Sapphire Flask of the Lizard
+Endgame Flask - Sapphire Flask of the Lizard
 Unique ID: 5ef536d249d5a5dfd3905be71ad31ee10b2bf04d4fd84c1c7917a306c80b3ec3
 Item Level: 20
 Quality: 20
@@ -513,6 +543,10 @@ Immunity to Bleeding and Corrupted Blood during Effect"#,
         )
         .unwrap();
 
+        assert_eq!(
+            Some("Endgame Flask - Sapphire Flask of the Lizard"),
+            item.name
+        );
         assert_eq!("Sapphire Flask", item.base);
     }
 

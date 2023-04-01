@@ -113,10 +113,8 @@ fn render_item<'a, G: Html>(
 
 fn item_image_name<'a>(item: &pob::Item<'a>) -> &'a str {
     if item.rarity.is_unique() {
-        if let Some(name) = item.name {
-            // Burtal Restraint [...] -> Brutal Restraint
-            let end = name.find(" [").unwrap_or(name.len());
-            return &name[..end];
+        if let Some(name) = item.fixed_item_name() {
+            return name;
         }
     }
 
