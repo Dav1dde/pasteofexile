@@ -331,9 +331,10 @@ impl<'a> Mod<'a> {
 /// Strips prefixes used by creators (`Endgame - Mageblood`)
 /// and suffixes added by PoB.
 fn fixup_item_name(mut name: &str) -> &str {
-    // Some creators prefix their items with `{Prefix} -`,
-    // strip the prefix. Support `Foo - Bar -` prefixes.
-    name = name.rsplit_once('-').map(|(_, name)| name).unwrap_or(name);
+    // Some creators prefix their items with `{Prefix} - `,
+    // strip the prefix. Support `Foo - Bar - ` prefixes.
+    // Items: like `Pig-Faced Bascinet` exist.
+    name = name.rsplit_once("- ").map(|(_, name)| name).unwrap_or(name);
     // PoB generates Legion Jewels with `[Seed]` at the end:
     // Burtal Restraint [...] -> Brutal Restraint
     let end = name.find('[').unwrap_or(name.len());
@@ -458,7 +459,7 @@ Implicits: 0
     fn unique_carcas_jack() {
         let item = Item::parse(
             r#"Rarity: UNIQUE
-Endgame - Carcass Jack [123]
+Endgame - Carcass-Jack [123]
 Varnished Coat
 Evasion: 1020
 EvasionBasePercentile: 0.2766
@@ -485,8 +486,8 @@ Extra gore"#,
         .unwrap();
 
         assert_eq!(item.item_level, 0);
-        assert_eq!(item.name, Some("Endgame - Carcass Jack [123]"));
-        assert_eq!(item.fixed_item_name(), Some("Carcass Jack"));
+        assert_eq!(item.name, Some("Endgame - Carcass-Jack [123]"));
+        assert_eq!(item.fixed_item_name(), Some("Carcass-Jack"));
     }
 
     #[test]
