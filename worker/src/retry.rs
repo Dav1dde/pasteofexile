@@ -1,7 +1,7 @@
 use std::future::Future;
 
 use futures::FutureExt;
-use tracing::Span;
+use tracing::Instrument;
 
 pub enum Retry<T, Err> {
     Ok(T),
@@ -37,7 +37,6 @@ where
     retry(max_attempts, move |i| f(i).map(Retry::auto))
 }
 
-#[tracing::instrument(skip(f), fields(attempt))]
 pub async fn retry<F, T, Err, Fut>(max_attempts: usize, mut f: F) -> Result<T, Err>
 where
     F: FnMut(usize) -> Fut,
@@ -48,12 +47,12 @@ where
         max_attempts > 1,
         "it does not make sense to retry with only 1 attempt"
     );
-    for i in 1..=max_attempts {
-        Span::current().record("attempt", i);
-        match f(i).await {
+    for attempt in 1..=max_attempts {
+        let span = tracing::info_span!("retry", attempt);
+        match f(attempt).instrument(span).await {
             Ok(Retry::Ok(result)) => return Ok(result),
             Ok(Retry::Err(err)) => {
-                let is_last_attempt = i == max_attempts;
+                let is_last_attempt = attempt == max_attempts;
                 if is_last_attempt {
                     tracing::warn!(err = ?err, "no more attempts available {max_attempts}/{max_attempts}");
                     return Err(err);
