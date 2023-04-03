@@ -355,14 +355,12 @@ fn extract_magic_base(base: &str, num_mods: usize) -> &str {
     if has_suffix_in_name && num_mods == 1 {
         // Only suffix
         base
-    } else if has_suffix_in_name && num_mods == 2 && may_be_full_base(base) {
-        // 2 mods, but they both belong to the suffix and `base` is already
-        // the full base name
-        base
     } else if may_be_full_base(base) {
         // Technically incorrect item names,
         // "Jade Flask" but has a mod.
-        // Happens if you add a crafted mod to a flask on pob
+        // Happens if you add a crafted mod to a flask on pob.
+        // But also includes items that have 2 mod lines but
+        // it's just a multiline suffix.
         base
     } else {
         // Prefix with or without suffix
