@@ -359,6 +359,11 @@ fn extract_magic_base(base: &str, num_mods: usize) -> &str {
         // 2 mods, but they both belong to the suffix and `base` is already
         // the full base name
         base
+    } else if may_be_full_base(base) {
+        // Technically incorrect item names,
+        // "Jade Flask" but has a mod.
+        // Happens if you add a crafted mod to a flask on pob
+        base
     } else {
         // Prefix with or without suffix
         base.split_once(' ').map_or(base, |s| s.1)
@@ -453,6 +458,26 @@ Implicits: 0
         .unwrap();
 
         assert_eq!(item.base, "Silver Flask");
+    }
+
+    #[test]
+    fn magic_utility_flask_no_mods_enchant() {
+        let item = Item::parse(
+            r#"Rarity: MAGIC
+Jade Flask
+Crafted: true
+Prefix: None
+Suffix: None
+CatalystQuality: 20
+Quality: 20
+LevelReq: 27
+Implicits: 0
+{tags:flask,resource,unveiled_mod,mana}{crafted}{range:1}(20-25)% reduced Mana Cost of Skills during Effect"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.name, Some("Jade Flask"));
+        assert_eq!(item.base, "Jade Flask");
     }
 
     #[test]
