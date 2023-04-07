@@ -36,8 +36,6 @@ static LOG_INIT: std::sync::Once = std::sync::Once::new();
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<WorkerResponse> {
-    let mut rctx = RequestContext::new(req, env, ctx);
-
     LOG_INIT.call_once(|| {
         use tracing_subscriber::prelude::*;
         tracing_subscriber::registry()
@@ -45,6 +43,8 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
             .with(layer::Layer {})
             .init();
     });
+
+    let mut rctx = RequestContext::new(req, env, ctx).await;
 
     let sentry = sentry::new(rctx.ctx(), rctx.inject_opt());
 

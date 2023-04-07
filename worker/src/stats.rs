@@ -11,7 +11,7 @@ pub async fn record(rctx: &RequestContext, response: &Response) {
     let Some(meta) = response.get_meta() else { return; };
     let Some(stats) = rctx.inject_opt::<Stats>() else { return };
 
-    let user = rctx.session().await.ok().flatten().map(|u| u.name);
+    let user = rctx.session().map(|u| u.name.clone());
 
     let headers = rctx.headers();
 
@@ -22,6 +22,7 @@ pub async fn record(rctx: &RequestContext, response: &Response) {
         "url": rctx.req().url().ok(),
         "method": rctx.method().to_string(),
         "status_code": response.status_code(),
+        "content_length": headers.get("Content-Length").ok().flatten(),
         "user_agent": headers.get("User-Agent").ok().flatten(),
         "referrer": headers.get("Referer").ok().flatten(),
         "client_ip": headers.get("Cf-Connecting-Ip").ok().flatten(),

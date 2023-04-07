@@ -1,13 +1,13 @@
 use tracing::Subscriber;
 use tracing_subscriber::layer;
 
-#[cfg(feature = "debug")]
+#[cfg(pobbin_develop)]
 thread_local!(static LAST_LOG_MSG: std::cell::Cell<u64> = std::cell::Cell::new(0));
 
 pub struct Layer {}
 
 impl<S: Subscriber> layer::Layer<S> for Layer {
-    #[cfg(feature = "debug")]
+    #[cfg(pobbin_develop)]
     fn on_event(&self, event: &tracing::Event<'_>, _ctx: layer::Context<'_, S>) {
         let (message, _) = crate::sentry::converter::extract_event_data(event);
         let message = message.unwrap_or_default();

@@ -232,13 +232,13 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
     tracing::info!(?data.id, data.as_user, ?data.title, ?data.custom_id, size = content.len(), "upload");
     sentry::add_attachment_plain(content.clone(), "pob.txt");
 
-    let pob = validate_pob(&content)?;
+    let pob = validate_pob(rctx.is_logged_in(), &content)?;
     let mut metadata = to_metadata(&pob);
 
     let sha1 = crypto::sha1(&content).await?;
 
     let id = if data.as_user {
-        let session = rctx.session().await?.ok_or_else(|| {
+        let session = rctx.session().ok_or_else(|| {
             tracing::warn!("missing user session");
             Error::AccessDenied
         })?;
@@ -267,7 +267,7 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
             validate_v!(validation::user::is_valid_custom_id(&id));
 
             UserPasteId {
-                user: session.name,
+                user: session.name.clone(),
                 id: id.try_into()?,
             }
             .into()
@@ -301,7 +301,7 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
     tracing::info!(size = data.len(), "pob upload");
     sentry::add_attachment_plain(data.clone(), "pob.txt");
 
-    let pob = validate_pob(&data)?;
+    let pob = validate_pob(rctx.is_logged_in(), &data)?;
     let metadata = to_metadata(&pob);
 
     let sha1 = crypto::sha1(&data).await?;
@@ -321,9 +321,17 @@ async fn handle_pob_upload(rctx: &mut RequestContext) -> Result<Response> {
     Ok(response)
 }
 
-fn validate_pob(data: &[u8]) -> Result<SerdePathOfBuilding> {
-    if data.len() > consts::MAX_UPLOAD_SIZE {
-        return Err(Error::BadRequest("Paste too large".to_owned()));
+fn validate_pob(is_logged_in: bool, data: &[u8]) -> Result<SerdePathOfBuilding> {
+    let limit = if is_logged_in {
+        consts::MAX_UPLOAD_SIZE_LOGGED_IN
+    } else {
+        consts::MAX_UPLOAD_SIZE
+    };
+
+    if data.len() > limit {
+        return Err(Error::BadRequest(
+            "Paste too large, please login and use the website".to_owned(),
+        ));
     }
 
     let s = std::str::from_utf8(data)

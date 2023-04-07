@@ -14,17 +14,21 @@ pub struct RequestContext {
     ctx: worker::Context,
     route: route::Route,
     trace_id: TraceId,
+    session: Option<app::User>,
 }
 
 impl RequestContext {
-    pub fn new(req: worker::Request, env: worker::Env, ctx: worker::Context) -> Self {
+    pub async fn new(req: worker::Request, env: worker::Env, ctx: worker::Context) -> Self {
         let route = route::Route::new(&req);
+        let env = Env::new(env);
+        let session = parse_session(&req, &env).await;
         Self {
             req,
-            env: Env::new(env),
+            env,
             ctx,
             route,
             trace_id: TraceId::default(),
+            session,
         }
     }
 
@@ -101,12 +105,7 @@ impl RequestContext {
 
     pub async fn get_sentry_user(&self) -> sentry::User {
         sentry::User {
-            username: self
-                .session()
-                .await
-                .ok()
-                .flatten()
-                .map(|user| user.name.into()),
+            username: self.session().map(|user| user.name.clone().into()),
             ip_address: self.req.headers().get("cf-connecting-ip").ok().flatten(),
             country: self.req.cf().country(),
         }
@@ -121,14 +120,12 @@ impl RequestContext {
         }
     }
 
-    pub async fn session(&self) -> crate::Result<Option<app::User>> {
-        let session = match self.req().session() {
-            Some(session) => session,
-            None => return Ok(None),
-        };
+    pub fn session(&self) -> Option<&app::User> {
+        self.session.as_ref()
+    }
 
-        let dangerous = self.inject::<crate::dangerous::Dangerous>();
-        Ok(Some(dangerous.verify::<app::User>(&session).await?))
+    pub fn is_logged_in(&self) -> bool {
+        self.session.is_some()
     }
 }
 
@@ -164,4 +161,17 @@ impl Env {
 
 pub trait FromEnv: Sized {
     fn from_env(env: &Env) -> Option<Self>;
+}
+
+async fn parse_session(req: &worker::Request, env: &Env) -> Option<app::User> {
+    let session = req.session()?;
+
+    let dangerous = crate::dangerous::Dangerous::from_env(env).expect("failed to create Dangerous");
+    match dangerous.verify::<app::User>(&session).await {
+        Ok(user) => Some(user),
+        Err(err) => {
+            tracing::warn!("failed to decode session: {err:?}");
+            None
+        }
+    }
 }
