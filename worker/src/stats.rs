@@ -22,7 +22,7 @@ pub async fn record(rctx: &RequestContext, response: &Response) {
         "url": rctx.req().url().ok(),
         "method": rctx.method().to_string(),
         "status_code": response.status_code(),
-        "content_length": headers.get("Content-Length").ok().flatten(),
+        "content_length": headers.get("Content-Length").ok().flatten().map(|cl| cl.parse::<u64>().unwrap_or(0)),
         "user_agent": headers.get("User-Agent").ok().flatten(),
         "referrer": headers.get("Referer").ok().flatten(),
         "client_ip": headers.get("Cf-Connecting-Ip").ok().flatten(),
