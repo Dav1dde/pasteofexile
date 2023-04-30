@@ -323,7 +323,15 @@ impl Response {
             .and_then(|m| b64_decode(m).ok())
             .and_then(|m| serde_json::from_slice(&m).ok());
 
+        response.skip_sentry = response
+            .headers
+            .get("X-Skip-Sentry")
+            .ok()
+            .flatten()
+            .is_some();
+
         let _ = response.headers.delete("X-Response-Meta");
+        let _ = response.headers.delete("X-SKip-Sentry");
         let _ = response.headers.set("Cf-Cache-Status", "HIT");
 
         response
@@ -342,6 +350,10 @@ impl Response {
                 .headers_mut()
                 .set("X-Response-Meta", &meta)
                 .unwrap();
+        }
+
+        if self.skip_sentry {
+            response.headers_mut().set("X-Skip-Sentry", "true").unwrap();
         }
 
         response
