@@ -242,7 +242,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
                     type="text",
                     maxlength=90,
                     minlength=3,
-                    pattern="[a-zA-Z0-9-_]*",
+                    pattern="[a-zA-Z0-9\\-_]*",
                     aria-label="Build ID",
                     placeholder="<auto generated>",
                     readonly=is_update,
