@@ -249,7 +249,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
                     value=custom_id.get(),
                     on:input=on_custom_id) { }
 
-                div(title="Pinned pastes are listed first") { "Pinned" }
+                div(title="Pinned builds are listed first") { "Pinned" }
                 div() {
                     input(
                         type="checkbox",

@@ -50,9 +50,22 @@ pub fn PasteToolbox<'a, G: Html>(
         is_current_user,
         {
             let edit_href = id.to_paste_edit_url();
+            let on_edit = move |ev: web_sys::Event| {
+                sycamore_router::navigate(&edit_href);
+                ev.stop_propagation();
+                ev.prevent_default();
+            };
+
             view! { cx,
                 div(class="flex justify-end gap-2 h-4") {
-                    a(href=edit_href, class="cursor-pointer", title="Edit", dangerously_set_inner_html=svg::PEN) {}
+                    // Can't just use a link here, the parent might stop propagation
+                    // Also, this is not a link that can be just browsed to, it needs
+                    // to be clicked and opened client side.
+                    a(on:click=on_edit,
+                      href="javascript:void(0)",
+                      class="cursor-pointer",
+                      title="Edit",
+                      dangerously_set_inner_html=svg::PEN) {}
                     span(on:click=on_delete_cb,
                          class="text-red-600 cursor-pointer",
                          title="Delete",
