@@ -1,5 +1,5 @@
 use sentry::WithSentry;
-use worker::{event, Cache, Context, Env, Method, Request, Response as WorkerResponse};
+use worker::{event, Context, Env, Request, Response as WorkerResponse};
 
 mod api;
 mod app;
@@ -68,35 +68,16 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
 
 #[tracing::instrument(skip_all)]
 async fn cached(rctx: &mut RequestContext) -> Response {
-    let cache = Cache::default();
-    let use_cache = rctx.method() == Method::Get;
+    let cache_entry = rctx.cache_entry();
 
-    if use_cache {
-        if let Some(response) = cache.get(rctx.req(), true).await.expect("cache api") {
-            tracing::debug!("cache hit");
-            return Response::from_cache(response);
-        }
+    if let Some(response) = cache_entry.load().await {
+        tracing::debug!("cache hit");
+        return response;
     }
 
-    let mut response = handle(rctx).await;
+    let response = handle(rctx).await;
 
-    if use_cache && response.is_cacheable() {
-        let for_cache = response.for_cache();
-
-        // Unwrap can only fail if the body was already consumed,
-        // this is a GET request without a body at this point.
-        let key = rctx.req().inner().clone().unwrap();
-        rctx.ctx().wait_until(async move {
-            tracing::debug!("--> caching response");
-            let r = cache.put(&key, for_cache).await;
-            debug_assert!(r.is_ok(), "failed to cache response: {r:?}");
-            tracing::debug!("<-- response cached");
-        });
-
-        response.header("Cf-Cache-Status", "MISS")
-    } else {
-        response
-    }
+    cache_entry.store(response).await
 }
 
 #[tracing::instrument(skip_all)]

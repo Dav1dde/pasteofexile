@@ -57,6 +57,8 @@ pub struct PasteMetadata {
     pub main_skill_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rank: Option<NonZeroU8>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub private: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -72,10 +74,16 @@ pub struct PasteSummary {
     pub last_modified: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rank: Option<NonZeroU8>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub private: bool,
 }
 
 impl PasteSummary {
     pub fn to_url(&self) -> String {
         self.id.to_url()
     }
+}
+
+fn is_false(v: &bool) -> bool {
+    !v
 }

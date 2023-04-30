@@ -83,7 +83,8 @@ async fn build_context(
         }
         User(user) => {
             let pastes = rctx.inject::<crate::pastes::Pastes>();
-            let (meta, pastes) = pastes.list_pastes(&user).await?;
+            let session = rctx.session();
+            let (meta, pastes) = pastes.list_pastes(session, &user).await?;
 
             let info = ResponseInfo {
                 etag: Some(meta.etag),

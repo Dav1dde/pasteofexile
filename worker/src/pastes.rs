@@ -6,7 +6,7 @@ use shared::{
     PasteId, User, UserPasteId,
 };
 
-use crate::request_context::{Env, FromEnv};
+use crate::request_context::{Env, FromEnv, Session};
 
 pub struct Meta {
     pub etag: String,
@@ -45,12 +45,20 @@ impl Pastes {
         Ok(Some((meta, paste)))
     }
 
-    pub async fn list_pastes(&self, user: &User) -> crate::Result<(Meta, Vec<PasteSummary>)> {
+    pub async fn list_pastes(
+        &self,
+        session: Session<'_>,
+        user: &User,
+    ) -> crate::Result<(Meta, Vec<PasteSummary>)> {
         let mut pastes = self
             .storage
             .list(user)
             .await?
             .into_iter()
+            .filter(|item| {
+                let is_private = item.metadata.as_ref().map_or(false, |m| m.private);
+                !is_private || session.map(|u| &u.name) == Some(user)
+            })
             .map(|item| {
                 let metadata = item.metadata.unwrap_or_default();
                 let id = item.name.parse().expect("only valid ids are stored");
@@ -67,6 +75,7 @@ impl Pastes {
                     main_skill_name: metadata.main_skill_name,
                     last_modified: item.last_modified,
                     rank: metadata.rank,
+                    private: metadata.private,
                 }
             })
             .collect::<Vec<_>>();

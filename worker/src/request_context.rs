@@ -3,6 +3,7 @@ use std::ops::Deref;
 use worker::Bucket;
 
 use crate::{
+    cache::CacheEntry,
     route,
     sentry::{self, TraceId},
     utils::RequestExt,
@@ -16,6 +17,9 @@ pub struct RequestContext {
     trace_id: TraceId,
     session: Option<app::User>,
 }
+
+// TODO this could/should be a Session() type
+pub type Session<'a> = Option<&'a app::User>;
 
 impl RequestContext {
     pub async fn new(req: worker::Request, env: worker::Env, ctx: worker::Context) -> Self {
@@ -120,12 +124,16 @@ impl RequestContext {
         }
     }
 
-    pub fn session(&self) -> Option<&app::User> {
+    pub fn session(&self) -> Session<'_> {
         self.session.as_ref()
     }
 
     pub fn is_logged_in(&self) -> bool {
         self.session.is_some()
+    }
+
+    pub fn cache_entry(&self) -> CacheEntry {
+        self.into()
     }
 }
 

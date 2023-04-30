@@ -155,7 +155,10 @@ pub fn deserialize_from_attribute<T: DeserializeOwned>(data: &str) -> T {
     let data = base64::decode_config(data, base64::URL_SAFE_NO_PAD).expect("b64 decode");
     let data = String::from_utf8(data).expect("utf8");
 
-    serde_json::from_str(&data).expect("deserialize")
+    serde_json::from_str(&data).unwrap_or_else(|e| {
+        let into = std::any::type_name::<T>();
+        panic!("deserialize {data} into {into}: {e:?}")
+    })
 }
 
 pub fn serialize_for_attribute<G: Html>(value: &(impl Serialize + ?Sized)) -> String {

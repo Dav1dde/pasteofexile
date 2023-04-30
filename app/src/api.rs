@@ -26,6 +26,7 @@ pub struct CreatePaste<'a> {
     pub custom_id: &'a str,
     pub id: Option<&'a PasteId>,
     pub pinned: bool,
+    pub private: bool,
 }
 
 #[allow(dead_code)] // Only used in !SSR

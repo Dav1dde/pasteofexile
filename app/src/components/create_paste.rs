@@ -14,6 +14,7 @@ pub enum CreatePasteProps {
         content: String,
         title: Option<String>,
         rank: Option<NonZeroU8>,
+        private: bool,
     },
 }
 
@@ -38,6 +39,13 @@ impl CreatePasteProps {
         match self {
             Self::Update { rank, .. } => *rank,
             _ => None,
+        }
+    }
+
+    fn private(&self) -> bool {
+        match self {
+            Self::Update { private, .. } => *private,
+            _ => false,
         }
     }
 
@@ -77,6 +85,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
             .unwrap_or_default(),
     );
     let pinned = create_signal(cx, props.rank().is_some());
+    let private = create_signal(cx, props.private());
 
     let session = use_context::<SessionValue>(cx);
 
@@ -125,6 +134,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
         let custom_title = custom_title.get();
         let custom_id = custom_id.get();
         let pinned = *pinned.get();
+        let private = *private.get();
 
         let future = async move {
             let id = props.paste_id().map(|e| e.clone().into());
@@ -141,6 +151,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
                 custom_id: &custom_id,
                 content: &value,
                 pinned,
+                private,
             };
             match api::create_paste(params).await {
                 Err(err) => {
@@ -240,11 +251,20 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
 
                 div(title="Pinned pastes are listed first") { "Pinned" }
                 div() {
-                input(
-                    type="checkbox",
-                    bind:checked=pinned,
-                    data-rank=props.rank().map(|m| m.get().to_string()).unwrap_or_default(),
-                ) {}
+                    input(
+                        type="checkbox",
+                        bind:checked=pinned,
+                        data-rank=props.rank().map(|m| m.get().to_string()).unwrap_or_default(),
+                    ) {}
+                }
+
+                div(title="Private builds are not displayed on your profile") { "Private" }
+                div() {
+                    input(
+                        type="checkbox",
+                        bind:checked=private,
+                        data-private=props.private(),
+                    ) {}
                 }
             }
         },

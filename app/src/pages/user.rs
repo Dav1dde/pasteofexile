@@ -137,10 +137,11 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     };
 
     let pinned = summary.rank.is_some();
+    let opacity = if summary.private { "0.5" } else { "1" };
     view! { cx,
         div(class="p-3 md:p-0 md:pr-3 even:bg-slate-700 border-solid border-[color:var(--col)]
-                hover:border-l-4 hover:bg-[color:var(--bg-col)] cursor-pointer",
-            style=format!("--col: {color}; --bg-col: {color}66"),
+                hover:border-l-4 hover:bg-[color:var(--bg-col)] cursor-pointer opacity-[var(--op)]",
+            style=format!("--col: {color}; --bg-col: {color}66; --op: {opacity}"),
             on:click=move |_| sycamore_router::navigate(url),
             on:auxclick=move |_| open_in_new_tab(url),
             data-pinned=pinned,

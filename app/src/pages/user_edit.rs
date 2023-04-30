@@ -16,6 +16,7 @@ pub struct UserEditPastePage {
     title: Option<String>,
     content: String,
     rank: Option<NonZeroU8>,
+    private: bool,
 }
 
 impl RoutedComponent for UserEditPastePage {
@@ -27,6 +28,7 @@ impl RoutedComponent for UserEditPastePage {
             id: UserPasteId { user, id },
             content: paste.content,
             rank: paste.metadata.as_ref().and_then(|m| m.rank),
+            private: paste.metadata.as_ref().map_or(false, |m| m.private),
             title: paste.metadata.map(|m| m.title),
         })
     }
@@ -35,12 +37,14 @@ impl RoutedComponent for UserEditPastePage {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
         let rank = find_attribute(&element, "data-rank");
+        let private = find_attribute(&element, "data-private").unwrap_or_default();
 
         Ok(Self {
             id: UserPasteId { user, id },
             content,
             title,
             rank,
+            private,
         })
     }
 
@@ -52,6 +56,7 @@ impl RoutedComponent for UserEditPastePage {
                 id: id.unwrap_user(),
                 content: paste.content,
                 rank: paste.metadata.as_ref().and_then(|m| m.rank),
+                private: paste.metadata.as_ref().map_or(false, |m| m.private),
                 title: paste.metadata.map(|x| x.title),
             })
         })
@@ -71,12 +76,14 @@ impl RoutedComponent for UserEditPastePage {
             content,
             title,
             rank,
+            private,
         } = self;
         let props = CreatePasteProps::Update {
             id,
             content,
             title,
             rank,
+            private,
         };
         view! { cx,
             CreatePaste(props)
