@@ -129,6 +129,7 @@ pub(crate) struct Gem {
     pub name: String,
     pub skill_id: Option<String>,
     pub gem_id: Option<String>,
+    pub quality_id: Option<String>,
     pub enabled: bool,
     pub level: u8,
     pub quality: u8,
@@ -166,17 +167,18 @@ impl<'de> Deserialize<'de> for Gem {
     {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
-        pub(crate) struct Inner {
+        struct Inner {
             #[serde(rename = "nameSpec")]
-            pub name: String,
-            pub skill_id: Option<String>,
-            pub gem_id: Option<String>,
+            name: String,
+            skill_id: Option<String>,
+            gem_id: Option<String>,
+            quality_id: Option<String>,
             #[serde(default = "utils::default_true")]
-            pub enabled: bool,
+            enabled: bool,
             #[serde(default, deserialize_with = "utils::lenient")]
-            pub level: u8,
+            level: u8,
             #[serde(default, deserialize_with = "utils::lenient")]
-            pub quality: u8,
+            quality: u8,
         }
 
         let inner = Inner::deserialize(deserializer)?;
@@ -196,6 +198,7 @@ impl<'de> Deserialize<'de> for Gem {
             name,
             skill_id: inner.skill_id,
             gem_id: inner.gem_id,
+            quality_id: inner.quality_id,
             enabled: inner.enabled,
             level: inner.level,
             quality: inner.quality,

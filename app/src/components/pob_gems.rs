@@ -143,6 +143,14 @@ fn render_skill<G: Html>(cx: Scope, skill: Skill) -> View<G> {
                 .or(gem.skill_id)
                 .unwrap_or("<unknown>")
                 .to_owned();
+
+            let quality = match gem.quality_id {
+                Some("Alternate1") => "Anomalous ",
+                Some("Alternate2") => "Divergent ",
+                Some("Alternate3") => "Phantasmal ",
+                _ => "",
+            };
+
             let class = match (gem.is_selected, gem.is_active) {
                 (true, _) => "truncate font-bold text-amber-50",
                 (_, true) => "truncate text-stone-100",
@@ -159,7 +167,8 @@ fn render_skill<G: Html>(cx: Scope, skill: Skill) -> View<G> {
                 }
             };
 
-            let title = format!("{} ({}/{})", name, gem.level, gem.quality);
+            let name = format!("{quality}{name}");
+            let title = format!("{name} ({}/{})", gem.level, gem.quality);
             view! { cx, div(class=class, title=title) { (name) } }
         })
         .collect_view();

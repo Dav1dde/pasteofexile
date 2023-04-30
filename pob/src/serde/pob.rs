@@ -339,6 +339,7 @@ fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill {
             crate::Gem {
                 name: &g.name,
                 skill_id: g.skill_id.as_deref(),
+                quality_id: g.quality_id.as_deref(),
                 level: g.level,
                 quality: g.quality,
                 is_enabled: g.enabled,
