@@ -31,6 +31,7 @@ async fn serve_asset(rctx: &RequestContext) -> Result<Response> {
         .body(value)
         .content_type(mime_type)
         .cache_for(consts::CACHE_FOREVER)
+        .skip_sentry()
         .result()
 }
 

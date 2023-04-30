@@ -77,6 +77,11 @@ impl SentryToken {
         }
         self
     }
+
+    pub fn ignore(&mut self) -> &Self {
+        drop(self.0.take());
+        self
+    }
 }
 
 impl Drop for SentryToken {

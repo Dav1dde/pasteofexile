@@ -129,6 +129,8 @@ pub struct Response {
     headers: worker::Headers,
     body: worker::ResponseBody,
     meta: Option<Meta>,
+    // better would be some kind of Attribte->Value or Tag collection, good for now
+    skip_sentry: bool,
 }
 
 impl Response {
@@ -146,6 +148,7 @@ impl Response {
             headers: worker::Headers::new(),
             body: worker::ResponseBody::Empty,
             meta: None,
+            skip_sentry: false,
         }
     }
 
@@ -228,6 +231,11 @@ impl Response {
         self.cache(CacheControl::default().public().max_age(ttl))
     }
 
+    pub fn skip_sentry(mut self) -> Self {
+        self.skip_sentry = true;
+        self
+    }
+
     pub fn result<T>(self) -> std::result::Result<Self, T> {
         Ok(self)
     }
@@ -298,6 +306,11 @@ impl Response {
     pub fn was_cached(&self) -> bool {
         self.get_header("Cf-Cache-Status").as_deref() == Some("HIT")
     }
+
+    /// Whether to skip collecting the sentry transaction
+    pub fn is_skip_sentry(&self) -> bool {
+        self.skip_sentry
+    }
 }
 
 // Cache related methods.
@@ -355,6 +368,7 @@ impl From<worker::Response> for Response {
             headers,
             body,
             meta: None,
+            skip_sentry: false,
         }
     }
 }

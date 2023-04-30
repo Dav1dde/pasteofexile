@@ -46,7 +46,7 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
 
     let mut rctx = RequestContext::new(req, env, ctx).await;
 
-    let sentry = sentry::new(rctx.ctx(), rctx.inject_opt());
+    let mut sentry = sentry::new(rctx.ctx(), rctx.inject_opt());
 
     sentry
         .set_trace_id(rctx.trace_id())
@@ -60,6 +60,9 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
     let response = cached(&mut rctx).with_sentry(&sentry).await;
 
     sentry.update_transaction(sentry::Status::from(response.status_code()));
+    if response.is_skip_sentry() {
+        sentry.ignore();
+    }
 
     stats::record(&rctx, &response).await;
 
