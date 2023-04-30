@@ -119,9 +119,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     });
 
     view! { cx,
-        div(class="flex align-center h-9") {
-            div() { (select) }
-            div(class="flex-1 text-right sm:mr-3") { (&*tree_level.get()) }
+        div(class="flex flex-wrap align-center") {
+            div(class="h-9 max-w-full") { (select) }
+            div(class="flex-1 text-right sm:mr-3 whitespace-nowrap") { (&*tree_level.get()) }
         }
         div(class="grid grid-cols-10 gap-3") {
             div(class="col-span-10 lg:col-span-7 h-[450px] md:h-[800px] cursor-move md:overflow-auto mt-2",
