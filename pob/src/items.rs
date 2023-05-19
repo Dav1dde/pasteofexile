@@ -4,6 +4,7 @@ pub struct InvalidItem(&'static str);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Rarity {
+    Relic,
     Unique,
     Rare,
     Magic,
@@ -12,7 +13,7 @@ pub enum Rarity {
 
 impl Rarity {
     pub fn is_unique(&self) -> bool {
-        matches!(self, Self::Unique)
+        matches!(self, Self::Unique | Self::Relic)
     }
 
     pub fn is_rare(&self) -> bool {
@@ -75,11 +76,12 @@ impl<'a> Item<'a> {
             "MAGIC" => Rarity::Magic,
             "RARE" => Rarity::Rare,
             "UNIQUE" => Rarity::Unique,
+            "RELIC" => Rarity::Relic,
             _ => return Err(InvalidItem("expected normal, magic, rare or unique rarity")),
         };
 
         let mut name = match rarity {
-            Rarity::Rare | Rarity::Unique => lines.next(),
+            Rarity::Rare | Rarity::Unique | Rarity::Relic => lines.next(),
             _ => None,
         };
         let mut base = lines.next().ok_or(InvalidItem("eof, expected base"))?;
@@ -634,5 +636,21 @@ Implicits: 0"#,
         .unwrap();
         assert_eq!(item.influence1, Some(Influence::Synthesis));
         assert_eq!(item.influence2, Some(Influence::Synthesis));
+    }
+
+    #[test]
+    pub fn test_relic() {
+        let item = Item::parse(
+            r#"Rarity: RELIC
+Farrul's Fur
+Triumphant Lamellar
+Implicits: 0
++93 to maximum Life"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.rarity, Rarity::Relic);
+        assert_eq!(item.name, Some("Farrul's Fur"));
+        assert_eq!(item.base, "Triumphant Lamellar");
     }
 }

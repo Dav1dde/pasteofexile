@@ -84,6 +84,7 @@ fn rarity_str(rarity: pob::Rarity) -> &'static str {
         pob::Rarity::Magic => "Magic",
         pob::Rarity::Rare => "Rare",
         pob::Rarity::Unique => "Unique",
+        pob::Rarity::Relic => "Foil",
     }
 }
 
@@ -94,6 +95,7 @@ fn header_style(rarity: pob::Rarity) -> String {
         pob::Rarity::Magic => "#88f",
         pob::Rarity::Rare => "#ff7",
         pob::Rarity::Unique => "#af6025",
+        pob::Rarity::Relic => "#60C060",
     };
 
     const BASE: &str = "https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsHeader";

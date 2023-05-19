@@ -54,6 +54,9 @@
 .pob-item[data-rarity="Unique"] {
     --separator: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsSeparatorUnique.webp");
 }
+.pob-item[data-rarity="Foil"] {
+    --separator: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsSeparatorFoil.webp");
+}
 
 .pob-item > div:before {
     content: ' ';

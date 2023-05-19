@@ -133,6 +133,6 @@ where
     }
 
     deserializer.deserialize_str(Visitor {
-        _phantom: PhantomData::default(),
+        _phantom: PhantomData,
     })
 }
