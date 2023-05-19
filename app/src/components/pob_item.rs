@@ -1,17 +1,19 @@
 use itertools::Itertools;
 use sycamore::prelude::*;
 
-use crate::utils::view_cond;
+use crate::utils::{view_cond, IteratorExt};
 
 #[component]
 pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
     let render_mod = |m: pob::Mod<'a>| {
         let line: String = m.line.to_owned();
 
-        let style = if m.crafted {
-            "color: #b4b4ff"
-        } else if m.fractured {
+        let style = if m.fractured {
             "color: #a29162"
+        } else if m.crafted {
+            "color: #b4b4ff"
+        } else if m.tag == Some("crucible") {
+            "color: #ffa500"
         } else {
             "color: #88f"
         };
@@ -28,7 +30,12 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
 
     let enchants = item.enchants().map(render_mod).collect_vec();
     let implicits = item.implicits().map(render_mod).collect_vec();
-    let explicits = item.explicits().map(render_mod).collect_vec();
+    let explicit_groups = item.explicits().group_by(|m| m.tag);
+    let explicits = explicit_groups
+        .into_iter()
+        .map(|(_, mods)| mods.map(render_mod).collect_vec())
+        .map(|mods| view! { cx, Mods(mods) })
+        .collect_view();
 
     let mut unmet = Vec::new();
     if item.split {
@@ -61,7 +68,7 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
             div(class="p-2 pt-1") {
                 Mods(enchants)
                 Mods(implicits)
-                Mods(explicits)
+                (explicits)
                 Mods(unmet)
             }
         }
@@ -95,7 +102,7 @@ fn header_style(rarity: pob::Rarity) -> String {
         pob::Rarity::Magic => "#88f",
         pob::Rarity::Rare => "#ff7",
         pob::Rarity::Unique => "#af6025",
-        pob::Rarity::Relic => "#60C060",
+        pob::Rarity::Relic => "#60c060",
     };
 
     const BASE: &str = "https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsHeader";

@@ -286,6 +286,7 @@ pub struct Mod<'a> {
     pub fractured: bool,
     pub crafted: bool,
     pub line: &'a str,
+    pub tag: Option<&'a str>,
 
     variant: Option<&'a str>,
 }
@@ -295,6 +296,7 @@ impl<'a> Mod<'a> {
         let mut fractured = false;
         let mut crafted = false;
         let mut variant = None;
+        let mut tag = None;
 
         while let Some((attr, other)) = mod_line.trim_start_matches('{').split_once('}') {
             mod_line = other;
@@ -304,7 +306,7 @@ impl<'a> Mod<'a> {
                 "variant" => variant = Some(value),
                 "fractured" => fractured = true,
                 "crafted" => crafted = true,
-                _ => (),
+                t => tag = Some(t),
             }
         }
 
@@ -312,6 +314,7 @@ impl<'a> Mod<'a> {
             fractured,
             crafted,
             line: mod_line,
+            tag,
             variant,
         }
     }
@@ -639,7 +642,7 @@ Implicits: 0"#,
     }
 
     #[test]
-    pub fn test_relic() {
+    pub fn relic_rarity() {
         let item = Item::parse(
             r#"Rarity: RELIC
 Farrul's Fur
@@ -652,5 +655,24 @@ Implicits: 0
         assert_eq!(item.rarity, Rarity::Relic);
         assert_eq!(item.name, Some("Farrul's Fur"));
         assert_eq!(item.base, "Triumphant Lamellar");
+    }
+
+    #[test]
+    pub fn mod_tag() {
+        let item = Item::parse(
+            r#"Rarity: RELIC
+Farrul's Fur
+Triumphant Lamellar
+Implicits: 0
++93 to maximum Life
+{crucible}+35% to Chaos Resistance"#,
+        )
+        .unwrap();
+
+        let mut explicits = item.explicits();
+        let life = explicits.next().unwrap();
+        let chaos_res = explicits.next().unwrap();
+        assert_eq!(life.tag, None);
+        assert_eq!(chaos_res.tag, Some("crucible"));
     }
 }
