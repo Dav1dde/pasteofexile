@@ -306,6 +306,7 @@ impl<'a> Mod<'a> {
                 "variant" => variant = Some(value),
                 "fractured" => fractured = true,
                 "crafted" => crafted = true,
+                "tags" | "custom" | "range" => (),
                 t => tag = Some(t),
             }
         }
