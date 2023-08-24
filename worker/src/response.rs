@@ -86,7 +86,9 @@ pub trait PartialMeta {
 
 impl PartialMeta for &StoredPaste {
     fn merge_with(self, meta: &mut Meta) {
-        let Some(ref this) = self.metadata else { return; };
+        let Some(ref this) = self.metadata else {
+            return;
+        };
         meta.ascendancy_or_class = Some(this.ascendancy_or_class.clone());
         meta.main_skill_name = this.main_skill_name.clone();
         meta.version = this.version.clone();
@@ -96,7 +98,9 @@ impl PartialMeta for &StoredPaste {
 
 impl PartialMeta for shared::model::Paste {
     fn merge_with(self, meta: &mut Meta) {
-        let Some(this) = self.metadata else { return; };
+        let Some(this) = self.metadata else {
+            return;
+        };
         meta.ascendancy_or_class = Some(this.ascendancy_or_class);
         meta.main_skill_name = this.main_skill_name;
         meta.version = this.version;
@@ -106,7 +110,9 @@ impl PartialMeta for shared::model::Paste {
 
 impl PartialMeta for &shared::model::Paste {
     fn merge_with(self, meta: &mut Meta) {
-        let Some(ref this) = self.metadata else { return; };
+        let Some(ref this) = self.metadata else {
+            return;
+        };
         meta.ascendancy_or_class = Some(this.ascendancy_or_class.clone());
         meta.main_skill_name = this.main_skill_name.clone();
         meta.version = this.version.clone();

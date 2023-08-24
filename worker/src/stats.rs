@@ -8,8 +8,12 @@ use crate::{
 };
 
 pub async fn record(rctx: &RequestContext, response: &Response) {
-    let Some(meta) = response.get_meta() else { return; };
-    let Some(stats) = rctx.inject_opt::<Stats>() else { return };
+    let Some(meta) = response.get_meta() else {
+        return;
+    };
+    let Some(stats) = rctx.inject_opt::<Stats>() else {
+        return;
+    };
 
     let user = rctx.session().map(|u| u.name.clone());
 

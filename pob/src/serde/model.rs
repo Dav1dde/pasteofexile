@@ -397,7 +397,9 @@ impl<'de> de::Deserialize<'de> for Gear {
                 }
 
                 while let Some(slot) = seq.next_element::<Inner>()? {
-                    let Inner::Slot(slot) = slot else { continue; };
+                    let Inner::Slot(slot) = slot else {
+                        continue;
+                    };
                     if slot.item_id == 0 {
                         continue;
                     }

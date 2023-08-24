@@ -16,7 +16,9 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
     create_effect(cx, || {
         let element = props.attach.get();
 
-        let Some(popup) = try_from_ref::<web_sys::HtmlElement>(node_ref) else { return; };
+        let Some(popup) = try_from_ref::<web_sys::HtmlElement>(node_ref) else {
+            return;
+        };
         let style = popup.style();
 
         // TODO: the positioning relies that there is no position relative container above

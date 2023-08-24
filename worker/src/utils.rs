@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Write};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -29,7 +29,10 @@ pub fn b64_decode<T: AsRef<[u8]>>(input: T) -> crate::Result<Vec<u8>> {
 }
 
 pub fn hex_lower(data: &[u8]) -> String {
-    data.iter().map(|x| format!("{x:02x}")).collect()
+    data.iter().fold(String::new(), |mut output, x| {
+        let _ = write!(output, "{x:02x}");
+        output
+    })
 }
 
 pub fn random_string<const N: usize>() -> Result<String> {

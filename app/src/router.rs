@@ -216,6 +216,7 @@ impl Page {
         Self::resolve(page)
     }
 
+    #[allow(clippy::redundant_closure_call)] // `try_block_async` produces the warning
     async fn from_dynamic(route: &Route) -> Self {
         let page = try_block_async! {
             Ok::<_, Error>(match route {
@@ -292,7 +293,9 @@ impl Page {
     /// Returns a pair of meta identifier and its state.
     fn store(&self) -> Option<(&'static str, Option<String>)> {
         // Sync with `Self::restore`.
-        let Self::Error(status_code, message) = self else { return None };
+        let Self::Error(status_code, message) = self else {
+            return None;
+        };
 
         let state = serialize_json_b64(&(status_code, message));
         Some(("error", Some(state)))

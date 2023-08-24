@@ -57,6 +57,15 @@ macro_rules! gen {
         }
 
         impl Version {
+            pub fn latest() -> Version {
+                $(
+                    if cfg!(feature = $feature) {
+                        return Self::$version;
+                    }
+                 )*
+                unreachable!("no version enabled")
+            }
+
             fn get_node(&self, _id: u32) -> Option<&'static Node> {
                 match self {
                     $(
@@ -103,11 +112,12 @@ pub fn get_node(version: Version, id: u32) -> Option<&'static Node> {
 }
 
 gen! {
-    (V3_15, "/tree3_15.rs", tree3_15, "tree-3_15", "3_15" | "3.15"),
-    (V3_16, "/tree3_16.rs", tree3_16, "tree-3_16", "3_16" | "3.16"),
-    (V3_17, "/tree3_17.rs", tree3_17, "tree-3_17", "3_17" | "3.17"),
-    (V3_18, "/tree3_18.rs", tree3_18, "tree-3_18", "3_18" | "3.18"),
-    (V3_19, "/tree3_19.rs", tree3_19, "tree-3_19", "3_19" | "3.19"),
+    (V3_22, "/tree3_22.rs", tree3_22, "tree-3_22", "3_22" | "3.22"),
+    (V3_21, "/tree3_21.rs", tree3_21, "tree-3_21", "3_21" | "3.21"),
     (V3_20, "/tree3_20.rs", tree3_20, "tree-3_20", "3_20" | "3.20"),
-    (V3_21, "/tree3_21.rs", tree3_21, "tree-3_21", "3_21" | "3.21")
+    (V3_19, "/tree3_19.rs", tree3_19, "tree-3_19", "3_19" | "3.19"),
+    (V3_18, "/tree3_18.rs", tree3_18, "tree-3_18", "3_18" | "3.18"),
+    (V3_17, "/tree3_17.rs", tree3_17, "tree-3_17", "3_17" | "3.17"),
+    (V3_16, "/tree3_16.rs", tree3_16, "tree-3_16", "3_16" | "3.16"),
+    (V3_15, "/tree3_15.rs", tree3_15, "tree-3_15", "3_15" | "3.15")
 }

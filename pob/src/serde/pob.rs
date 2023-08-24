@@ -58,7 +58,9 @@ impl SerdePathOfBuilding {
             None => return false,
         };
 
-        let Some(active_item_set) = self.pob.items.active_item_set else { return false };
+        let Some(active_item_set) = self.pob.items.active_item_set else {
+            return false;
+        };
         let active_item_set = self
             .pob
             .items

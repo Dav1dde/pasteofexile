@@ -26,7 +26,9 @@ impl FromEnv for Pastes {
 
 impl Pastes {
     pub async fn get_paste(&self, id: &PasteId) -> crate::Result<Option<(Meta, Paste)>> {
-        let Some(stored) = self.storage.get(id).await? else { return Ok(None) };
+        let Some(stored) = self.storage.get(id).await? else {
+            return Ok(None);
+        };
 
         let pob = SerdePathOfBuilding::from_export(&stored.content)
             .map_err(|e| crate::Error::InvalidPoB(e, String::new()))?;
@@ -99,10 +101,10 @@ impl Pastes {
 fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
     let mut data = Vec::new();
     for spec in pob.tree_specs() {
-        let Some(version) = spec.version.and_then(|v| v.parse::<poe_tree::Version>().ok()) else {
-            data.push(Nodes::default());
-            continue;
-        };
+        let version = spec
+            .version
+            .and_then(|v| v.parse::<poe_tree::Version>().ok())
+            .unwrap_or_else(poe_tree::Version::latest);
 
         let mut keystones = spec
             .nodes
@@ -118,8 +120,12 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
 
         let mut masteries = BTreeMap::<&'static str, Vec<String>>::new();
         for &(node, effect) in spec.mastery_effects {
-            let Some(node) = poe_tree::get_node(version, node) else { continue };
-            let Some(mastery) = node.mastery_effects.iter().find(|m| m.effect == effect) else { continue };
+            let Some(node) = poe_tree::get_node(version, node) else {
+                continue;
+            };
+            let Some(mastery) = node.mastery_effects.iter().find(|m| m.effect == effect) else {
+                continue;
+            };
 
             let stats: &mut Vec<_> = masteries.entry(node.name).or_default();
             stats.extend(mastery.stats.iter().map(|&s| s.to_owned()));
