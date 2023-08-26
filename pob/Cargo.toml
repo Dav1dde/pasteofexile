@@ -15,3 +15,6 @@ quick-xml = { workspace = true, features = ["serialize"] }
 thiserror.workspace = true
 encoding.workspace = true
 serde_path_to_error = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_path_to_error.workspace = true

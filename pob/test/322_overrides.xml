@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding>
+	<Build level="98" targetVersion="3_0" pantheonMajorGod="None" bandit="None" className="Shadow" ascendClassName="Saboteur" characterLevelAutoMode="false" mainSocketGroup="8" viewMode="IMPORT" pantheonMinorGod="None">
+		<PlayerStat stat="AverageHit" value="579451.443"/>
+	</Build>
+    <Skills></Skills>
+	<Tree activeSpec="1">
+		<Spec ascendClassId="3" masteryEffects="{48505,21468},{41415,31822},{43818,47642},{12873,9074},{25011,38454},{12382,64381},{28284,26621},{4139,34242},{89,21313}" nodes="7388,2292,36634,16940,33783,6289,26725,11088,10511,7374,31703,12873,44967,26196,25011,49080,33287,18635,65760,4139,65698,15549,39834,1203,3656,48287,21835,35894,39648,29353,34098,38190,48778,64842,17821,25531,62319,63723,53118,65769,46519,26712,4397,13009,50570,41415,25058,65762,44169,43818,65770,42744,60398,37671,3533,38129,41472,55190,61653,31931,27659,89,25167,57044,14930,49772,63135,11420,14103,50288,61471,62429,57746,15631,31875,55485,30380,3644,5233,10532,65706,65034,64587,2491,12382,57279,50862,8948,27929,33740,21650,49254,15064,21330,19884,33631,18901,47366,29199,44908,41263,65108,36949,28284,4502,5087,26866,20546,34400,27203,37999,11716,65696,10031,59928,44683,46910,45608,1822,48362,17735,50197,55676,50422,21301,18769,35288,15405,63282,11334,48505" treeVersion="3_22" classId="6">
+			<URL>
+				https://www.pathofexile.com/passive-skill-tree/AAAABgYDehzcCPSPGkIsg_cYkWhlK1ApDxzOe9cySa-nZlRhs7-4ggcQKzy9m5oEsw5IvJ9VS4w2muByqYUylS6-iv1KRZ1ju_Nv-OvPfrW3aFgRLTLRxYqhx2HirImrKqb46-6TJw3NlPGiANeW8NV8u2wLAFliT97UOlLCbPafLJw3F8Rw8B_z3eGSPQ98g9i9dqwOPBRxKST-CvxLCbswXt-_xq4i9G0Zg8xUksBmOthTUk2sg19J1bkGcg-vbKEv_lSQVW58EZYT32jyUEKGYGpDlG8txCcv6hi3PrIoBx686kVHxBXZfMT2UzVJUYnYPC33MixGvXkHAOAAogDpAOIA6gCqAKAJI3IySZY2YbOFwhArfE6hx7oaqypTQQBZ-30wXmf9bnxT3L15
+			</URL>
+			<Sockets>
+				<Socket nodeId="10532" itemId="2"/>
+				<Socket nodeId="36634" itemId="3"/>
+				<Socket nodeId="26725" itemId="10"/>
+				<Socket nodeId="55190" itemId="5"/>
+				<Socket nodeId="46519" itemId="11"/>
+				<Socket nodeId="33631" itemId="9"/>
+				<Socket nodeId="2491" itemId="1"/>
+				<Socket nodeId="26196" itemId="7"/>
+				<Socket nodeId="49080" itemId="6"/>
+				<Socket nodeId="44169" itemId="4"/>
+				<Socket nodeId="41263" itemId="8"/>
+			</Sockets>
+			<Overrides>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="7388" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Loyalty Tattoo of Maata" icon="Art/2DArt/SkillIcons/TawhoaTribeSkill.png" nodeId="4502" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/TawhoaTribePassiveBG.png">
+					A
+					B
+					C
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="8948" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="20546" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="36858" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="33783" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="32710" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="15549" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="27415" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Wise" icon="Art/2DArt/SkillIcons/passives/HinekoraPassiveIcon3.png" nodeId="50197" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					+1
+					Limited to 1
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="17735" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="37999" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="13009" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="3656" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="27659" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="29199" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="60398" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="4397" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="48778" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="11334" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+				<Override dn="Honoured Tattoo of the Oak" icon="Art/2DArt/SkillIcons/passives/accuracyint.png" nodeId="37671" activeEffectImage="Art/2DArt/UIImages/InGame/AncestralTrial/PassiveTreeTattoos/HinekoraPassiveBG.png">
+					2% increased maximum Life
+				</Override>
+			</Overrides>
+		</Spec>
+	</Tree>
+	<Notes></Notes>
+</PathOfBuilding>

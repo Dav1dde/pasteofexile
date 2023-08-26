@@ -48,6 +48,7 @@ pub struct TreeSpec<'a> {
     pub nodes: &'a [u32],
     pub mastery_effects: &'a [(u32, u32)],
     pub sockets: Vec<Socket>,
+    pub overrides: Vec<Override<'a>>,
 
     /// Whether the tree spec is active/selected
     pub active: bool,
@@ -57,6 +58,13 @@ pub struct TreeSpec<'a> {
 pub struct Socket {
     pub node_id: u32,
     pub item_id: u16,
+}
+
+#[derive(Debug)]
+pub struct Override<'a> {
+    pub name: &'a str,
+    pub node_id: u32,
+    pub effect: &'a str,
 }
 
 #[derive(Debug)]

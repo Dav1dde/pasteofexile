@@ -12,13 +12,21 @@ use crate::{
 };
 
 #[derive(Debug)]
-struct Tree {
+struct Tree<'build> {
     name: String,
     image_url: String,
     tree_url: String,
     active: bool,
-    nodes: Nodes,
+    nodes: &'build Nodes,
+    overrides: Vec<Override<'build>>,
     allocated: usize,
+}
+
+#[derive(Debug)]
+struct Override<'build> {
+    count: usize,
+    name: &'build str,
+    effect: &'build str,
 }
 
 #[component]
@@ -32,7 +40,8 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                 image_url: get_tree_image_url(&spec, &url)?,
                 tree_url: url,
                 active: spec.active,
-                nodes: nodes.clone(),
+                nodes,
+                overrides: extract_overrides(spec.overrides),
                 allocated: spec.nodes.len(),
             })
         })
@@ -102,7 +111,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         state.borrow_mut().remove_pointer(&event);
     };
 
-    let nodes = create_memo(cx, move || render_nodes(cx, &current_tree.get().nodes));
+    let nodes = create_memo(cx, move || render_nodes(cx, &current_tree.get()));
     let tree_background = create_memo(cx, || {
         format!("background-image: url({})", current_tree.get().image_url)
     });
@@ -188,7 +197,23 @@ fn resolve_level(allocated: usize) -> (usize, usize) {
     (allocated - asc, 1 + allocated - asc - bandits - quests)
 }
 
-pub fn render_nodes<G: GenericNode + Html>(cx: Scope, nodes: &Nodes) -> View<G> {
+fn extract_overrides(mut overrides: Vec<pob::Override<'_>>) -> Vec<Override<'_>> {
+    overrides.sort_unstable_by_key(|k| (k.name, k.effect));
+
+    overrides
+        .into_iter()
+        .dedup_by_with_count(|a, b| (a.name, a.effect) == (b.name, b.effect))
+        .map(|(count, o)| Override {
+            count,
+            name: o.name,
+            effect: o.effect,
+        })
+        .collect()
+}
+
+fn render_nodes<G: GenericNode + Html>(cx: Scope, tree: &Tree<'_>) -> View<G> {
+    let nodes = tree.nodes;
+
     if nodes.is_empty() {
         return view! { cx,
             div(class="text-stone-200 hidden lg:block text-center") {
@@ -196,6 +221,12 @@ pub fn render_nodes<G: GenericNode + Html>(cx: Scope, nodes: &Nodes) -> View<G> 
             }
         };
     }
+
+    let overrides = tree
+        .overrides
+        .iter()
+        .map(|o| render_override(cx, o))
+        .collect_view();
 
     let keystones = nodes
         .keystones
@@ -210,8 +241,29 @@ pub fn render_nodes<G: GenericNode + Html>(cx: Scope, nodes: &Nodes) -> View<G> 
         .collect_view();
 
     view! { cx,
-        div(class="grid grid-cols-fit-keystone gap-2 lg:gap-1") { (keystones) }
-        div(class="grid grid-cols-fit-mastery gap-2 lg:gap-1") { (masteries) }
+        div(class="grid grid-cols-fit-mastery gap-2 lg:gap-1 empty:hidden") { (overrides) }
+        div(class="grid grid-cols-fit-keystone gap-2 lg:gap-1 empty:hidden") { (keystones) }
+        div(class="grid grid-cols-fit-mastery gap-2 lg:gap-1 empty:hidden") { (masteries) }
+    }
+}
+
+fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> View<G> {
+    let name = r#override.name.to_owned();
+    let effect = r#override.effect.to_owned();
+    let count = if r#override.count > 1 {
+        format!("(x{})", r#override.count)
+    } else {
+        String::new()
+    };
+
+    view! { cx,
+        div(class="bg-slate-900 rounded-xl px-4 py-3") {
+            div(class="mb-2 text-stone-200 text-sm md:text-base") {
+                span() { (name) }
+                span(class="text-xs ml-1") { (count) }
+            }
+            ul(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (effect) }
+        }
     }
 }
 

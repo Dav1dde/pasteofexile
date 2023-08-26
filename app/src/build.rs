@@ -27,6 +27,7 @@ impl Build {
 }
 
 impl Build {
+    // TODO: this needs a rewrite, accepting additional data from /json is awkward
     pub fn new(content: String, nodes: Vec<Nodes>) -> crate::Result<Self> {
         let pob = SerdePathOfBuilding::from_export(&content)?;
 

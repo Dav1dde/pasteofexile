@@ -11,7 +11,7 @@ impl SerdePathOfBuilding {
     pub fn from_xml(s: &str) -> Result<Self> {
         let mut xd = quick_xml::de::Deserializer::from_reader(s.as_bytes());
 
-        #[cfg(feature = "better-errors")]
+        #[cfg(any(feature = "better-errors", test))]
         let pob = match serde_path_to_error::deserialize(&mut xd) {
             Ok(pob) => pob,
             Err(err) => {
@@ -20,7 +20,7 @@ impl SerdePathOfBuilding {
             }
         };
 
-        #[cfg(not(feature = "better-errors"))]
+        #[cfg(not(any(feature = "better-errors", test)))]
         let pob = serde::Deserialize::deserialize(&mut xd)
             .map_err(|e| Error::ParseXml("Unknown".to_owned(), e))?;
 
@@ -267,6 +267,16 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                         item_id: s.item_id,
                     })
                     .collect(),
+                overrides: spec
+                    .overrides
+                    .overrides
+                    .iter()
+                    .map(|o| crate::Override {
+                        node_id: o.node_id,
+                        name: &o.name,
+                        effect: &o.effect,
+                    })
+                    .collect(),
                 mastery_effects: &spec.mastery_effects,
                 active: self.pob.tree.active_spec as usize == i + 1,
             })
@@ -371,6 +381,7 @@ mod tests {
     static V318_SKILLSET: &str = include_str!("../../test/318_skillset.xml");
     static V319_MASTERY_EFFECTS: &str = include_str!("../../test/319_mastery_effects.xml");
     static V320_IMPENDING_DOOM: &str = include_str!("../../test/320_impending_doom.xml");
+    static V322_OVERRIDES: &str = include_str!("../../test/322_overrides.xml");
 
     #[test]
     fn parse_v316_empty() {
@@ -456,5 +467,42 @@ mod tests {
 
         // The skill's `nameSpec` is empty and needs to be supplied from `crate::gems`.
         assert_eq!(pob.skill_sets()[0].skills[1].gems[0].name, "Tornado");
+    }
+
+    #[test]
+    fn parse_v322_overrides() {
+        let pob = SerdePathOfBuilding::from_xml(V322_OVERRIDES).unwrap();
+
+        let overrides = &pob.tree_specs()[0].overrides;
+        assert_eq!(overrides.len(), 21);
+        assert_eq!(
+            overrides
+                .iter()
+                .filter(|o| o.name == "Honoured Tattoo of the Oak")
+                .count(),
+            19
+        );
+        assert_eq!(
+            overrides
+                .iter()
+                .filter(|o| o.effect == "2% increased maximum Life")
+                .count(),
+            19
+        );
+
+        let maata = overrides
+            .iter()
+            .find(|o| o.name == "Loyalty Tattoo of Maata")
+            .unwrap();
+        assert_eq!(maata.node_id, 4502);
+        // \t come from indentation in the XML
+        assert_eq!(maata.effect, "A\n\t\t\t\t\tB\n\t\t\t\t\tC");
+
+        let wise = overrides
+            .iter()
+            .find(|o| o.name == "Honoured Tattoo of the Wise")
+            .unwrap();
+        assert_eq!(wise.node_id, 50197);
+        assert_eq!(wise.effect, "+1\n\t\t\t\t\tLimited to 1");
     }
 }

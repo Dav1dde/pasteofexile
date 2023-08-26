@@ -21,7 +21,7 @@ pub struct Paste {
     /// A list of node description to display per tree spec.
     ///
     /// List is in the same order as the tree specs.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub nodes: Vec<Nodes>,
 }
 
