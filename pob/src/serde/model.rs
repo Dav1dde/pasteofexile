@@ -227,6 +227,8 @@ pub(crate) struct Spec {
     pub url: Option<String>,
     #[serde(default, rename = "Sockets")]
     pub sockets: Sockets,
+    #[serde(default, rename = "Overrides")]
+    pub overrides: Overrides,
     #[serde(default, rename = "treeVersion")]
     pub version: Option<String>,
 }
@@ -243,6 +245,22 @@ pub(crate) struct Socket {
     pub node_id: u32,
     #[serde(default, rename = "itemId")]
     pub item_id: u16,
+}
+
+#[derive(Default, Debug, Deserialize)]
+pub(crate) struct Overrides {
+    #[serde(default, rename = "Override")]
+    pub overrides: Vec<Override>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Override {
+    #[serde(default, rename = "dn")]
+    pub name: String,
+    #[serde(default, rename = "nodeId")]
+    pub node_id: u32,
+    #[serde(default, rename = "$value")]
+    pub effect: String,
 }
 
 #[derive(Default, Debug, Deserialize)]
