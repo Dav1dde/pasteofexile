@@ -64,7 +64,7 @@ pub fn App<G: Html>(cx: Scope, ctx: Option<Context>) -> View<G> {
 
     let view: View<G> = view! { cx,
         progress::Progress()
-        div(class="h-screen flex flex-col gap-10") {
+        div(class="min-h-screen flex flex-col gap-10") {
             nav(class="bg-slate-900 shadow-lg") {
                 div(class="flex justify-between	p-4 lg:px-8 mx-auto max-w-[1920px]") {
                     a(href="/") {
