@@ -6,6 +6,7 @@ use crate::{
     build::Build,
     components::{PobColoredSelect, PobColoredText},
     pob::formatting::strip_colors,
+    svg,
     utils::IteratorExt,
 };
 
@@ -55,7 +56,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
 }
 
-fn render_skills<G: GenericNode + Html>(cx: Scope, skills: Vec<Skill>) -> View<G> {
+fn render_skills<'a, G: GenericNode + Html>(cx: Scope<'a>, skills: Vec<Skill<'a>>) -> View<G> {
     let iter_skills = skills
         .into_iter()
         .filter(is_enabled)
@@ -120,7 +121,7 @@ fn has_active_gem(skill: &Skill) -> bool {
     skill.gems.iter().any(|g| g.is_active)
 }
 
-fn render_skill<G: Html>(cx: Scope, skill: Skill) -> View<G> {
+fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>) -> View<G> {
     let gems = skill
         .gems
         .into_iter()
@@ -171,13 +172,38 @@ fn render_skill<G: Html>(cx: Scope, skill: Skill) -> View<G> {
             let title = format!("{name} ({}/{})", gem.level, gem.quality);
             view! { cx, div(class=class, title=title) { (name) } }
         })
-        .collect_view();
+        .collect_vec();
 
-    let class =
-        "break-inside-avoid mt-5 first:mt-0 bg-slate-900 px-5 py-2.5 rounded-xl empty:hidden";
+    if gems.is_empty() {
+        return view! { cx, div() {} };
+    }
+    let gems = View::new_fragment(gems);
+
+    let svg = match skill.slot {
+        Some("Weapon 1") => svg::ICON_WEAPON,
+        Some("Weapon 2") => svg::ICON_WEAPON,
+        Some("Weapon 1 Swap") => svg::ICON_WEAPON,
+        Some("Weapon 2 Swap") => svg::ICON_WEAPON,
+        Some("Bow") => svg::ICON_BOW,
+        Some("Quiver") => svg::ICON_QUIVER,
+        Some("Shield") => svg::ICON_SHIELD,
+        Some("Shield Swap") => svg::ICON_SHIELD,
+        Some("Helmet") => svg::ICON_HELMET,
+        Some("Body Armour") => svg::ICON_BODY_ARMOUR,
+        Some("Gloves") => svg::ICON_GLOVES,
+        Some("Boots") => svg::ICON_BOOTS,
+        Some("Amulet") => svg::ICON_AMULET,
+        Some("Ring 1") => svg::ICON_RING,
+        Some("Ring 2") => svg::ICON_RING,
+        Some("Belt") => svg::ICON_BELT,
+        _ => "",
+    };
+
+    let slot = skill.slot.unwrap_or("");
 
     view! { cx,
-        div(class=class) {
+        div(class="break-inside-avoid mt-5 first:mt-0 bg-slate-900 px-5 py-2.5 rounded-xl") {
+            div(dangerously_set_inner_html=svg, data-slot=slot, class="float-right w-6") {}
             (gems)
         }
     }

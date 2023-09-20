@@ -76,6 +76,19 @@
     color-scheme: dark;
 }
 
+[data-slot^="Weapon 1"] > svg {
+    transform: scale(-1, 1);
+}
+[data-slot$="Swap"] > svg {
+    opacity: 0.55;
+}
+[data-slot="Ring 1"] > svg {
+    transform: rotateZ(-45deg);
+}
+[data-slot="Ring 2"] > svg {
+    transform: rotateZ(45deg);
+}
+
 .gem-first::before {
     content: '\a0';
     width: 0.5rem;
