@@ -58,8 +58,21 @@ fn generate(data: &SkillTreeData, output: &mut dyn Write) -> anyhow::Result<()> 
             .collect::<Vec<_>>()
             .join(", ");
 
+        // Only need keystone icons
+        let icon = if node.is_keystone {
+            node.icon.as_ref()
+        } else if node.is_mastery {
+            node.active_icon.as_ref()
+        } else {
+            None
+        };
+        let icon = icon
+                .map(|icon| icon.strip_suffix(".png").unwrap_or(icon))
+            // files on the cdn are lowercase (directly extracted from the bundle)
+                .map(|icon| icon.to_lowercase());
+
         let n = format!(
-            r#"Node {{ kind: {kind}, name: "{}", stats: &{:?}, mastery_effects: &[{mastery_effects}] }}"#,
+            r#"Node {{ kind: {kind}, name: "{}", stats: &{:?}, mastery_effects: &[{mastery_effects}], icon: {icon:?} }}"#,
             node.name, node.stats
         );
 

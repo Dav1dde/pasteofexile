@@ -8,7 +8,8 @@ use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlElement, PointerEvent};
 
 use crate::{
-    build::Build, components::PobColoredSelect, utils::IteratorExt, Prefetch, ResponseContext,
+    build::Build, components::PobColoredSelect, consts, utils::IteratorExt, Prefetch,
+    ResponseContext,
 };
 
 #[derive(Debug)]
@@ -269,17 +270,28 @@ fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> V
 
 fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G> {
     let name = node.name.to_owned();
+    let alt = name.clone();
     let stats = node.stats.iter().join("\n");
+
+    let src = node
+        .icon
+        .as_deref()
+        .and_then(crate::assets::item_image_url)
+        .unwrap_or_default();
 
     view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3", title=stats) {
-            div(class="text-stone-200 text-sm md:text-base") { (name) }
+            div(class="text-stone-200 text-sm md:text-base flex items-center gap-2") {
+                img(class="rounded-xl w-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
+                span() { (name) }
+            }
         }
     }
 }
 
 fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G> {
     let name = node.name.to_owned();
+    let alt = name.clone();
     let stats = node
         .stats
         .iter()
@@ -287,12 +299,20 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G
             let stat = stat.clone();
             view! { cx, li(class="leading-tight") { (stat) } }
         })
-        .collect();
-    let stats = View::new_fragment(stats);
+        .collect_view();
+
+    let src = node
+        .icon
+        .as_deref()
+        .and_then(crate::assets::item_image_url)
+        .unwrap_or_default();
 
     view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3") {
-            div(class="mb-2 text-stone-200 text-sm md:text-base") { (name) }
+            div(class="mb-2 text-stone-200 text-sm md:text-base flex items-center gap-2") {
+                img(class="rounded-xl w-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
+                span() { (name) }
+            }
             ul(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (stats) }
         }
     }

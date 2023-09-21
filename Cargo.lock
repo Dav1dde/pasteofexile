@@ -792,7 +792,7 @@ dependencies = [
 [[package]]
 name = "poe-api"
 version = "0.1.0"
-source = "git+https://github.com/Dav1dde/poe-rs/?rev=c4977460#c4977460014bf32afde10d7bb2d3f958064dccde"
+source = "git+https://github.com/Dav1dde/poe-rs/?rev=4677b67#4677b6727bf5a4080c44bc0162251417eb676a40"
 dependencies = [
  "chrono",
  "serde",

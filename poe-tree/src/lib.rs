@@ -27,6 +27,7 @@ pub struct Node {
     pub name: &'static str,
     pub stats: &'static [&'static str],
     pub mastery_effects: &'static [MasteryEffect],
+    pub icon: Option<&'static str>,
 }
 
 #[derive(Debug)]

@@ -116,12 +116,17 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
             .filter(|node| node.kind.is_keystone())
             .map(|node| data::Node {
                 name: node.name.to_owned(),
+                icon: node.icon.map(|icon| icon.to_owned()),
                 stats: stats_to_owned(node.stats),
             })
             .collect::<Vec<_>>();
         keystones.sort_unstable_by(|a, b| a.name.cmp(&b.name));
 
-        let mut masteries = BTreeMap::<&'static str, Vec<String>>::new();
+        struct MasteryNode {
+            icon: Option<String>,
+            stats: Vec<String>,
+        }
+        let mut masteries = BTreeMap::<&'static str, MasteryNode>::new();
         for &(node, effect) in spec.mastery_effects {
             let Some(node) = poe_tree::get_node(version, node) else {
                 continue;
@@ -130,14 +135,18 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
                 continue;
             };
 
-            let stats: &mut Vec<_> = masteries.entry(node.name).or_default();
-            stats.extend(mastery.stats.iter().map(|&s| s.to_owned()));
+            let v = masteries.entry(node.name).or_insert_with(|| MasteryNode {
+                icon: node.icon.map(|icon| icon.to_owned()),
+                stats: Vec::new(),
+            });
+            v.stats.extend(mastery.stats.iter().map(|&s| s.to_owned()));
         }
         let masteries = masteries
             .into_iter()
-            .map(|(name, stats)| data::Node {
+            .map(|(name, node)| data::Node {
                 name: name.to_owned(),
-                stats,
+                icon: node.icon,
+                stats: node.stats,
             })
             .collect();
 
