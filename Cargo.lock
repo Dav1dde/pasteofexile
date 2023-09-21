@@ -799,6 +799,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "poe-data"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "phf",
+ "phf_codegen",
+ "serde",
+ "serde_json",
+ "shared",
+]
+
+[[package]]
 name = "poe-tree"
 version = "0.1.0"
 dependencies = [
