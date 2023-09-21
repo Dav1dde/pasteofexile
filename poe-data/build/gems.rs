@@ -10,11 +10,11 @@ struct Gem {
     // name: String,
     color: String,
     #[serde(default)]
-    rewards: Vec<Reward>,
+    vendors: Vec<Vendor>,
 }
 
 #[derive(Debug, Deserialize)]
-struct Reward {
+struct Vendor {
     quest: String,
     act: u8,
     class_ids: Option<Vec<String>>,
@@ -29,9 +29,8 @@ pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
 
     let mut map = phf_codegen::Map::new();
 
-    writeln!(output, "#[allow(unused_imports)]")?;
-    writeln!(output, "use super::{{Color, Gem, Reward}};")?;
-    writeln!(output, "use shared::{{Class, ClassSet}};")?;
+    writeln!(output, "use super::{{Gem, Vendor}};")?;
+    writeln!(output, "use shared::{{Color, ClassSet}};")?;
 
     for gem in data {
         let color = match gem.color.as_str() {
@@ -42,27 +41,28 @@ pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
             _ => anyhow::bail!("invalid gem color '{}'", gem.color),
         };
 
-        let mut rewards = String::new();
+        let mut vendors = String::new();
 
-        write!(rewards, "&[")?;
-        for reward in gem.rewards {
-            let classes = reward
-                .class_ids
-                .unwrap_or_default()
-                .iter()
-                .map(|id| id.parse::<shared::Class>())
-                .collect::<Result<ClassSet, _>>()?
-                .as_u8();
+        write!(vendors, "&[")?;
+        for vendor in gem.vendors {
+            let classes = match vendor.class_ids {
+                Some(class_ids) => class_ids
+                    .iter()
+                    .map(|id| id.parse::<shared::Class>())
+                    .collect::<Result<ClassSet, _>>()?,
+                None => ClassSet::all(),
+            };
+            let classes = format!("ClassSet::from_u8({})", classes.as_u8());
 
             write!(
-                rewards,
-                "Reward {{ quest: {:?}, act: {}, npc: {:?}, classes: ClassSet::from_u8({classes}) }},",
-                reward.quest, reward.act, reward.npc
+                vendors,
+                "Vendor {{ quest: {:?}, act: {}, npc: {:?}, classes: {classes} }},",
+                vendor.quest, vendor.act, vendor.npc
             )?;
         }
-        write!(rewards, "]")?;
+        write!(vendors, "]")?;
 
-        let value = format!("Gem {{ color: {color}, rewards: {rewards} }}");
+        let value = format!("Gem {{ color: {color}, vendors: {vendors} }}");
         map.entry(gem.id, &value);
     }
 

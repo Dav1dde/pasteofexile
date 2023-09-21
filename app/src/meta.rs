@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use ::pob::PathOfBuilding;
+use shared::{AscendancyOrClass, Class};
 
 use crate::pob;
 
@@ -89,27 +90,14 @@ pub(crate) fn get_paste_summary(pob: &impl PathOfBuilding) -> Vec<String> {
         .collect()
 }
 
-pub(crate) fn get_color(ascendancy_name: &str) -> &'static str {
-    match ascendancy_name {
-        "Slayer" => "#96afc8",
-        "Gladiator" => "#96afc8",
-        "Champion" => "#96afc8",
-        "Juggernaut" => "#af5a32",
-        "Berserker" => "#af5a32",
-        "Chieftain" => "#af5a32",
-        "Raider" => "#7cb376",
-        "Deadeye" => "#7cb376",
-        "Pathfinder" => "#7cb376",
-        "Assassin" => "#72818d",
-        "Trickster" => "#72818d",
-        "Saboteur" => "#72818d",
-        "Inquisitor" => "#cfbd8a",
-        "Hierophant" => "#cfbd8a",
-        "Guardian" => "#cfbd8a",
-        "Occultist" => "#9ac3c9",
-        "Elementalist" => "#9ac3c9",
-        "Necromancer" => "#9ac3c9",
-        "Ascendant" => "#cccccc",
-        _ => DEFAULT_COLOR,
+pub(crate) fn get_color(aoc: AscendancyOrClass) -> &'static str {
+    match aoc.class() {
+        Class::Duelist => "#96afc8",
+        Class::Marauder => "#af5a32",
+        Class::Ranger => "#7cb376",
+        Class::Scion => "#cccccc",
+        Class::Shadow => "#72818d",
+        Class::Templar => "#cfbd8a",
+        Class::Witch => "#9ac3c9",
     }
 }

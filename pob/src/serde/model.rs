@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{de, Deserialize, Deserializer};
+use shared::{Ascendancy, Class};
 
 use crate::serde::utils;
 
@@ -29,11 +30,26 @@ pub(crate) struct PathOfBuilding {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Build {
     pub level: u8,
-    pub class_name: String,
-    pub ascend_class_name: String,
+    pub class_name: Class,
+    #[serde(default, deserialize_with = "deserialize_ascendancy")]
+    pub ascend_class_name: Option<Ascendancy>,
     #[serde(rename = "$value")]
     pub stats: Vec<StatType>,
     pub main_socket_group: u8,
+}
+
+fn deserialize_ascendancy<'de, D>(deserializer: D) -> Result<Option<Ascendancy>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    match value.as_deref() {
+        Some("None") => Ok(None),
+        Some(value) => Ok(Some(value.parse().map_err(|_| {
+            de::Error::invalid_value(de::Unexpected::Str(value), &"a valid ascendancy name")
+        })?)),
+        None => Ok(None),
+    }
 }
 
 #[derive(Debug, Deserialize)]

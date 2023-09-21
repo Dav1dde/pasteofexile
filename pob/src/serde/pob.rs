@@ -1,3 +1,5 @@
+use shared::{Ascendancy, Class};
+
 use crate::serde::model::*;
 use crate::{Config, ConfigValue, Error, Keystone, Result, Stat};
 
@@ -93,16 +95,12 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
         self.pob.build.level
     }
 
-    fn class_name(&self) -> &str {
-        &self.pob.build.class_name
+    fn class(&self) -> Class {
+        self.pob.build.class_name
     }
 
-    fn ascendancy_name(&self) -> Option<&str> {
-        if self.pob.build.ascend_class_name != "None" {
-            Some(&self.pob.build.ascend_class_name)
-        } else {
-            None
-        }
+    fn ascendancy(&self) -> Option<Ascendancy> {
+        self.pob.build.ascend_class_name
     }
 
     fn notes(&self) -> &str {
@@ -373,6 +371,8 @@ fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill {
 
 #[cfg(test)]
 mod tests {
+    use shared::AscendancyOrClass;
+
     use super::*;
     use crate::{PathOfBuilding, PathOfBuildingExt};
 
@@ -387,9 +387,12 @@ mod tests {
     fn parse_v316_empty() {
         let pob = SerdePathOfBuilding::from_xml(V316_EMPTY).unwrap();
         assert_eq!(1, pob.level());
-        assert_eq!("Scion", pob.class_name());
-        assert_eq!(None, pob.ascendancy_name());
-        assert_eq!("Scion", pob.ascendancy_or_class_name());
+        assert_eq!(Class::Scion, pob.class());
+        assert_eq!(None, pob.ascendancy());
+        assert_eq!(
+            AscendancyOrClass::Class(Class::Scion),
+            pob.ascendancy_or_class()
+        );
         assert_eq!(Some("1.8857142857143"), pob.stat(Stat::AverageDamage));
         assert_eq!(Some("3"), pob.stat(Stat::EnduranceChargesMax));
         assert_eq!(Some(3), pob.stat_parse(Stat::EnduranceChargesMax));
@@ -403,9 +406,12 @@ mod tests {
         let pob = SerdePathOfBuilding::from_xml(V316_POISON_OCC).unwrap();
 
         assert_eq!(96, pob.level());
-        assert_eq!("Witch", pob.class_name());
-        assert_eq!(Some("Occultist"), pob.ascendancy_name());
-        assert_eq!("Occultist", pob.ascendancy_or_class_name());
+        assert_eq!(Class::Witch, pob.class());
+        assert_eq!(Some(Ascendancy::Occultist), pob.ascendancy());
+        assert_eq!(
+            AscendancyOrClass::Ascendancy(Ascendancy::Occultist),
+            pob.ascendancy_or_class()
+        );
         assert_eq!(8516, pob.notes().len());
         assert_eq!(Some("Poisonous Concoction"), pob.main_skill_name());
 

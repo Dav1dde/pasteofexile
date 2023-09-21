@@ -6,5 +6,5 @@ mod utils;
 pub mod validation;
 
 pub use id::{Id, InvalidId, InvalidPasteId, PasteId, UserPasteId};
+pub use poe::{Ascendancy, AscendancyOrClass, Class, ClassSet, Color};
 pub use user::{InvalidUser, User};
-pub use poe::{Class, ClassSet};

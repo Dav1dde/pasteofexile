@@ -1,44 +1,45 @@
-pub fn ascendancy_image(ascendancy_or_class: &str) -> Option<&'static str> {
+use shared::{Ascendancy, AscendancyOrClass, Class};
+
+pub fn ascendancy_image(ascendancy_or_class: AscendancyOrClass) -> &'static str {
     macro_rules! assets {
-        ($($name:ident  => $file:ident),+) => {
+        ($($name:pat => $file:ident),+) => {
             match ascendancy_or_class {
-                $(stringify!($name) => Some(concat!(
+                $($name => concat!(
                     "https://assets.pobb.in/1/Art/2DArt/UIImages/Common/Icon", stringify!($file), ".webp"
-                )),)+
-                _ => None,
+                ),)+
             }
         };
     }
 
     assets!(
         // Class
-        Duelist => StrDex,
-        Marauder => Str,
-        Ranger => Dex,
-        Scion => StrDexInt,
-        Shadow => DexInt,
-        Templar => StrInt,
-        Witch => Int,
+        AscendancyOrClass::Class(Class::Duelist) => StrDex,
+        AscendancyOrClass::Class(Class::Marauder) => Str,
+        AscendancyOrClass::Class(Class::Ranger) => Dex,
+        AscendancyOrClass::Class(Class::Scion) => StrDexInt,
+        AscendancyOrClass::Class(Class::Shadow) => DexInt,
+        AscendancyOrClass::Class(Class::Templar) => StrInt,
+        AscendancyOrClass::Class(Class::Witch) => Int,
         // Ascendancy
-        Ascendant => StrDexInt_Ascendant,
-        Assassin => DexInt_Assassin,
-        Berserker => Str_Berserker,
-        Champion => StrDex_Champion,
-        Chieftain => Str_Chieftain,
-        Deadeye => Dex_Deadeye,
-        Elementalist => Int_Elementalist,
-        Gladiator => StrDex_Gladiator,
-        Guardian => StrInt_Guardian,
-        Hierophant => StrInt_Hierophant,
-        Inquisitor => StrInt_Inquisitor,
-        Juggernaut => Str_Juggernaut,
-        Necromancer => Int_Necromancer,
-        Occultist => Int_Occultist,
-        Pathfinder => Dex_Pathfinder,
-        Raider => Dex_Raider,
-        Saboteur => DexInt_Saboteur,
-        Slayer => StrDex_Slayer,
-        Trickster => DexInt_Trickster
+        AscendancyOrClass::Ascendancy(Ascendancy::Ascendant) => StrDexInt_Ascendant,
+        AscendancyOrClass::Ascendancy(Ascendancy::Assassin) => DexInt_Assassin,
+        AscendancyOrClass::Ascendancy(Ascendancy::Berserker) => Str_Berserker,
+        AscendancyOrClass::Ascendancy(Ascendancy::Champion) => StrDex_Champion,
+        AscendancyOrClass::Ascendancy(Ascendancy::Chieftain) => Str_Chieftain,
+        AscendancyOrClass::Ascendancy(Ascendancy::Deadeye) => Dex_Deadeye,
+        AscendancyOrClass::Ascendancy(Ascendancy::Elementalist) => Int_Elementalist,
+        AscendancyOrClass::Ascendancy(Ascendancy::Gladiator) => StrDex_Gladiator,
+        AscendancyOrClass::Ascendancy(Ascendancy::Guardian) => StrInt_Guardian,
+        AscendancyOrClass::Ascendancy(Ascendancy::Hierophant) => StrInt_Hierophant,
+        AscendancyOrClass::Ascendancy(Ascendancy::Inquisitor) => StrInt_Inquisitor,
+        AscendancyOrClass::Ascendancy(Ascendancy::Juggernaut) => Str_Juggernaut,
+        AscendancyOrClass::Ascendancy(Ascendancy::Necromancer) => Int_Necromancer,
+        AscendancyOrClass::Ascendancy(Ascendancy::Occultist) => Int_Occultist,
+        AscendancyOrClass::Ascendancy(Ascendancy::Pathfinder) => Dex_Pathfinder,
+        AscendancyOrClass::Ascendancy(Ascendancy::Raider) => Dex_Raider,
+        AscendancyOrClass::Ascendancy(Ascendancy::Saboteur) => DexInt_Saboteur,
+        AscendancyOrClass::Ascendancy(Ascendancy::Slayer) => StrDex_Slayer,
+        AscendancyOrClass::Ascendancy(Ascendancy::Trickster) => DexInt_Trickster
     )
 }
 
@@ -54,18 +55,23 @@ pub fn item_image_url(item_image_name: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use shared::{Ascendancy, Class};
+
     use crate::assets::ascendancy_image;
 
     #[test]
     fn test_ascendancy_images() {
         assert_eq!(
-            Some("https://assets.pobb.in/1/Art/2DArt/UIImages/Common/IconStrDexInt_Ascendant.webp"),
-            ascendancy_image("Ascendant")
+            "https://assets.pobb.in/1/Art/2DArt/UIImages/Common/IconStrDexInt_Ascendant.webp",
+            ascendancy_image(Ascendancy::Ascendant.into())
         );
         assert_eq!(
-            Some("https://assets.pobb.in/1/Art/2DArt/UIImages/Common/IconStrInt_Hierophant.webp"),
-            ascendancy_image("Hierophant")
+            "https://assets.pobb.in/1/Art/2DArt/UIImages/Common/IconStrInt_Hierophant.webp",
+            ascendancy_image(Ascendancy::Hierophant.into())
         );
-        assert_eq!(None, ascendancy_image("Oops"));
+        assert_eq!(
+            "https://assets.pobb.in/1/Art/2DArt/UIImages/Common/IconDexInt.webp",
+            ascendancy_image(Class::Shadow.into())
+        );
     }
 }

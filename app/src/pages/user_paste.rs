@@ -84,10 +84,8 @@ impl RoutedComponent for UserPastePage {
 
         let description = meta::get_paste_summary(pob).join("\n").into();
 
-        let image = crate::assets::ascendancy_image(pob.ascendancy_or_class_name())
-            .unwrap_or("")
-            .into();
-        let color = meta::get_color(pob.ascendancy_or_class_name());
+        let image = crate::assets::ascendancy_image(pob.ascendancy_or_class()).into();
+        let color = meta::get_color(pob.ascendancy_or_class());
 
         let oembed = format!("/oembed.json?user={}", self.id.user).into();
 

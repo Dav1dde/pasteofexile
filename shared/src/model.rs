@@ -2,12 +2,12 @@ use std::num::NonZeroU8;
 
 use serde::{Deserialize, Serialize};
 
-use crate::PasteId;
+use crate::{AscendancyOrClass, PasteId};
 
 #[derive(Debug)]
 pub struct ListPaste {
     pub name: String, // TODO: this should be a PasteId I think
-    pub metadata: Option<PasteMetadata>,
+    pub metadata: PasteMetadata,
     pub last_modified: u64,
 }
 
@@ -46,11 +46,10 @@ pub struct Node {
     pub stats: Vec<String>,
 }
 
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub ascendancy_or_class: String, // TODO: this should be an enum
+    pub ascendancy_or_class: AscendancyOrClass,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,8 +64,7 @@ pub struct PasteMetadata {
 pub struct PasteSummary {
     pub id: PasteId,
     pub title: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub ascendancy_or_class: String, // TODO: this should be an enum
+    pub ascendancy_or_class: AscendancyOrClass,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

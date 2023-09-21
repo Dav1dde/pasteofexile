@@ -116,8 +116,8 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     on_delete: &'a Signal<bool>,
 ) -> View<G> {
     let url = create_ref(cx, summary.to_url());
-    let image = crate::assets::ascendancy_image(&summary.ascendancy_or_class).unwrap_or("");
-    let color = crate::meta::get_color(&summary.ascendancy_or_class);
+    let image = crate::assets::ascendancy_image(summary.ascendancy_or_class);
+    let color = crate::meta::get_color(summary.ascendancy_or_class);
 
     let id = summary.id.clone().unwrap_user();
     let open_in_pob_url = id.to_pob_open_url();
@@ -149,7 +149,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
             div(class="flex flex-wrap gap-4 items-center") {
                 img(src=image,
                     class="asc-image rounded-full md:rounded-l-none md:h-[105px] md:w-[135px]",
-                    alt=format!("{} Thumbnail", summary.ascendancy_or_class),
+                    alt=format!("{} Thumbnail", summary.ascendancy_or_class.as_str()),
                     onerror=IMG_ONERROR_INVISIBLE) {}
                 div(class="flex-auto basis-52 text-slate-200 flex flex-col gap-3") {
                     a(class="text-amber-50", href=url, on:auxclick=|event: web_sys::Event| event.stop_propagation()) {

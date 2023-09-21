@@ -58,11 +58,11 @@ impl Pastes {
             .await?
             .into_iter()
             .filter(|item| {
-                let is_private = item.metadata.as_ref().map_or(false, |m| m.private);
+                let is_private = item.metadata.private;
                 !is_private || session.map(|u| &u.name) == Some(user)
             })
             .map(|item| {
-                let metadata = item.metadata.unwrap_or_default();
+                let metadata = item.metadata;
                 let id = item.name.parse().expect("only valid ids are stored");
 
                 PasteSummary {

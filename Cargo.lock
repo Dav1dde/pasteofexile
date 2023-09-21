@@ -785,6 +785,7 @@ dependencies = [
  "quick-xml",
  "serde",
  "serde_path_to_error",
+ "shared",
  "thiserror",
 ]
 
