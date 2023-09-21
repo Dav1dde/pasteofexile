@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use itertools::Itertools;
 use pob::TreeSpec;
-use shared::model::{Node, Nodes};
+use shared::model::data;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlElement, PointerEvent};
@@ -17,7 +17,7 @@ struct Tree<'build> {
     image_url: String,
     tree_url: String,
     active: bool,
-    nodes: &'build Nodes,
+    nodes: &'build data::Nodes,
     overrides: Vec<Override<'build>>,
     allocated: usize,
 }
@@ -267,7 +267,7 @@ fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> V
     }
 }
 
-fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &Node) -> View<G> {
+fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G> {
     let name = node.name.to_owned();
     let stats = node.stats.iter().join("\n");
 
@@ -278,7 +278,7 @@ fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &Node) -> View<G> {
     }
 }
 
-fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &Node) -> View<G> {
+fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G> {
     let name = node.name.to_owned();
     let stats = node
         .stats

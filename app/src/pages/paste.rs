@@ -40,9 +40,9 @@ impl RoutedComponent for PastePage {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
         let last_modified = find_attribute(&element, "data-last-modified").unwrap_or_default();
-        let nodes = deserialize_attribute(&element, "data-nodes").unwrap_or_default();
+        let data = deserialize_attribute(&element, "data-data").unwrap_or_default();
 
-        let build = Build::new(content, nodes)?;
+        let build = Build::new(content, data)?;
         Ok(Self {
             id,
             title,
@@ -82,10 +82,8 @@ impl RoutedComponent for PastePage {
 
         let description = meta::get_paste_summary(pob).join("\n").into();
 
-        let image = crate::assets::ascendancy_image(pob.ascendancy_or_class_name())
-            .unwrap_or("")
-            .into();
-        let color = meta::get_color(pob.ascendancy_or_class_name());
+        let image = crate::assets::ascendancy_image(pob.ascendancy_or_class()).into();
+        let color = meta::get_color(pob.ascendancy_or_class());
 
         Ok(Meta {
             title,
@@ -111,7 +109,7 @@ fn PastePageComponent<G: Html>(
         build,
     }: PastePage,
 ) -> View<G> {
-    let data_nodes = serialize_for_attribute::<G>(build.nodes());
+    let data = serialize_for_attribute::<G>(build.data());
     let props = ViewPasteProps {
         id: PasteId::Paste(id),
         title,
@@ -119,7 +117,7 @@ fn PastePageComponent<G: Html>(
         build: create_ref(cx, build),
     };
     view! { cx,
-        div(data-nodes=data_nodes) {}
+        div(data-data=data) {}
         ViewPaste(props)
     }
 }

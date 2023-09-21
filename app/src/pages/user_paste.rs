@@ -41,9 +41,9 @@ impl RoutedComponent for UserPastePage {
         let content = find_text(&element, "[data-marker-content]").unwrap_or_default();
         let title = find_text(&element, "[data-marker-title]");
         let last_modified = find_attribute(&element, "data-last-modified").unwrap_or_default();
-        let nodes = deserialize_attribute(&element, "data-nodes").unwrap_or_default();
+        let data = deserialize_attribute(&element, "data-data").unwrap_or_default();
 
-        let build = Build::new(content, nodes)?;
+        let build = Build::new(content, data)?;
         Ok(Self {
             id: UserPasteId { user, id },
             title,
@@ -84,10 +84,8 @@ impl RoutedComponent for UserPastePage {
 
         let description = meta::get_paste_summary(pob).join("\n").into();
 
-        let image = crate::assets::ascendancy_image(pob.ascendancy_or_class_name())
-            .unwrap_or("")
-            .into();
-        let color = meta::get_color(pob.ascendancy_or_class_name());
+        let image = crate::assets::ascendancy_image(pob.ascendancy_or_class()).into();
+        let color = meta::get_color(pob.ascendancy_or_class());
 
         let oembed = format!("/oembed.json?user={}", self.id.user).into();
 
@@ -119,7 +117,7 @@ fn UserPastePageComponent<G: Html>(
     let back_to_user = create_ref(cx, id.to_user_url());
     let deleted = create_signal(cx, false);
 
-    let data_nodes = serialize_for_attribute::<G>(build.nodes());
+    let data = serialize_for_attribute::<G>(build.data());
 
     let name = id.user.clone();
     let props = ViewPasteProps {
@@ -136,7 +134,7 @@ fn UserPastePageComponent<G: Html>(
     });
 
     view! { cx,
-        div(data-nodes=data_nodes) {}
+        div(data-nodes=data) {}
         div(class="flex justify-between") {
             a(href=back_to_user, class="flex items-center mb-4 text-sky-400") {
                 span(dangerously_set_inner_html=svg::BACK, class="h-[16px] mr-2")

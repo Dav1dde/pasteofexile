@@ -9,6 +9,8 @@ mod serde;
 mod stats;
 mod utils;
 
+use shared::{Ascendancy, AscendancyOrClass, Class};
+
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
 pub use self::items::{Influence, Item, Mod, Rarity};
@@ -20,8 +22,8 @@ pub use self::utils::decompress;
 pub trait PathOfBuilding {
     fn level(&self) -> u8;
 
-    fn class_name(&self) -> &str;
-    fn ascendancy_name(&self) -> Option<&str>;
+    fn class(&self) -> Class;
+    fn ascendancy(&self) -> Option<Ascendancy>;
     fn notes(&self) -> &str;
 
     fn stat(&self, stat: Stat) -> Option<&str>;
@@ -88,6 +90,7 @@ pub struct Skill<'a> {
 pub struct Gem<'a> {
     pub name: &'a str,
     pub skill_id: Option<&'a str>,
+    pub gem_id: Option<&'a str>,
     pub quality_id: Option<&'a str>,
     pub level: u8,
     pub quality: u8,
@@ -126,8 +129,10 @@ pub struct Gear<'a> {
 }
 
 pub trait PathOfBuildingExt: PathOfBuilding {
-    fn ascendancy_or_class_name(&self) -> &str {
-        self.ascendancy_name().unwrap_or_else(|| self.class_name())
+    fn ascendancy_or_class(&self) -> AscendancyOrClass {
+        self.ascendancy()
+            .map(Into::into)
+            .unwrap_or_else(|| self.class().into())
     }
 
     fn main_skill_supported_by_any<T>(&self, skills: T) -> bool
@@ -187,7 +192,7 @@ impl std::fmt::Debug for dyn PathOfBuilding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PathOfBuilding")
             .field("level", &self.level())
-            .field("ascendancy_name", &self.ascendancy_name())
+            .field("ascendancy_name", &self.ascendancy())
             .finish()
     }
 }

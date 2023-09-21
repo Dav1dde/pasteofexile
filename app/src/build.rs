@@ -1,14 +1,15 @@
 use std::convert::TryFrom;
 
 use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec};
-use shared::model::Nodes;
+use shared::model::data;
 use sycamore::reactive::{create_rc_signal, RcSignal};
 
 pub struct Build {
     // required because access through method does break sycamore
     pub content: String,
     pob: SerdePathOfBuilding,
-    nodes: Vec<Nodes>,
+    data: data::Data,
+
     active_tree: RcSignal<usize>,
 }
 
@@ -17,8 +18,8 @@ impl Build {
         &self.pob
     }
 
-    pub fn nodes(&self) -> &[Nodes] {
-        &self.nodes
+    pub fn data(&self) -> &data::Data {
+        &self.data
     }
 
     pub fn active_tree(&self) -> &RcSignal<usize> {
@@ -28,7 +29,7 @@ impl Build {
 
 impl Build {
     // TODO: this needs a rewrite, accepting additional data from /json is awkward
-    pub fn new(content: String, nodes: Vec<Nodes>) -> crate::Result<Self> {
+    pub fn new(content: String, data: data::Data) -> crate::Result<Self> {
         let pob = SerdePathOfBuilding::from_export(&content)?;
 
         let active_tree = pob
@@ -40,18 +41,22 @@ impl Build {
         Ok(Self {
             content,
             pob,
-            nodes,
+            data,
             active_tree: create_rc_signal(active_tree),
         })
     }
 
-    pub fn trees(&self) -> impl Iterator<Item = (&Nodes, TreeSpec)> {
-        static DEFAULT_NODES: Nodes = Nodes {
+    pub fn trees(&self) -> impl Iterator<Item = (&data::Nodes, TreeSpec)> {
+        static DEFAULT_NODES: data::Nodes = data::Nodes {
             keystones: Vec::new(),
             masteries: Vec::new(),
         };
 
-        let nodes = self.nodes.iter().chain(std::iter::repeat(&DEFAULT_NODES));
+        let nodes = self
+            .data
+            .nodes
+            .iter()
+            .chain(std::iter::repeat(&DEFAULT_NODES));
         let specs = self.pob.tree_specs().into_iter();
 
         std::iter::zip(nodes, specs)
@@ -70,7 +75,7 @@ impl TryFrom<crate::context::Paste> for Build {
     type Error = crate::Error;
 
     fn try_from(paste: crate::context::Paste) -> Result<Self, Self::Error> {
-        Self::new(paste.content, paste.nodes)
+        Self::new(paste.content, paste.data)
     }
 }
 
@@ -78,6 +83,6 @@ impl TryFrom<shared::model::Paste> for Build {
     type Error = crate::Error;
 
     fn try_from(paste: shared::model::Paste) -> Result<Self, Self::Error> {
-        Self::new(paste.content, paste.nodes)
+        Self::new(paste.content, paste.data)
     }
 }

@@ -56,6 +56,9 @@ pub enum Error {
     IOError(#[from] std::io::Error),
 
     #[error("{0}")]
+    StorageError(String),
+
+    #[error("{0}")]
     Error(String),
 }
 
@@ -78,6 +81,7 @@ impl Error {
             Self::PoEApiError(..) => "PoEApiError",
             Self::Base64(..) => "Base64",
             Self::IOError(..) => "IOError",
+            Self::StorageError(..) => "StorageError",
             Self::Error(..) => "Error",
         }
     }
@@ -123,6 +127,7 @@ impl Error {
             Self::PoEApiError(..) => Level::Warning,
             Self::Base64(..) => Level::Error,
             Self::IOError(..) => Level::Error,
+            Self::StorageError(..) => Level::Error,
             Self::Error(..) => Level::Error,
         }
     }

@@ -108,8 +108,8 @@ fn PageHistoryList<'a, G: Html>(cx: Scope<'a>, list: PasteList<'a>) -> View<G> {
 fn render_history_item<G: Html>(cx: Scope, item: StoredPaste) -> View<G> {
     let href = item.paste.id.to_url();
 
-    let color = crate::meta::get_color(&item.paste.ascendancy_or_class);
-    let image = crate::assets::ascendancy_image(&item.paste.ascendancy_or_class).unwrap_or("");
+    let color = crate::meta::get_color(item.paste.ascendancy_or_class);
+    let image = crate::assets::ascendancy_image(item.paste.ascendancy_or_class);
 
     let time = pretty_date_ts(item.stored);
     let version = item.paste.version.unwrap_or_default();

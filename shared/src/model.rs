@@ -2,12 +2,12 @@ use std::num::NonZeroU8;
 
 use serde::{Deserialize, Serialize};
 
-use crate::PasteId;
+use crate::{AscendancyOrClass, PasteId};
 
 #[derive(Debug)]
 pub struct ListPaste {
     pub name: String, // TODO: this should be a PasteId I think
-    pub metadata: Option<PasteMetadata>,
+    pub metadata: PasteMetadata,
     pub last_modified: u64,
 }
 
@@ -18,39 +18,13 @@ pub struct Paste {
     #[serde(default, skip_serializing_if = "crate::utils::is_zero")]
     pub last_modified: u64,
     pub content: String,
-    /// A list of node description to display per tree spec.
-    ///
-    /// List is in the same order as the tree specs.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub nodes: Vec<Nodes>,
+    pub data: data::Data,
 }
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
-pub struct Nodes {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub keystones: Vec<Node>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub masteries: Vec<Node>,
-}
-
-impl Nodes {
-    pub fn is_empty(&self) -> bool {
-        self.keystones.is_empty() && self.masteries.is_empty()
-    }
-}
-
-#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct Node {
-    pub name: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub stats: Vec<String>,
-}
-
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub ascendancy_or_class: String, // TODO: this should be an enum
+    pub ascendancy_or_class: AscendancyOrClass,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,8 +39,7 @@ pub struct PasteMetadata {
 pub struct PasteSummary {
     pub id: PasteId,
     pub title: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub ascendancy_or_class: String, // TODO: this should be an enum
+    pub ascendancy_or_class: AscendancyOrClass,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -86,4 +59,59 @@ impl PasteSummary {
 
 fn is_false(v: &bool) -> bool {
     !v
+}
+
+/// Additional data supplied together with the build.
+pub mod data {
+    use std::collections::HashMap;
+
+    use serde::{Deserialize, Serialize};
+
+    use crate::Color;
+
+    #[derive(Default, Debug, Clone, Deserialize, Serialize)]
+    pub struct Data {
+        /// A list of node description to display per tree spec.
+        ///
+        /// List is in the same order as the tree specs.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub nodes: Vec<Nodes>,
+        /// Additional gem information.
+        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        pub gems: HashMap<String, Gem>,
+    }
+
+    #[derive(Default, Debug, Clone, Deserialize, Serialize)]
+    pub struct Nodes {
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub keystones: Vec<Node>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub masteries: Vec<Node>,
+    }
+
+    impl Nodes {
+        pub fn is_empty(&self) -> bool {
+            self.keystones.is_empty() && self.masteries.is_empty()
+        }
+    }
+
+    #[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+    pub struct Node {
+        pub name: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub stats: Vec<String>,
+    }
+
+    #[derive(Debug, Clone, Deserialize, Serialize)]
+    pub struct Gem {
+        pub color: Color,
+        pub vendors: Vec<Vendor>,
+    }
+
+    #[derive(Debug, Clone, Deserialize, Serialize)]
+    pub struct Vendor {
+        pub act: u8,
+        pub npc: String,
+        pub quest: String,
+    }
 }

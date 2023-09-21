@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use shared::{PasteId, User};
+use shared::{AscendancyOrClass, PasteId, User};
 use wasm_bindgen::JsCast;
 use web_sys::ReadableStream;
 
@@ -44,7 +44,7 @@ pub struct Meta {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub paste_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ascendancy_or_class: Option<String>,
+    pub ascendancy_or_class: Option<AscendancyOrClass>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub main_skill_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -89,7 +89,7 @@ impl PartialMeta for &StoredPaste {
         let Some(ref this) = self.metadata else {
             return;
         };
-        meta.ascendancy_or_class = Some(this.ascendancy_or_class.clone());
+        meta.ascendancy_or_class = Some(this.ascendancy_or_class);
         meta.main_skill_name = this.main_skill_name.clone();
         meta.version = this.version.clone();
         meta.last_modified = Some(self.last_modified);
@@ -113,7 +113,7 @@ impl PartialMeta for &shared::model::Paste {
         let Some(ref this) = self.metadata else {
             return;
         };
-        meta.ascendancy_or_class = Some(this.ascendancy_or_class.clone());
+        meta.ascendancy_or_class = Some(this.ascendancy_or_class);
         meta.main_skill_name = this.main_skill_name.clone();
         meta.version = this.version.clone();
         meta.last_modified = Some(self.last_modified);

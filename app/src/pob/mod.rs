@@ -117,7 +117,7 @@ pub fn title_with_config<T: PathOfBuilding>(pob: &T, config: &TitleConfig) -> St
         items.push("Trap");
     }
 
-    items.push(pob.ascendancy_or_class_name());
+    items.push(pob.ascendancy_or_class().as_str());
 
     items.join(" ")
 }

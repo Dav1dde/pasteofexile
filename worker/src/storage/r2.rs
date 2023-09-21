@@ -128,6 +128,12 @@ impl R2Storage {
             .into_iter()
             .map(|obj| {
                 let (mtime, metadata) = to_metadata(&obj)?;
+                let metadata = metadata.ok_or_else(|| {
+                    crate::Error::StorageError(format!(
+                        "missing metadata on user paste {user}:{}",
+                        obj.key()
+                    ))
+                })?;
                 Ok(ListPaste {
                     name: super::strip_prefix(&obj.key(), &prefix)?,
                     metadata,

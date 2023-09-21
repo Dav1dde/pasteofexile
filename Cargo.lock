@@ -785,6 +785,7 @@ dependencies = [
  "quick-xml",
  "serde",
  "serde_path_to_error",
+ "shared",
  "thiserror",
 ]
 
@@ -796,6 +797,18 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "poe-data"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "phf",
+ "phf_codegen",
+ "serde",
+ "serde_json",
+ "shared",
 ]
 
 [[package]]
@@ -1633,6 +1646,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "pob",
+ "poe-data",
  "poe-tree",
  "regex",
  "serde",

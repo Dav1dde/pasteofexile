@@ -127,8 +127,7 @@ pub fn ViewPaste<'a, G: Html>(
         .map(|stat| view! { cx, div(class="flex-row gap-x-5") { (stat) } })
         .collect_view();
 
-    let src =
-        crate::assets::ascendancy_image(build.pob().ascendancy_or_class_name()).unwrap_or_default();
+    let src = crate::assets::ascendancy_image(build.ascendancy_or_class());
 
     view! { cx,
         div(class="text-right text-sm text-slate-500", title=date, data-last-modified=last_modified) { (since) }
@@ -220,7 +219,7 @@ fn push_paste_to_history<G: Html>(
         let s = shared::model::PasteSummary {
             id: id.clone(),
             title: title.to_owned(),
-            ascendancy_or_class: build.ascendancy_or_class_name().to_owned(),
+            ascendancy_or_class: build.ascendancy_or_class(),
             version: build.max_tree_version(),
             main_skill_name: build.main_skill_name().map(|s| s.to_owned()),
             last_modified,

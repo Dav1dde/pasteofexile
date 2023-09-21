@@ -1,0 +1,19 @@
+[package]
+name = "poe-data"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+build = "build/build.rs"
+
+[features]
+
+[dependencies]
+shared = { path = "../shared/" }
+phf.workspace = true
+
+[build-dependencies]
+shared = { path = "../shared/" }
+phf_codegen.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
