@@ -1,5 +1,5 @@
 use shared::{
-    model::{Nodes, PasteMetadata, PasteSummary},
+    model::{data, PasteMetadata, PasteSummary},
     PasteId, UserPasteId,
 };
 
@@ -93,7 +93,7 @@ pub struct Paste {
     pub metadata: Option<PasteMetadata>,
     pub last_modified: u64,
     pub content: String,
-    pub nodes: Vec<Nodes>,
+    pub data: data::Data,
 }
 
 enum Inner {
@@ -108,7 +108,7 @@ impl From<shared::model::Paste> for Inner {
             metadata: p.metadata,
             last_modified: p.last_modified,
             content: p.content,
-            nodes: p.nodes,
+            data: p.data,
         })
     }
 }

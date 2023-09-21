@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use shared::{
-    model::{Node, Nodes, Paste, PasteSummary},
+    model::{data, Paste, PasteSummary},
     PasteId, User, UserPasteId,
 };
 
@@ -37,7 +37,10 @@ impl Pastes {
             metadata: stored.metadata,
             last_modified: stored.last_modified,
             content: stored.content,
-            nodes: extract_node_info(&pob),
+            data: data::Data {
+                nodes: extract_node_info(&pob),
+                gems: extract_gem_info(&pob),
+            }
         };
 
         let meta = Meta {
@@ -98,7 +101,7 @@ impl Pastes {
     }
 }
 
-fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
+fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
     let mut data = Vec::new();
     for spec in pob.tree_specs() {
         let version = spec
@@ -111,7 +114,7 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
             .iter()
             .filter_map(|&node| poe_tree::get_node(version, node))
             .filter(|node| node.kind.is_keystone())
-            .map(|node| Node {
+            .map(|node| data::Node {
                 name: node.name.to_owned(),
                 stats: stats_to_owned(node.stats),
             })
@@ -132,13 +135,13 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
         }
         let masteries = masteries
             .into_iter()
-            .map(|(name, stats)| Node {
+            .map(|(name, stats)| data::Node {
                 name: name.to_owned(),
                 stats,
             })
             .collect();
 
-        data.push(Nodes {
+        data.push(data::Nodes {
             keystones,
             masteries,
         });
@@ -149,4 +152,46 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<Nodes> {
 
 fn stats_to_owned(stats: &[&str]) -> Vec<String> {
     stats.iter().map(|&s| s.to_owned()).collect()
+}
+
+fn extract_gem_info(pob: &impl PathOfBuilding) -> HashMap<String, data::Gem> {
+    let gems = pob
+        .skill_sets()
+        .into_iter()
+        .flat_map(|ss| ss.skills)
+        .flat_map(|skill| skill.gems);
+
+    let mut result = HashMap::new();
+    for gem in gems {
+        let Some(gem_id) = gem.gem_id else {
+            continue;
+        };
+
+        if result.contains_key(gem_id) {
+            continue;
+        }
+
+        let Some(gem_data) = poe_data::gems::by_id(gem_id) else {
+            tracing::info!("no gem data {gem:?}");
+            continue;
+        };
+
+        let vendors = gem_data
+            .vendors(pob.class())
+            .map(|vendor| data::Vendor {
+                act: vendor.act,
+                npc: vendor.npc.to_owned(),
+                quest: vendor.quest.to_owned(),
+            })
+            .collect();
+
+        result.insert(
+            gem_id.to_owned(),
+            data::Gem {
+                color: gem_data.color,
+                vendors,
+            },
+        );
+    }
+    result
 }

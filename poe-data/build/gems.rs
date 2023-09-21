@@ -32,7 +32,7 @@ pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
     writeln!(output, "use super::{{Gem, Vendor}};")?;
     writeln!(output, "use shared::{{Color, ClassSet}};")?;
 
-    for gem in data {
+    for mut gem in data {
         let color = match gem.color.as_str() {
             "red" => "Color::Red",
             "green" => "Color::Green",
@@ -44,6 +44,7 @@ pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
         let mut vendors = String::new();
 
         write!(vendors, "&[")?;
+        gem.vendors.sort_by_key(|v| v.act);
         for vendor in gem.vendors {
             let classes = match vendor.class_ids {
                 Some(class_ids) => class_ids

@@ -90,6 +90,7 @@ pub struct Skill<'a> {
 pub struct Gem<'a> {
     pub name: &'a str,
     pub skill_id: Option<&'a str>,
+    pub gem_id: Option<&'a str>,
     pub quality_id: Option<&'a str>,
     pub level: u8,
     pub quality: u8,

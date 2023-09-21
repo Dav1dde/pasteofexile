@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use pob::{PathOfBuilding, Skill};
+use shared::{model::data, Color};
 use sycamore::prelude::*;
 
 use crate::{
@@ -17,7 +18,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     if skill_sets.is_empty() {
         return view! { cx, div() { "No Skill Gems" } };
     } else if skill_sets.len() == 1 {
-        let skills = render_skills(cx, skill_sets.remove(0).skills);
+        let skills = render_skills(cx, skill_sets.remove(0).skills, build.data());
         return view! { cx,
             div(class="columns-2xs gap-5 sm:ml-3 mt-5 leading-[1.35rem]") {
                 (skills)
@@ -39,12 +40,12 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let on_change = move |index| {
         let Some(index) = index else { return };
         if let Some(ss) = build.skill_sets().into_iter().nth(index) {
-            content.set(render_skills::<G>(cx, ss.skills));
+            content.set(render_skills::<G>(cx, ss.skills, build.data()));
         }
     };
 
     if let Some(ss) = skill_sets.into_iter().find(|ss| ss.is_selected) {
-        content.set(render_skills(cx, ss.skills));
+        content.set(render_skills(cx, ss.skills, build.data()));
     }
 
     view! { cx,
@@ -56,7 +57,11 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
 }
 
-fn render_skills<'a, G: GenericNode + Html>(cx: Scope<'a>, skills: Vec<Skill<'a>>) -> View<G> {
+fn render_skills<'a, G: GenericNode + Html>(
+    cx: Scope<'a>,
+    skills: Vec<Skill<'a>>,
+    data: &'a data::Data,
+) -> View<G> {
     let iter_skills = skills
         .into_iter()
         .filter(is_enabled)
@@ -82,7 +87,7 @@ fn render_skills<'a, G: GenericNode + Html>(cx: Scope<'a>, skills: Vec<Skill<'a>
             skills.extend(
                 group
                     .filter(has_active_gem)
-                    .map(|skill| render_skill(cx, skill)),
+                    .map(|skill| render_skill(cx, skill, data)),
             );
         }
     }
@@ -121,7 +126,7 @@ fn has_active_gem(skill: &Skill) -> bool {
     skill.gems.iter().any(|g| g.is_active)
 }
 
-fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>) -> View<G> {
+fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Data) -> View<G> {
     let gems = skill
         .gems
         .into_iter()
@@ -132,6 +137,8 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>) -> View<G> {
             let is_first = matches!(gem, itertools::Position::First(_));
             let is_last = matches!(gem, itertools::Position::Last(_));
             let gem = gem.into_inner();
+
+            let data = gem.gem_id.and_then(|gem_id| data.gems.get(gem_id));
 
             // This could be empty for skills from uniques (see also `pob/src/gems.rs`),
             // but PoB has a workaround so this shouldn't be empty.
@@ -152,21 +159,43 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>) -> View<G> {
                 _ => "",
             };
 
-            let class = match (gem.is_selected, gem.is_active) {
-                (true, _) => "truncate font-bold text-amber-50",
-                (_, true) => "truncate text-stone-100",
+            let mut color = "";
+            let mut bold = false;
+            let mut gem_position = "";
+
+            match (gem.is_selected, gem.is_active) {
+                (true, _) => {
+                    bold = true;
+                    color = "text-amber-50";
+                }
+                (_, true) => color = "text-stone-100",
                 (false, false) => {
                     if is_only {
-                        "truncate"
                     } else if is_first {
-                        "truncate gem-first"
+                        gem_position = "gem-first";
                     } else if is_last {
-                        "truncate gem-last"
+                        gem_position = "gem-last";
                     } else {
-                        "truncate gem-middle"
+                        gem_position = "gem-middle";
                     }
                 }
             };
+
+            let color = match data.map(|data| data.color) {
+                Some(Color::Red) => "text-rose-500",
+                Some(Color::Green) => "text-lime-400",
+                Some(Color::Blue) => "text-blue-400",
+                Some(Color::White) => "text-slate-50",
+                None => color,
+            };
+
+            let class = [
+                "truncate",
+                if bold { "font-bold" } else { "" },
+                color,
+                gem_position,
+            ]
+            .join(" ");
 
             let name = format!("{quality}{name}");
             let title = format!("{name} ({}/{})", gem.level, gem.quality);

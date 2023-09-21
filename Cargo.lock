@@ -1646,6 +1646,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "pob",
+ "poe-data",
  "poe-tree",
  "regex",
  "serde",

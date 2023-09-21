@@ -18,32 +18,7 @@ pub struct Paste {
     #[serde(default, skip_serializing_if = "crate::utils::is_zero")]
     pub last_modified: u64,
     pub content: String,
-    /// A list of node description to display per tree spec.
-    ///
-    /// List is in the same order as the tree specs.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub nodes: Vec<Nodes>,
-}
-
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
-pub struct Nodes {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub keystones: Vec<Node>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub masteries: Vec<Node>,
-}
-
-impl Nodes {
-    pub fn is_empty(&self) -> bool {
-        self.keystones.is_empty() && self.masteries.is_empty()
-    }
-}
-
-#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct Node {
-    pub name: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub stats: Vec<String>,
+    pub data: data::Data,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -84,4 +59,58 @@ impl PasteSummary {
 
 fn is_false(v: &bool) -> bool {
     !v
+}
+
+/// Additional data supplied together with the build.
+pub mod data {
+    use std::collections::HashMap;
+
+    use crate::Color;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Default, Debug, Clone, Deserialize, Serialize)]
+    pub struct Data {
+        /// A list of node description to display per tree spec.
+        ///
+        /// List is in the same order as the tree specs.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub nodes: Vec<Nodes>,
+        /// Additional gem information.
+        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        pub gems: HashMap<String, Gem>,
+    }
+
+    #[derive(Default, Debug, Clone, Deserialize, Serialize)]
+    pub struct Nodes {
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub keystones: Vec<Node>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub masteries: Vec<Node>,
+    }
+
+    impl Nodes {
+        pub fn is_empty(&self) -> bool {
+            self.keystones.is_empty() && self.masteries.is_empty()
+        }
+    }
+
+    #[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+    pub struct Node {
+        pub name: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub stats: Vec<String>,
+    }
+
+    #[derive(Debug, Clone, Deserialize, Serialize)]
+    pub struct Gem {
+        pub color: Color,
+        pub vendors: Vec<Vendor>,
+    }
+
+    #[derive(Debug, Clone, Deserialize, Serialize)]
+    pub struct Vendor {
+        pub act: u8,
+        pub npc: String,
+        pub quest: String,
+    }
 }

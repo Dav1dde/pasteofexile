@@ -127,7 +127,7 @@ pub fn ViewPaste<'a, G: Html>(
         .map(|stat| view! { cx, div(class="flex-row gap-x-5") { (stat) } })
         .collect_view();
 
-    let src = crate::assets::ascendancy_image(build.pob().ascendancy_or_class());
+    let src = crate::assets::ascendancy_image(build.ascendancy_or_class());
 
     view! { cx,
         div(class="text-right text-sm text-slate-500", title=date, data-last-modified=last_modified) { (since) }
