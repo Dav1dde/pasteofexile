@@ -58,12 +58,6 @@
     --separator: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsSeparatorFoil.webp");
 }
 
-.pob-item > div:before {
-    content: ' ';
-    background: url("https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/EyrieItemSymbol.webp") center no-repeat;
-    width: 20px;
-}
-
 .pob-item ul:not(:last-child):after {
     content: ' ';
     display: block;

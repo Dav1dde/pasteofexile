@@ -100,7 +100,7 @@ fn render_item<'a, G: Html>(
         return view! { cx, div(class=class) {} };
     };
 
-    let src = crate::assets::item_image_url(image_name).unwrap_or_default();
+    let src = crate::assets::item_image_url(image_name);
 
     let mouseover = move |_: web_sys::Event| current_item.set(item);
 

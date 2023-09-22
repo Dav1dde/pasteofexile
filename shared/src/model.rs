@@ -106,6 +106,7 @@ pub mod data {
 
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Gem {
+        pub level: u8,
         pub color: Color,
         pub vendors: Vec<Vendor>,
     }

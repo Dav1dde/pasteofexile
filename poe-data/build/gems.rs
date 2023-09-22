@@ -8,6 +8,7 @@ use shared::ClassSet;
 struct Gem {
     id: String,
     // name: String,
+    level: u8,
     color: String,
     #[serde(default)]
     vendors: Vec<Vendor>,
@@ -41,6 +42,8 @@ pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
             _ => anyhow::bail!("invalid gem color '{}'", gem.color),
         };
 
+        let level = gem.level;
+
         let mut vendors = String::new();
 
         write!(vendors, "&[")?;
@@ -63,7 +66,7 @@ pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
         }
         write!(vendors, "]")?;
 
-        let value = format!("Gem {{ color: {color}, vendors: {vendors} }}");
+        let value = format!("Gem {{ color: {color}, level: {level}, vendors: {vendors} }}");
         map.entry(gem.id, &value);
     }
 

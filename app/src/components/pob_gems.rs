@@ -2,10 +2,12 @@ use itertools::Itertools;
 use pob::{PathOfBuilding, Skill};
 use shared::{model::data, Color};
 use sycamore::prelude::*;
+use wasm_bindgen::JsCast;
 
 use crate::{
     build::Build,
-    components::{PobColoredSelect, PobColoredText},
+    components::{PobColoredSelect, PobColoredText, Popup},
+    consts,
     pob::formatting::strip_colors,
     svg,
     utils::IteratorExt,
@@ -48,11 +50,101 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         content.set(render_skills(cx, ss.skills, build.data()));
     }
 
+    let attach = create_signal(cx, None);
+    let popup = create_signal(cx, View::default());
+
+    let mouseover = move |event: web_sys::Event| {
+        let target = event
+            .target()
+            .and_then(|target| target.dyn_into::<web_sys::Element>().ok());
+
+        let gem = target.as_ref().and_then(PopupGem::from_element);
+        let gem_data = gem.as_ref().and_then(|gem| build.data().gems.get(&gem.id));
+
+        if let (Some(gem), Some(gem_data)) = (gem, gem_data) {
+            popup.set(render_popup(cx, gem, gem_data));
+            attach.set(target);
+        } else {
+            attach.set(None);
+        }
+    };
+    let mouseout = |_: web_sys::Event| attach.set(None);
+
     view! { cx,
+        Popup(attach=attach) { (&*popup.get()) }
         PobColoredSelect(options=options, selected=selected, on_change=on_change)
 
         div(class="columns-2xs gap-5 sm:ml-3 leading-[1.35rem]") {
-            div() { (&*content.get()) }
+            div(on:mouseover=mouseover, on:mouseout=mouseout) { (&*content.get()) }
+        }
+    }
+}
+
+#[derive(Debug)]
+struct PopupGem {
+    id: String,
+    name: String,
+    quality: u8,
+    level: u8,
+}
+
+impl PopupGem {
+    fn from_element(element: &web_sys::Element) -> Option<Self> {
+        let id = element
+            .get_attribute("data-gem-id")
+            .filter(|id| !id.is_empty())?;
+        let name = element.text_content().filter(|name| !name.is_empty())?;
+        let level = element
+            .get_attribute("data-gem-level")
+            .and_then(|s| s.parse().ok())?;
+        let quality = element
+            .get_attribute("data-gem-quality")
+            .and_then(|s| s.parse().ok())?;
+
+        Some(Self {
+            id,
+            name,
+            level,
+            quality,
+        })
+    }
+}
+
+fn render_popup<'a, G: GenericNode + Html>(
+    cx: Scope<'a>,
+    gem: PopupGem,
+    data: &'a data::Gem,
+) -> View<G> {
+    let gem_src = crate::assets::item_image_url(&gem.id);
+
+    let vendors = data
+        .vendors
+        .iter()
+        .map(|vendor| {
+            view! { cx,
+                div() { "Act " (vendor.act) }
+                div() { (vendor.npc) }
+                div() { (vendor.quest) }
+            }
+        })
+        .collect_view();
+
+    view! { cx,
+        div(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-3 flex flex-col gap-3 whitespace-nowrap") {
+            div(class="flex items-center gap-10") {
+                img(src=gem_src,
+                    class="h-10 w-10",
+                    onerror=consts::IMG_ONERROR_HIDDEN) {}
+                div(class="flex-auto text-center min-w-48") {
+                    div(class=gem_color(data.color)) { (gem.name) }
+                    div(class="text-center mt-0.5", style="color: #7f7f7f") { "Minimum Level: " (data.level) }
+                }
+                div(class=gem_color(data.color)) { (gem.level) "/" (gem.quality) }
+            }
+
+            div(class="grid grid-cols-[min-content_auto_auto] gap-x-10 gap-y-1 empty:hidden") {
+                (vendors)
+            }
         }
     }
 }
@@ -181,13 +273,7 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Da
                 }
             };
 
-            let color = match data.map(|data| data.color) {
-                Some(Color::Red) => "text-rose-500",
-                Some(Color::Green) => "text-lime-400",
-                Some(Color::Blue) => "text-blue-400",
-                Some(Color::White) => "text-slate-50",
-                None => color,
-            };
+            let color = data.map_or(color, |data| gem_color(data.color));
 
             let class = [
                 "truncate",
@@ -198,8 +284,13 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Da
             .join(" ");
 
             let name = format!("{quality}{name}");
-            let title = format!("{name} ({}/{})", gem.level, gem.quality);
-            view! { cx, div(class=class, title=title) { (name) } }
+            let gem_id = gem.gem_id.unwrap_or("");
+            view! { cx,
+                div(class=class,
+                    data-gem-id=gem_id,
+                    data-gem-level=gem.level,
+                    data-gem-quality=gem.quality) { (name) }
+            }
         })
         .collect_vec();
 
@@ -235,5 +326,14 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Da
             div(dangerously_set_inner_html=svg, data-slot=slot, class="float-right w-6") {}
             (gems)
         }
+    }
+}
+
+fn gem_color(color: Color) -> &'static str {
+    match color {
+        Color::Red => "text-rose-500",
+        Color::Green => "text-lime-400",
+        Color::Blue => "text-blue-400",
+        Color::White => "text-slate-50",
     }
 }

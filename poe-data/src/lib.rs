@@ -3,6 +3,7 @@ pub mod gems {
 
     pub struct Gem {
         pub color: Color,
+        pub level: u8,
         pub vendors: &'static [Vendor],
     }
 

@@ -28,7 +28,8 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
         };
 
         let window = web_sys::window().unwrap();
-        let viewport_width = window.inner_width().unwrap().as_f64().unwrap();
+        let body = window.document().unwrap().body().unwrap();
+        let viewport_width = body.client_width() as f64;
         let scroll_x = window.scroll_x().unwrap_or(0.0);
         let scroll_y = window.scroll_y().unwrap_or(0.0);
 
@@ -57,7 +58,7 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
         if p_x_end > viewport_width {
             // -20px because of a weird bug where the browser makes and element
             // smaller than it has width for, only happens on a certain amulet?
-            p_root = (p_root.0 - (p_x_end - viewport_width) - 20.0, p_root.1);
+            p_root = (p_root.0 - (p_x_end - viewport_width), p_root.1);
         }
 
         let _ = style.set_property("left", &format!("{}px", p_root.0.max(0.0)));

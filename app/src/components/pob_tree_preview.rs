@@ -276,7 +276,7 @@ fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<
     let src = node
         .icon
         .as_deref()
-        .and_then(crate::assets::item_image_url)
+        .map(crate::assets::item_image_url)
         .unwrap_or_default();
 
     view! { cx,
@@ -304,7 +304,7 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G
     let src = node
         .icon
         .as_deref()
-        .and_then(crate::assets::item_image_url)
+        .map(crate::assets::item_image_url)
         .unwrap_or_default();
 
     view! { cx,

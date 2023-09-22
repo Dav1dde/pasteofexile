@@ -127,14 +127,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     let main_skill_name = summary.main_skill_name.clone().unwrap_or_default();
 
     let main_skill_image = crate::assets::item_image_url(&main_skill_name);
-    let main_skill_image = if let Some(main_skill_image) = main_skill_image {
-        let main_skill_name = main_skill_name.clone();
-        view! { cx,
-            img(src=main_skill_image, alt=main_skill_name, class="h-10 w-10 mr-1", onerror=IMG_ONERROR_HIDDEN) {}
-        }
-    } else {
-        View::empty()
-    };
+    let main_skill_alt = main_skill_name.clone();
 
     let pinned = summary.rank.is_some();
     let opacity = if summary.private { "0.5" } else { "1" };
@@ -157,7 +150,12 @@ fn summary_to_view<'a, G: GenericNode + Html>(
                         sup(class="ml-1") { (version) }
                     }
                     div(class="flex items-center") {
-                        span(class="flex-none") { (main_skill_image) }
+                        span(class="flex-none") {
+                            img(src=main_skill_image,
+                                alt=main_skill_alt,
+                                class="h-10 w-10 mr-1",
+                                onerror=IMG_ONERROR_HIDDEN) {}
+                        }
                         span { (main_skill_name) }
                     }
                 }
