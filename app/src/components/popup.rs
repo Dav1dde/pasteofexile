@@ -66,7 +66,7 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
     });
 
     view! { cx,
-        div(class="absolute z-30 pointer-events-none hidden", ref=node_ref) {
+        div(class="absolute z-30 pointer-events-none hidden overflow-hidden", ref=node_ref) {
             (children)
         }
     }

@@ -20,3 +20,5 @@ pub const LINK_WHITELIST: [&str; 12] = [
     "youtube.com",
     "youtu.be",
 ];
+
+pub const POE_WIKI: &str = "https://www.poewiki.net/wiki/";

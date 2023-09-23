@@ -2,6 +2,7 @@ pub mod gems {
     use shared::{Class, ClassSet, Color};
 
     pub struct Gem {
+        pub name: &'static str,
         pub color: Color,
         pub level: u8,
         pub vendors: &'static [Vendor],

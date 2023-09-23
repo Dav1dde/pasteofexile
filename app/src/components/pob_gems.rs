@@ -10,23 +10,17 @@ use crate::{
     consts,
     pob::formatting::strip_colors,
     svg,
-    utils::IteratorExt,
+    utils::{open_wiki_page, IteratorExt},
 };
 
 #[component]
 pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
-    let mut skill_sets = build.skill_sets();
+    let skill_sets = build.skill_sets();
 
     if skill_sets.is_empty() {
         return view! { cx, div() { "No Skill Gems" } };
-    } else if skill_sets.len() == 1 {
-        let skills = render_skills(cx, skill_sets.remove(0).skills, build.data());
-        return view! { cx,
-            div(class="columns-2xs gap-5 sm:ml-3 mt-5 leading-[1.35rem]") {
-                (skills)
-            }
-        };
     }
+    let show_select = skill_sets.len() > 1;
 
     let content = create_signal(cx, view! { cx, });
 
@@ -70,10 +64,17 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     };
     let mouseout = |_: web_sys::Event| attach.set(None);
 
-    view! { cx,
-        Popup(attach=attach) { (&*popup.get()) }
-        PobColoredSelect(options=options, selected=selected, on_change=on_change)
+    let select = match show_select {
+        true => {
+            view! { cx, PobColoredSelect(options=options, selected=selected, on_change=on_change) }
+        }
+        false => View::default(),
+    };
 
+    view! { cx,
+        (select)
+
+        Popup(attach=attach) { (&*popup.get()) }
         div(class="columns-2xs gap-5 sm:ml-3 leading-[1.35rem]") {
             div(on:mouseover=mouseover, on:mouseout=mouseout) { (&*content.get()) }
         }
@@ -122,7 +123,7 @@ fn render_popup<'a, G: GenericNode + Html>(
         .iter()
         .map(|vendor| {
             view! { cx,
-                div() { "Act " (vendor.act) }
+                div(class="whitespace-nowrap") { "Act " (vendor.act) }
                 div() { (vendor.npc) }
                 div() { (vendor.quest) }
             }
@@ -130,7 +131,7 @@ fn render_popup<'a, G: GenericNode + Html>(
         .collect_view();
 
     view! { cx,
-        div(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-3 flex flex-col gap-3 whitespace-nowrap") {
+        div(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-4 flex flex-col gap-3") {
             div(class="flex items-center gap-10") {
                 img(src=gem_src,
                     class="h-10 w-10",
@@ -142,8 +143,12 @@ fn render_popup<'a, G: GenericNode + Html>(
                 div(class=gem_color(data.color)) { (gem.level) "/" (gem.quality) }
             }
 
-            div(class="grid grid-cols-[min-content_auto_auto] gap-x-10 gap-y-1 empty:hidden") {
+            div(class="grid grid-cols-[min-content_auto_auto] gap-x-6 md:gap-x-10 gap-y-1 md:mt-1 empty:hidden") {
                 (vendors)
+            }
+
+            div(class="text-right text-xs italic hidden has-mouse:block", style="color: #7f7f7f") {
+                "Wiki: Ctrl+Click"
             }
         }
     }
@@ -232,12 +237,30 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Da
 
             let data = gem.gem_id.and_then(|gem_id| data.gems.get(gem_id));
 
+            let open_wiki = move |event: web_sys::Event| {
+                let has_ctrl = event
+                    .dyn_into::<web_sys::MouseEvent>()
+                    .map_or(false, |event| event.ctrl_key());
+
+                if !has_ctrl {
+                    return;
+                }
+
+                if let Some(data) = data {
+                    open_wiki_page(&data.name);
+                }
+            };
+
             // This could be empty for skills from uniques (see also `pob/src/gems.rs`),
             // but PoB has a workaround so this shouldn't be empty.
             // Rather add more uniques to the existing workaround then adding another here.
             //
             // Fallback to skill_id, works for `Purity` and maybe other things ...
             // better than just having it silently disappear.
+            //
+            // After having gem data here, we could use `data.name`, but this includes
+            // a ` Support` suffix, which does not match PoB, it also is quite long and
+            // unnecessary. Maybe fall back in the future if it is necessary.
             let name = Some(gem.name)
                 .filter(|name| !name.is_empty())
                 .or(gem.skill_id)
@@ -287,6 +310,7 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Da
             let gem_id = gem.gem_id.unwrap_or("");
             view! { cx,
                 div(class=class,
+                    on:click=open_wiki,
                     data-gem-id=gem_id,
                     data-gem-level=gem.level,
                     data-gem-quality=gem.quality) { (name) }

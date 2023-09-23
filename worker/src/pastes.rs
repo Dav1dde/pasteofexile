@@ -197,6 +197,7 @@ fn extract_gem_info(pob: &impl PathOfBuilding) -> HashMap<String, data::Gem> {
         result.insert(
             gem_id.to_owned(),
             data::Gem {
+                name: gem_data.name.to_owned(),
                 level: gem_data.level,
                 color: gem_data.color,
                 vendors,

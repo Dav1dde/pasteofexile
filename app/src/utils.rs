@@ -183,6 +183,14 @@ pub fn open_in_new_tab(url: &str) {
         .unwrap_throw();
 }
 
+pub fn wiki_url(page: &str) -> String {
+    crate::consts::POE_WIKI.to_owned() + page
+}
+
+pub fn open_wiki_page(page: &str) {
+    open_in_new_tab(&wiki_url(page));
+}
+
 pub trait IteratorExt: Iterator {
     fn collect_view<G: Html>(self) -> View<G>
     where
