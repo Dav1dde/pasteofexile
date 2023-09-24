@@ -210,10 +210,16 @@ impl<'de> Deserialize<'de> for Gem {
             inner.name
         };
 
+        let gem_id = inner.gem_id.map(|gem_id| {
+            crate::gems::pob_id_as_game_id(&gem_id)
+                .map(Into::into)
+                .unwrap_or(gem_id)
+        });
+
         Ok(Self {
             name,
+            gem_id,
             skill_id: inner.skill_id,
-            gem_id: inner.gem_id,
             quality_id: inner.quality_id,
             enabled: inner.enabled,
             level: inner.level,
