@@ -40,7 +40,11 @@ where
             Style::Style(style) => {
                 view! { cx, option(selected=selected, style=style) { (content) } }
             }
-            Style::None => view! { cx, option(selected=selected) { (content) } },
+            Style::None => {
+                // Use "default" color here to make sure
+                // the option doesnt inherit the color from the select.
+                view! { cx, option(selected=selected, class="text-slate-300") { (content) } }
+            }
         };
 
         options.push(v);
