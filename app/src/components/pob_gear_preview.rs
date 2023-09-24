@@ -70,7 +70,7 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     view! { cx,
         Popup(attach=attach) { (&*popup.get()) }
         div(class=select_classes) {
-            PobColoredSelect(options=options, selected=selected, on_change=on_change)
+            PobColoredSelect(options=options, selected=selected, label="Select gear set", on_change=on_change)
         }
         div(class="flex flex-col justify-center mt-5 sm:px-3",
             on:mouseover=mouseover,

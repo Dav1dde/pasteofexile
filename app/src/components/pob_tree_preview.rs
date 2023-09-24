@@ -263,7 +263,7 @@ fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> V
                 span() { (name) }
                 span(class="text-xs ml-1") { (count) }
             }
-            ul(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (effect) }
+            div(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (effect) }
         }
     }
 }
@@ -282,7 +282,7 @@ fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<
     view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3", title=stats) {
             div(class="text-stone-200 text-sm md:text-base flex items-center gap-2") {
-                img(class="rounded-xl w-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
+                img(class="rounded-xl w-7 h-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
                 span() { (name) }
             }
         }
@@ -310,7 +310,7 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G
     view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3") {
             div(class="mb-2 text-stone-200 text-sm md:text-base flex items-center gap-2") {
-                img(class="rounded-xl w-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
+                img(class="rounded-xl w-7 h-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
                 span() { (name) }
             }
             ul(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (stats) }
@@ -339,7 +339,7 @@ where
     };
 
     view! { cx,
-        PobColoredSelect(options=options, selected=selected, on_change=on_change)
+        PobColoredSelect(options=options, selected=selected, label="Select tree", on_change=on_change)
     }
 }
 

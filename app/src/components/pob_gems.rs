@@ -66,7 +66,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let select = match show_select {
         true => {
-            view! { cx, PobColoredSelect(options=options, selected=selected, on_change=on_change) }
+            view! { cx, PobColoredSelect(options=options, selected=selected, label="Select skill set", on_change=on_change) }
         }
         false => View::default(),
     };

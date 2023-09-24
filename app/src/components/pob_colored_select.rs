@@ -13,6 +13,7 @@ pub struct PobColoredSelectProps<F> {
     pub options: Vec<String>, // TODO: this could be Vec<(Color, String)> which would be one less
     // string clone, or with sycamore-0.8 &str
     pub selected: Option<usize>,
+    pub label: &'static str,
     pub on_change: F,
 }
 
@@ -75,8 +76,12 @@ where
     let class = format!("sm:ml-3 mt-1 mb-2 px-1 max-w-full {class}");
 
     view! { cx,
-        select(class=class, style=style, on:input=on_input, onchange=SELECT_ONCHANGE_COLOR_FROM_OPTION) {
-            (options)
-        }
+        select(
+            class=class,
+            style=style,
+            aria-label=props.label,
+            on:input=on_input,
+            onchange=SELECT_ONCHANGE_COLOR_FROM_OPTION
+        ) { (options) }
     }
 }
