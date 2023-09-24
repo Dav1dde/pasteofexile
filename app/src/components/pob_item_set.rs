@@ -118,11 +118,31 @@ fn item_image_name<'a>(item: &pob::Item<'a>) -> &'a str {
         }
     }
 
-    match item.base {
-        "Two-Toned Boots (Evasion/Energy Shield)" => "TwoTonedEvEs",
-        "Two-Toned Boots (Armour/Evasion)" => "TwoTonedArEv",
-        "Two-Toned Boots (Armour/Energy Shield)" => "TwoTonedArEs",
-        base => base,
+    if item.base.starts_with("Two-Toned") {
+        // Bases have at least 126 base value, you can't craft that much.
+        match (item.armour >= 126, item.evasion >= 126) {
+            (true, true) => "TwoTonedArEv",
+            (false, true) => "TwoTonedEvEs",
+            _ => "TwoTonedArEs",
+        }
+    } else if item.base.starts_with("Two-Stone") {
+        let mut fire = false;
+        let mut cold = false;
+        for implicit in item.implicits() {
+            fire = fire || implicit.line.contains("Fire");
+            cold = cold || implicit.line.contains("Cold");
+            if fire || cold {
+                break;
+            }
+        }
+
+        match (fire, cold) {
+            (true, true) => "TwoStoneFC",
+            (false, true) => "TwoStoneCL",
+            _ => "TwoStoneFL",
+        }
+    } else {
+        item.base
     }
 }
 
