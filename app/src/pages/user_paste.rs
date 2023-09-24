@@ -134,7 +134,7 @@ fn UserPastePageComponent<G: Html>(
     });
 
     view! { cx,
-        div(data-nodes=data) {}
+        div(data-data=data) {}
         div(class="flex justify-between") {
             a(href=back_to_user, class="flex items-center mb-4 text-sky-400") {
                 span(dangerously_set_inner_html=svg::BACK, class="h-[16px] mr-2")
