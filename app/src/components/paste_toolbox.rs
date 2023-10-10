@@ -63,11 +63,11 @@ pub fn PasteToolbox<'a, G: Html>(
                     // to be clicked and opened client side.
                     a(on:click=on_edit,
                       href="javascript:void(0)",
-                      class="cursor-pointer",
+                      class="w-4 cursor-pointer",
                       title="Edit",
                       dangerously_set_inner_html=svg::PEN) {}
                     span(on:click=on_delete_cb,
-                         class="text-red-600 cursor-pointer",
+                         class="w-4 text-red-600 cursor-pointer",
                          title="Delete",
                          dangerously_set_inner_html=svg::TRASH) {}
                 }
