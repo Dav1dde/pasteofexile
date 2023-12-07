@@ -5,6 +5,8 @@ pub enum Kind {
     Node,
     Notable,
     Mastery,
+    // Special
+    AlternateAscendancyNotable,
 }
 
 impl Kind {
@@ -18,6 +20,10 @@ impl Kind {
 
     pub fn is_mastery(&self) -> bool {
         matches!(self, Self::Mastery)
+    }
+
+    pub fn is_alternate_ascendancy_notable(&self) -> bool {
+        matches!(self, Self::AlternateAscendancyNotable)
     }
 }
 
@@ -113,6 +119,7 @@ pub fn get_node(version: Version, id: u32) -> Option<&'static Node> {
 }
 
 gen! {
+    (V3_23, "/tree3_23.rs", tree3_23, "tree-3_23", "3_23" | "3.23"),
     (V3_22, "/tree3_22.rs", tree3_22, "tree-3_22", "3_22" | "3.22"),
     (V3_21, "/tree3_21.rs", tree3_21, "tree-3_21", "3_21" | "3.21"),
     (V3_20, "/tree3_20.rs", tree3_20, "tree-3_20", "3_20" | "3.20"),

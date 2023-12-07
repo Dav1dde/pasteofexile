@@ -320,7 +320,7 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G
 
 fn render_select<'a, G: GenericNode + Html, F>(
     cx: Scope<'a>,
-    trees: &'a Vec<Tree>,
+    trees: &'a [Tree],
     on_change: F,
 ) -> View<G>
 where

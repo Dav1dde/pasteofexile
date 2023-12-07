@@ -5,5 +5,7 @@ worker/build/
 dist/
 node_modules
 yarn.lock
+.yarn
+.pnp*
 .env
 .mf/

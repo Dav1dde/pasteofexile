@@ -1,9 +1,11 @@
+use std::collections::HashSet;
 use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
 use poe_api::api::SkillTreeData;
+use poe_api::SkillTreeNode;
 
 fn get_trees() -> impl Iterator<Item = String> {
     env::vars().filter_map(|(name, _)| {
@@ -32,6 +34,20 @@ pub fn main() -> anyhow::Result<()> {
 fn generate(data: &SkillTreeData, output: &mut dyn Write) -> anyhow::Result<()> {
     let mut map = phf_codegen::Map::new();
 
+    let alternate_ascendancies = data
+        .alternate_ascendancies
+        .iter()
+        .map(|a| &a.id)
+        .collect::<HashSet<_>>();
+
+    let is_alt_ascendancy_notable = |node: &SkillTreeNode| {
+        if let Some(ref asc) = node.ascendancy_name {
+            return alternate_ascendancies.contains(asc) && node.is_notable;
+        }
+
+        false
+    };
+
     writeln!(output, "#[allow(unused_imports)]")?;
     writeln!(output, "use crate::{{Kind, MasteryEffect, Node}};")?;
 
@@ -40,6 +56,8 @@ fn generate(data: &SkillTreeData, output: &mut dyn Write) -> anyhow::Result<()> 
             "Kind::Mastery"
         } else if node.is_keystone {
             "Kind::Keystone"
+        } else if is_alt_ascendancy_notable(node) {
+            "Kind::AlternateAscendancyNotable"
         } else if node.is_notable {
             "Kind::Notable"
         } else {
@@ -58,11 +76,13 @@ fn generate(data: &SkillTreeData, output: &mut dyn Write) -> anyhow::Result<()> 
             .collect::<Vec<_>>()
             .join(", ");
 
-        // Only need keystone icons
+        // Only need icons for some nodes
         let icon = if node.is_keystone {
             node.icon.as_ref()
         } else if node.is_mastery {
             node.active_icon.as_ref()
+        } else if is_alt_ascendancy_notable(node) {
+            node.icon.as_ref()
         } else {
             None
         };
@@ -72,7 +92,13 @@ fn generate(data: &SkillTreeData, output: &mut dyn Write) -> anyhow::Result<()> 
                 .map(|icon| icon.to_lowercase());
 
         let n = format!(
-            r#"Node {{ kind: {kind}, name: "{}", stats: &{:?}, mastery_effects: &[{mastery_effects}], icon: {icon:?} }}"#,
+            r#"Node {{ 
+                kind: {kind}, 
+                name: "{}", 
+                stats: &{:?}, 
+                mastery_effects: &[{mastery_effects}], 
+                icon: {icon:?} 
+            }}"#,
             node.name, node.stats
         );
 

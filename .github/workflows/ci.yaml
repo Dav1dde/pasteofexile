@@ -41,10 +41,10 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: stable
           components: clippy
           override: true
       - uses: Swatinem/rust-cache@v1
       - run: mkdir app/dist && touch app/dist/index.html
-      - run: cargo +nightly clippy --all-features -- -D warnings
+      - run: cargo clippy --all-features -- -D warnings
 

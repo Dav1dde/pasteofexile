@@ -102,6 +102,8 @@ pub mod data {
         pub icon: Option<String>,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         pub stats: Vec<String>,
+        #[serde(skip)]
+        pub sort: Option<i8>, // this sucks, but I am lazy right now
     }
 
     #[derive(Debug, Clone, Deserialize, Serialize)]

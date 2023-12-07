@@ -113,14 +113,15 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
             .nodes
             .iter()
             .filter_map(|&node| poe_tree::get_node(version, node))
-            .filter(|node| node.kind.is_keystone())
+            .filter(|node| node.kind.is_keystone() || node.kind.is_alternate_ascendancy_notable())
             .map(|node| data::Node {
                 name: node.name.to_owned(),
                 icon: node.icon.map(|icon| icon.to_owned()),
                 stats: stats_to_owned(node.stats),
+                sort: node.kind.is_keystone().then_some(0),
             })
             .collect::<Vec<_>>();
-        keystones.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+        keystones.sort_unstable_by(|a, b| (a.sort, &a.name).cmp(&(b.sort, &b.name)));
 
         struct MasteryNode {
             icon: Option<String>,
@@ -147,6 +148,7 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
                 name: name.to_owned(),
                 icon: node.icon,
                 stats: node.stats,
+                sort: None,
             })
             .collect();
 

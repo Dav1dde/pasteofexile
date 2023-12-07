@@ -22,6 +22,7 @@ pub fn PobColoredText<G: Html>(cx: Scope, props: Props<'_>) -> View<G> {
         .collect_view()
 }
 
+#[allow(clippy::enum_variant_names)]
 pub enum Style {
     Class(&'static str),
     Style(String),
