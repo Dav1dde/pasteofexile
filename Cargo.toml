@@ -5,9 +5,11 @@ members = [
     "poe-data",
     "poe-tree",
     "shared",
-    "worker"
+    "worker",
+    "worker-sentry",
 ]
 exclude = ["snapshot"]
+resolver = "2"
 
 [workspace.package]
 version = "0.1.0"

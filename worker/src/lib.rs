@@ -1,4 +1,5 @@
 use sentry::WithSentry;
+use statsd::Counters;
 use worker::{event, Context, Env, Request, Response as WorkerResponse};
 
 mod api;
@@ -17,8 +18,9 @@ mod request_context;
 mod response;
 mod retry;
 mod route;
-mod sentry;
+mod sentry_impl;
 mod stats;
+mod statsd;
 mod storage;
 mod utils;
 
@@ -46,7 +48,10 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
 
     let mut rctx = RequestContext::new(req, env, ctx).await;
 
-    let mut sentry = sentry::new(rctx.ctx(), rctx.inject_opt());
+    let mut sentry = sentry::new(
+        sentry_impl::Transport(rctx.ctx().clone()),
+        rctx.inject_opt(),
+    );
 
     sentry
         .set_trace_id(rctx.trace_id())
@@ -71,10 +76,17 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
 
 #[tracing::instrument(skip_all)]
 async fn cached(rctx: &mut RequestContext) -> Response {
+    sentry::counter(Counters::Request)
+        .inc(1)
+        .tag("transaction", rctx.transaction());
+
     let cache_entry = rctx.cache_entry();
 
     if let Some(response) = cache_entry.load().await {
         tracing::debug!("cache hit");
+        sentry::counter(Counters::CacheHit)
+            .inc(1)
+            .tag("transaction", rctx.transaction());
         return response;
     }
 
@@ -94,12 +106,22 @@ async fn handle(rctx: &mut RequestContext) -> Response {
 
     if let Err(ref err) = response {
         tracing::warn!("error: {err:?}");
-        sentry::capture_err(err.inner());
+        sentry::capture_err(err.inner(), err.inner().level());
     }
 
     match response {
         Ok(response) => response,
-        Err(response::ApiError(err)) => err.into(),
-        Err(response::AppError(err)) => app::handle_err(err).await,
+        Err(response::ApiError(err)) => {
+            sentry::counter(Counters::RequestError)
+                .inc(1)
+                .tag("transaction", rctx.transaction());
+            err.into()
+        }
+        Err(response::AppError(err)) => {
+            sentry::counter(Counters::RequestError)
+                .inc(1)
+                .tag("transaction", rctx.transaction());
+            app::handle_err(err).await
+        }
     }
 }

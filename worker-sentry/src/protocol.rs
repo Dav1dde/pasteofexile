@@ -9,12 +9,17 @@ pub use serde_json::Value;
 
 use super::utils::{ts_rfc3339, ts_rfc3339_opt};
 
+mod metrics;
+
+pub use self::metrics::*;
+
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum EnvelopeItem<'a> {
     Event(Event<'a>),
     Transaction(Transaction<'a>),
     Attachment(&'a Attachment),
+    Statsd(Vec<u8>),
 }
 
 #[derive(Default, Debug)]
@@ -33,6 +38,14 @@ impl<'a> Envelope<'a> {
             }
         }
         self.items.push(item);
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn to_writer<W>(&self, mut writer: W) -> std::io::Result<()>
@@ -61,11 +74,14 @@ impl<'a> Envelope<'a> {
                     writeln!(writer)?;
                     continue;
                 }
+                EnvelopeItem::Statsd(statsd) => item_buf.write_all(statsd)?,
             }
+
             let item_type = match item {
                 EnvelopeItem::Event(_) => "event",
                 EnvelopeItem::Transaction(_) => "transaction",
                 EnvelopeItem::Attachment(_) => unreachable!(),
+                EnvelopeItem::Statsd(_) => "statsd",
             };
             writeln!(
                 writer,
@@ -157,7 +173,7 @@ pub struct SpanId([u8; 8]);
 
 impl Default for SpanId {
     fn default() -> Self {
-        let val = crate::crypto::get_random_values().expect("SpanId random");
+        let val = crate::js::get_random_values();
 
         Self(val)
     }
@@ -189,9 +205,7 @@ pub struct TraceId([u8; 16]);
 
 impl Default for TraceId {
     fn default() -> Self {
-        let val = crate::crypto::get_random_values().expect("TraceId random");
-
-        Self(val)
+        Self(crate::js::get_random_values())
     }
 }
 
@@ -433,8 +447,7 @@ pub struct Transaction<'a> {
 impl<'a> Default for Transaction<'a> {
     fn default() -> Self {
         Self {
-            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap())
-                .into_uuid(),
+            event_id: uuid::Builder::from_random_bytes(crate::js::get_random_values()).into_uuid(),
             name: Default::default(),
             release: Default::default(),
             environment: Default::default(),
@@ -530,8 +543,7 @@ pub struct Event<'a> {
 impl<'a> Default for Event<'a> {
     fn default() -> Self {
         Self {
-            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap())
-                .into_uuid(),
+            event_id: uuid::Builder::from_random_bytes(crate::js::get_random_values()).into_uuid(),
             level: Default::default(),
             culprit: Default::default(),
             transaction: Default::default(),

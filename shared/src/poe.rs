@@ -21,7 +21,7 @@ pub enum Class {
     Witch,
 }
 impl Class {
-    fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Self::Duelist => "Duelist",
             Self::Marauder => "Marauder",
@@ -208,7 +208,7 @@ impl Ascendancy {
         }
     }
 
-    fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Self::Ascendant => "Ascendant",
             Self::Assassin => "Assassin",

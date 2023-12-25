@@ -10,6 +10,7 @@ pub(crate) fn could_be_pastebin_id(paste: &PasteId) -> bool {
 #[tracing::instrument]
 pub async fn get(id: &PasteId) -> Result<Option<StoredPaste>> {
     let mut response = net::Request::get(format!("https://pastebin.com/raw/{}", id.id()))
+        .tag("pastebin")
         .send()
         .await?;
 

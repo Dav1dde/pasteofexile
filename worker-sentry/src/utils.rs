@@ -3,6 +3,14 @@ use time::OffsetDateTime;
 
 use super::protocol::Timestamp;
 
+pub fn hex_lower(data: &[u8]) -> String {
+    use std::fmt::Write;
+    data.iter().fold(String::new(), |mut output, x| {
+        let _ = write!(output, "{x:02x}");
+        output
+    })
+}
+
 pub fn serialize_id<S: serde::Serializer>(
     uuid: &uuid::Uuid,
     serializer: S,
