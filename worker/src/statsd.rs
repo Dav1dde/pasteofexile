@@ -7,6 +7,7 @@ pub enum Counters {
     StoragePut,
     StorageList,
     Fetch,
+    PobUpload,
 }
 
 impl sentry::MetricName for Counters {
@@ -20,6 +21,7 @@ impl sentry::MetricName for Counters {
             Counters::StoragePut => "storage.put",
             Counters::StorageList => "storage.list",
             Counters::Fetch => "fetch.total",
+            Counters::PobUpload => "pob.upload",
         }
     }
 }

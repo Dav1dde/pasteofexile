@@ -10,7 +10,7 @@ use crate::{
     request_context::RequestContext,
     response,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
-    statsd::Distributions,
+    statsd::{Counters, Distributions},
     utils::{self, CacheControl, Etag, LenientId, RequestExt},
     Error, Response, Result,
 };
@@ -348,7 +348,17 @@ fn validate_pob(is_logged_in: bool, data: &[u8]) -> Result<SerdePathOfBuilding> 
     // Generic 401, probably just actually bad data
     let s = pob::decompress(s).map_err(|e| Error::BadRequest(e.to_string()))?;
     // More specific error for a separate Sentry categoy
-    SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e, s))
+    let pob = SerdePathOfBuilding::from_xml(&s).map_err(move |e| Error::InvalidPoB(e, s))?;
+
+    sentry::counter(Counters::PobUpload)
+        .inc(1)
+        .tag("class", pob.class().as_str())
+        .tag(
+            "ascendancy",
+            pob.ascendancy().map_or("None", |a| a.as_str()),
+        );
+
+    Ok(pob)
 }
 
 fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
