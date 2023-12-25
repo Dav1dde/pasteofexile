@@ -1,7 +1,7 @@
 pub enum Counters {
     Request,
     RequestError,
-    CacheHit,
+    Cache,
     StorageGet,
     StorageDelete,
     StoragePut,
@@ -17,7 +17,7 @@ impl sentry::MetricName for Counters {
         match self {
             Counters::Request => "request.total",
             Counters::RequestError => "request.error",
-            Counters::CacheHit => "request.cache.hit",
+            Counters::Cache => "request.cache",
             Counters::StorageGet => "storage.get",
             Counters::StorageDelete => "storage.delete",
             Counters::StoragePut => "storage.put",

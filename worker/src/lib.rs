@@ -84,11 +84,17 @@ async fn cached(rctx: &mut RequestContext) -> Response {
 
     if let Some(response) = cache_entry.load().await {
         tracing::debug!("cache hit");
-        sentry::counter(Counters::CacheHit)
+        sentry::counter(Counters::Cache)
             .inc(1)
+            .tag("status", "hit")
             .tag("transaction", rctx.transaction());
         return response;
     }
+
+    sentry::counter(Counters::Cache)
+        .inc(1)
+        .tag("status", "miss")
+        .tag("transaction", rctx.transaction());
 
     let response = handle(rctx).await;
 
