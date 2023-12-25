@@ -76,13 +76,17 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
 
 #[tracing::instrument(skip_all)]
 async fn cached(rctx: &mut RequestContext) -> Response {
-    sentry::counter(Counters::Request).inc(1);
+    sentry::counter(Counters::Request)
+        .inc(1)
+        .tag("transaction", rctx.transaction());
 
     let cache_entry = rctx.cache_entry();
 
     if let Some(response) = cache_entry.load().await {
         tracing::debug!("cache hit");
-        sentry::counter(Counters::CacheHit).inc(1);
+        sentry::counter(Counters::CacheHit)
+            .inc(1)
+            .tag("transaction", rctx.transaction());
         return response;
     }
 
@@ -110,13 +114,13 @@ async fn handle(rctx: &mut RequestContext) -> Response {
         Err(response::ApiError(err)) => {
             sentry::counter(Counters::RequestError)
                 .inc(1)
-                .tag("type", "api");
+                .tag("transaction", rctx.transaction());
             err.into()
         }
         Err(response::AppError(err)) => {
             sentry::counter(Counters::RequestError)
                 .inc(1)
-                .tag("type", "app");
+                .tag("transaction", rctx.transaction());
             app::handle_err(err).await
         }
     }
