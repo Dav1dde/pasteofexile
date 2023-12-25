@@ -113,6 +113,7 @@ impl Oauth {
             .finish();
 
         let mut response = net::Request::post("https://www.pathofexile.com/oauth/token")
+            .tag("poe_token")
             .header("User-Agent", POE_API_USER_AGENT)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(&payload)
@@ -144,6 +145,7 @@ impl PoeApi {
     #[tracing::instrument(skip(self))]
     pub async fn fetch_profile(&self) -> crate::Result<Profile> {
         let mut response = net::Request::get("https://api.pathofexile.com/profile")
+            .tag("poe_profile")
             .header("Authorization", &format!("Bearer {}", self.access_token))
             .header("User-Agent", POE_API_USER_AGENT)
             .send()

@@ -3,12 +3,13 @@ use std::borrow::Cow;
 use wasm_bindgen::JsValue;
 pub use worker::Method;
 
-use crate::sentry;
+use crate::{sentry, statsd::Counters};
 
 pub struct Request<'a> {
     url: Cow<'a, str>,
     init: worker::RequestInit,
     sentry: bool,
+    tag: Option<&'static str>,
 }
 
 impl<'a> Request<'a> {
@@ -17,6 +18,7 @@ impl<'a> Request<'a> {
             url,
             init: worker::RequestInit::new(),
             sentry: true,
+            tag: None,
         }
     }
 
@@ -30,6 +32,11 @@ impl<'a> Request<'a> {
 
     pub fn method(mut self, method: Method) -> Self {
         self.init.method = method;
+        self
+    }
+
+    pub fn tag(mut self, tag: &'static str) -> Self {
+        self.tag = Some(tag);
         self
     }
 
@@ -87,8 +94,28 @@ impl<'a> Request<'a> {
                 data,
                 ..Default::default()
             });
+
+            let counter = sentry::counter(Counters::Fetch)
+                .inc(1)
+                .tag("status", status_code)
+                .tag("method", method_as_str(self.init.method))
+                .tag_opt("tag", self.tag);
         }
 
         response
+    }
+}
+
+fn method_as_str(method: worker::Method) -> &'static str {
+    match method {
+        Method::Head => "head",
+        Method::Get => "get",
+        Method::Post => "post",
+        Method::Put => "put",
+        Method::Patch => "patch",
+        Method::Delete => "delete",
+        Method::Options => "options",
+        Method::Connect => "connect",
+        Method::Trace => "trace",
     }
 }

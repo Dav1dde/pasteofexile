@@ -9,7 +9,8 @@ use crate::{
     request_context::RequestContext,
     response,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
-    sentry,
+    sentry::{self, MetricUnit},
+    statsd::Distributions,
     utils::{self, CacheControl, Etag, LenientId, RequestExt},
     Error, Response, Result,
 };
@@ -331,6 +332,8 @@ fn validate_pob(is_logged_in: bool, data: &[u8]) -> Result<SerdePathOfBuilding> 
     } else {
         consts::MAX_UPLOAD_SIZE
     };
+
+    sentry::distribution(Distributions::PobSize, data.len() as f64).unit(MetricUnit::Byte);
 
     if data.len() > limit {
         return Err(Error::BadRequest(

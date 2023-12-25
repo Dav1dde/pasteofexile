@@ -1,6 +1,6 @@
 use git_version::git_version;
 
-use super::protocol;
+use super::protocol::{self, Envelope, EnvelopeItem, Metric};
 use crate::{net, Error, Result};
 
 #[derive(Clone)]
@@ -11,6 +11,7 @@ pub struct Sentry {
     breadcrumbs: Vec<protocol::Breadcrumb>,
     attachments: Vec<protocol::Attachment>,
     trace_context: Vec<protocol::TraceContext>,
+    metrics: Vec<protocol::Metric>,
     pub(crate) trace_id: protocol::TraceId,
     user: Option<protocol::User>,
     request: Option<protocol::Request>,
@@ -27,6 +28,7 @@ impl Sentry {
             attachments: Vec::new(),
             // TODO: maybe get rid of this and replace capture_err with `tracing::error!`
             trace_context: Vec::new(),
+            metrics: Vec::new(),
             trace_id: protocol::TraceId::default(),
             user: None,
             request: None,
@@ -77,6 +79,10 @@ impl Sentry {
         self.attachments.push(attachment);
     }
 
+    pub(crate) fn add_metric(&mut self, metric: Metric) {
+        self.metrics.push(metric);
+    }
+
     pub(crate) fn start_transaction(&mut self, ctx: super::TransactionContext) {
         let transaction = protocol::Transaction {
             name: Some(ctx.name),
@@ -114,6 +120,16 @@ impl Sentry {
             .insert("trace".into(), protocol::Context::Trace(trace_context));
 
         let _ = self.send_envelope(transaction.into());
+    }
+
+    pub fn flush(&mut self) {
+        let mut envelope = Envelope::default();
+        for metric in self.metrics.drain(..) {
+            envelope.add_item(EnvelopeItem::Statsd(metric.to_statsd()));
+        }
+        if !envelope.is_empty() {
+            let _ = self.send_envelope(envelope);
+        }
     }
 
     pub(crate) fn capture_event(&self, mut event: protocol::Event<'static>) {

@@ -4,13 +4,15 @@ use std::{cell::RefCell, rc::Rc};
 mod client;
 pub(crate) mod converter;
 mod layer;
+mod metrics;
 mod protocol;
 mod utils;
 
 pub use self::client::Sentry;
 pub use self::layer::Layer;
+pub use self::metrics::*;
 pub use self::protocol::{
-    Breadcrumb, Level, Map, Request, SpanStatus as Status, TraceId, User, Value,
+    Breadcrumb, Level, Map, MetricUnit, Request, SpanStatus as Status, TraceId, User, Value,
 };
 use crate::consts;
 use crate::request_context::{Env, FromEnv};
@@ -88,6 +90,7 @@ impl Drop for SentryToken {
     fn drop(&mut self) {
         if let Some(sentry) = self.0.take() {
             sentry.borrow_mut().finish_transaction();
+            sentry.borrow_mut().flush();
         }
     }
 }

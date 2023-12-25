@@ -9,12 +9,17 @@ pub use serde_json::Value;
 
 use super::utils::{ts_rfc3339, ts_rfc3339_opt};
 
+mod metrics;
+
+pub use self::metrics::*;
+
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum EnvelopeItem<'a> {
     Event(Event<'a>),
     Transaction(Transaction<'a>),
     Attachment(&'a Attachment),
+    Statsd(Vec<u8>),
 }
 
 #[derive(Default, Debug)]
@@ -33,6 +38,14 @@ impl<'a> Envelope<'a> {
             }
         }
         self.items.push(item);
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn to_writer<W>(&self, mut writer: W) -> std::io::Result<()>
@@ -61,11 +74,14 @@ impl<'a> Envelope<'a> {
                     writeln!(writer)?;
                     continue;
                 }
+                EnvelopeItem::Statsd(statsd) => item_buf.write_all(&statsd)?,
             }
+
             let item_type = match item {
                 EnvelopeItem::Event(_) => "event",
                 EnvelopeItem::Transaction(_) => "transaction",
                 EnvelopeItem::Attachment(_) => unreachable!(),
+                EnvelopeItem::Statsd(_) => "statsd",
             };
             writeln!(
                 writer,

@@ -7,6 +7,8 @@ use shared::{
 use crate::{
     crypto::Sha1,
     request_context::{Env, FromEnv},
+    sentry,
+    statsd::Counters,
     Result,
 };
 
@@ -42,13 +44,20 @@ impl Storage {
     pub async fn get(&self, id: &PasteId) -> Result<Option<StoredPaste>> {
         if pastebin::could_be_pastebin_id(id) {
             tracing::info!("fetching from pastebin.com");
+            sentry::counter(Counters::StorageGet)
+                .inc(1)
+                .tag("type", "pastebin");
             return pastebin::get(id).await;
         }
 
+        sentry::counter(Counters::StorageGet)
+            .inc(1)
+            .tag("type", "r2");
         self.r2.get(id).await
     }
 
     pub async fn delete(&self, id: &PasteId) -> Result<()> {
+        sentry::counter(Counters::StorageDelete).inc(1);
         self.r2.delete(id).await
     }
 
@@ -59,10 +68,12 @@ impl Storage {
         data: &[u8],
         metadata: Option<&PasteMetadata>,
     ) -> Result<()> {
+        sentry::counter(Counters::StoragePut).inc(1);
         self.r2.put(id, sha1, data, metadata).await
     }
 
     pub async fn list(&self, user: &User) -> Result<Vec<ListPaste>> {
+        sentry::counter(Counters::StorageList).inc(1);
         self.r2.list(user).await
     }
 }

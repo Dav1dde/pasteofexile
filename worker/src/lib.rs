@@ -1,4 +1,5 @@
 use sentry::WithSentry;
+use statsd::Counters;
 use worker::{event, Context, Env, Request, Response as WorkerResponse};
 
 mod api;
@@ -19,6 +20,7 @@ mod retry;
 mod route;
 mod sentry;
 mod stats;
+mod statsd;
 mod storage;
 mod utils;
 
@@ -71,10 +73,13 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
 
 #[tracing::instrument(skip_all)]
 async fn cached(rctx: &mut RequestContext) -> Response {
+    sentry::counter(Counters::Request).inc(1);
+
     let cache_entry = rctx.cache_entry();
 
     if let Some(response) = cache_entry.load().await {
         tracing::debug!("cache hit");
+        sentry::counter(Counters::CacheHit).inc(1);
         return response;
     }
 
@@ -99,7 +104,17 @@ async fn handle(rctx: &mut RequestContext) -> Response {
 
     match response {
         Ok(response) => response,
-        Err(response::ApiError(err)) => err.into(),
-        Err(response::AppError(err)) => app::handle_err(err).await,
+        Err(response::ApiError(err)) => {
+            sentry::counter(Counters::RequestError)
+                .inc(1)
+                .tag("type", "api");
+            err.into()
+        }
+        Err(response::AppError(err)) => {
+            sentry::counter(Counters::RequestError)
+                .inc(1)
+                .tag("type", "app");
+            app::handle_err(err).await
+        }
     }
 }
