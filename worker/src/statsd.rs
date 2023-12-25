@@ -8,6 +8,8 @@ pub enum Counters {
     StorageList,
     Fetch,
     PobUpload,
+    ApiLogin,
+    ApiLoginSuccess,
 }
 
 impl sentry::MetricName for Counters {
@@ -22,6 +24,8 @@ impl sentry::MetricName for Counters {
             Counters::StorageList => "storage.list",
             Counters::Fetch => "fetch.total",
             Counters::PobUpload => "pob.upload",
+            Counters::ApiLogin => "api.login",
+            Counters::ApiLoginSuccess => "api.login_success",
         }
     }
 }

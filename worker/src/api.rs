@@ -405,6 +405,7 @@ async fn handle_login(rctx: &RequestContext) -> Result<Response> {
 
     tracing::info!(%redirect_uri, %state, "redirecting for login");
 
+    sentry::counter(Counters::ApiLogin).inc(1);
     Ok(Response::redirect_temp(&login_uri).state_cookie(&state))
 }
 
@@ -458,6 +459,7 @@ async fn handle_oauth2_poe(rctx: &RequestContext) -> Result<Response> {
         .sign(&user)
         .await?;
 
+    sentry::counter(Counters::ApiLoginSuccess).inc(1);
     Response::redirect_temp(redirect_from_oauth_state(&grant.state))
         .delete_state_cookie()
         .new_session(&session)

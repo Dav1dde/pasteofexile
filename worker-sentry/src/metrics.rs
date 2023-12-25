@@ -53,6 +53,7 @@ metric_tag_value_display!(f64);
 
 macro_rules! metric {
     ($name:ident, $value:ty) => {
+        #[derive(Debug)]
         pub struct $name {
             name: &'static str,
             unit: MetricUnit,
@@ -172,34 +173,6 @@ impl Drop for Set {
 
 pub fn set(metric: impl MetricName, value: impl Into<u32>) -> Set {
     Set {
-        name: metric.name(),
-        unit: MetricUnit::None,
-        value: value.into(),
-        tags: BTreeMap::new(),
-        timestamp: None,
-    }
-}
-
-metric!(Gauge, f64);
-
-impl Drop for Gauge {
-    fn drop(&mut self) {
-        let metric = Metric {
-            name: self.name,
-            unit: self.unit,
-            tags: std::mem::take(&mut self.tags),
-            value: MetricValue::Gauge(self.value),
-            timestamp: self.timestamp,
-        };
-
-        super::with_sentry_mut(move |sentry| {
-            sentry.add_metric(metric);
-        });
-    }
-}
-
-pub fn gauge(metric: impl MetricName, value: impl Into<f64>) -> Gauge {
-    Gauge {
         name: metric.name(),
         unit: MetricUnit::None,
         value: value.into(),

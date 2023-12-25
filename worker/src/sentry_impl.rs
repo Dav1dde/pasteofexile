@@ -14,7 +14,9 @@ impl FromEnv for sentry::Options {
 pub struct Transport(pub worker::Context);
 
 impl sentry::Transport for Transport {
-    fn send(&self, url: String, auth: String, content: Vec<u8>) -> sentry::Result<()> {
+    fn send(&self, url: String, auth: String, content: Vec<u8>) {
+        worker::console_warn!("{:?}", std::str::from_utf8(&content));
+
         self.0.wait_until(async move {
             let response = net::Request::post(url)
                 .header("Content-Type", "application/x-sentry-envelope")
@@ -43,7 +45,5 @@ impl sentry::Transport for Transport {
                 }
             }
         });
-
-        Ok(())
     }
 }

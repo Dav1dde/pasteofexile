@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub trait Transport {
-    fn send(&self, url: String, auth: String, content: Vec<u8>) -> Result<()>;
+    fn send(&self, url: String, auth: String, content: Vec<u8>);
 }
 
 pub struct Sentry {
@@ -198,6 +198,8 @@ impl Sentry {
         );
         let url = format!("https://sentry.io/api/{}/envelope/", self.project);
 
-        self.transport.send(url, auth, body)
+        self.transport.send(url, auth, body);
+
+        Ok(())
     }
 }

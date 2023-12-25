@@ -19,12 +19,15 @@ impl Metric {
         if !matches!(self.unit, MetricUnit::None) {
             let _ = write!(&mut result, "@{}", self.unit.as_str());
         }
-        let _ = write!(&mut result, ":{}|{}|", self.value, self.value.as_type());
-        for (name, value) in self.tags.iter() {
-            let _ = write!(&mut result, "#{name}:{value}|");
+        let _ = write!(&mut result, ":{}|{}", self.value, self.value.as_type());
+        for (i, (name, value)) in self.tags.iter().enumerate() {
+            let _ = match i {
+                0 => write!(&mut result, "|#{name}:{value}"),
+                _ => write!(&mut result, ",{name}:{value}"),
+            };
         }
         if let Some(timestamp) = self.timestamp {
-            let _ = write!(&mut result, "T{}", timestamp.as_secs());
+            let _ = write!(&mut result, "|T{}", timestamp.as_secs());
         }
 
         result
@@ -56,7 +59,6 @@ pub enum MetricValue {
     Counter(i64),
     Distribution(f64),
     Set(u32),
-    Gauge(f64),
 }
 
 impl MetricValue {
@@ -65,7 +67,6 @@ impl MetricValue {
             MetricValue::Counter(_) => "c",
             MetricValue::Distribution(_) => "d",
             MetricValue::Set(_) => "s",
-            MetricValue::Gauge(_) => "g",
         }
     }
 }
@@ -76,7 +77,6 @@ impl fmt::Display for MetricValue {
             MetricValue::Counter(value) => write!(f, "{}", value),
             MetricValue::Distribution(value) => write!(f, "{}", value),
             MetricValue::Set(value) => write!(f, "{}", value),
-            MetricValue::Gauge(value) => write!(f, "{}", value),
         }
     }
 }
