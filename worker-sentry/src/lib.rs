@@ -2,20 +2,22 @@ use std::borrow::Cow;
 use std::{cell::RefCell, rc::Rc};
 
 mod client;
-pub(crate) mod converter;
+mod converter;
+mod error;
+mod js;
 mod layer;
 mod metrics;
 mod protocol;
 mod utils;
 
-pub use self::client::Sentry;
+pub use self::client::{Sentry, Transport};
+pub use self::converter::extract_event_message;
+pub use self::error::{Error, Result};
 pub use self::layer::Layer;
 pub use self::metrics::*;
 pub use self::protocol::{
     Breadcrumb, Level, Map, MetricUnit, Request, SpanStatus as Status, TraceId, User, Value,
 };
-use crate::consts;
-use crate::request_context::{Env, FromEnv};
 
 type SentryCell = Rc<RefCell<Sentry>>;
 thread_local!(static SENTRY: RefCell<Vec<SentryCell>> = RefCell::new(Vec::new()));
@@ -25,17 +27,12 @@ pub struct Options {
     pub token: String,
 }
 
-impl FromEnv for Options {
-    fn from_env(env: &Env) -> Option<Self> {
-        let project = env.var(consts::ENV_SENTRY_PROJECT)?;
-        let token = env.var(consts::ENV_SENTRY_TOKEN)?;
-        Some(Self { project, token })
-    }
-}
-
-pub fn new(ctx: &worker::Context, options: impl Into<Option<Options>>) -> SentryToken {
+pub fn new(
+    transport: impl Transport + 'static,
+    options: impl Into<Option<Options>>,
+) -> SentryToken {
     if let Some(options) = options.into() {
-        let sentry = Rc::new(RefCell::new(Sentry::new(ctx.clone(), options)));
+        let sentry = Rc::new(RefCell::new(Sentry::new(Box::new(transport), options)));
         SentryToken(Some(sentry))
     } else {
         SentryToken(None)
@@ -153,8 +150,8 @@ pub struct TransactionContext {
     pub op: String,
 }
 
-pub fn capture_err(err: &crate::Error) {
-    with_sentry(|sentry| sentry.capture_err(err));
+pub fn capture_err(err: &dyn std::error::Error, level: Level) {
+    with_sentry(|sentry| sentry.capture_err(err, level));
 }
 
 pub fn add_breadcrumb(breadcrumb: Breadcrumb) {

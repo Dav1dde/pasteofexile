@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use wasm_bindgen::JsValue;
 pub use worker::Method;
 
-use crate::{sentry, statsd::Counters};
+use crate::statsd::Counters;
 
 pub struct Request<'a> {
     url: Cow<'a, str>,
@@ -95,7 +95,7 @@ impl<'a> Request<'a> {
                 ..Default::default()
             });
 
-            let counter = sentry::counter(Counters::Fetch)
+            sentry::counter(Counters::Fetch)
                 .inc(1)
                 .tag("status", status_code)
                 .tag("method", method_as_str(self.init.method))

@@ -1,7 +1,7 @@
 use shared::{PasteId, UserPasteId};
 
 use crate::{
-    app_metadata, consts, response, sentry,
+    app_metadata, consts, response,
     utils::{to_link, Etag},
     CacheControl, Error, RequestContext, Response, Result,
 };
@@ -22,7 +22,7 @@ pub async fn handle_err(err: crate::Error) -> Response {
 async fn handle_inner(rctx: &RequestContext, route: app::Route) -> Result<Response> {
     let (info, ctx) = build_context(rctx, route).await.unwrap_or_else(|err| {
         tracing::warn!("app error: {err:?}");
-        sentry::capture_err(&err);
+        sentry::capture_err(&err, err.level());
         let err = match err {
             Error::InvalidPoB(err, _) => app::Error::PobError(err),
             err => app::Error::ServerError(err.to_string()),

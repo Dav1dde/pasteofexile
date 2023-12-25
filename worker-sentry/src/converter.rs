@@ -17,6 +17,11 @@ fn convert_tracing_level(level: &tracing::Level) -> Level {
     }
 }
 
+// Shouldn't be public, but `worker-app` needs it for its custom layer...
+pub fn extract_event_message(event: &tracing::Event) -> Option<String> {
+    extract_event_data(event).0
+}
+
 /// Extracts the message and metadata from an event
 pub(crate) fn extract_event_data(event: &tracing::Event) -> (Option<String>, FieldVisitor) {
     // Find message of the event, if any

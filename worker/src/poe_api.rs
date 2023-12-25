@@ -6,7 +6,6 @@ use worker::Url;
 use crate::{
     net,
     request_context::{Env, FromEnv},
-    sentry,
 };
 
 const OAUTH_AUTHORIZE_URL: &str = "https://www.pathofexile.com/oauth/authorize";

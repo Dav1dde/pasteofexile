@@ -18,7 +18,7 @@ mod request_context;
 mod response;
 mod retry;
 mod route;
-mod sentry;
+mod sentry_impl;
 mod stats;
 mod statsd;
 mod storage;
@@ -48,7 +48,10 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
 
     let mut rctx = RequestContext::new(req, env, ctx).await;
 
-    let mut sentry = sentry::new(rctx.ctx(), rctx.inject_opt());
+    let mut sentry = sentry::new(
+        sentry_impl::Transport(rctx.ctx().clone()),
+        rctx.inject_opt(),
+    );
 
     sentry
         .set_trace_id(rctx.trace_id())
@@ -99,7 +102,7 @@ async fn handle(rctx: &mut RequestContext) -> Response {
 
     if let Err(ref err) = response {
         tracing::warn!("error: {err:?}");
-        sentry::capture_err(err.inner());
+        sentry::capture_err(err.inner(), err.inner().level());
     }
 
     match response {

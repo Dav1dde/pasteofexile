@@ -74,7 +74,7 @@ impl<'a> Envelope<'a> {
                     writeln!(writer)?;
                     continue;
                 }
-                EnvelopeItem::Statsd(statsd) => item_buf.write_all(&statsd)?,
+                EnvelopeItem::Statsd(statsd) => item_buf.write_all(statsd)?,
             }
 
             let item_type = match item {
@@ -173,7 +173,7 @@ pub struct SpanId([u8; 8]);
 
 impl Default for SpanId {
     fn default() -> Self {
-        let val = crate::crypto::get_random_values().expect("SpanId random");
+        let val = crate::js::get_random_values();
 
         Self(val)
     }
@@ -205,9 +205,7 @@ pub struct TraceId([u8; 16]);
 
 impl Default for TraceId {
     fn default() -> Self {
-        let val = crate::crypto::get_random_values().expect("TraceId random");
-
-        Self(val)
+        Self(crate::js::get_random_values())
     }
 }
 
@@ -449,8 +447,7 @@ pub struct Transaction<'a> {
 impl<'a> Default for Transaction<'a> {
     fn default() -> Self {
         Self {
-            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap())
-                .into_uuid(),
+            event_id: uuid::Builder::from_random_bytes(crate::js::get_random_values()).into_uuid(),
             name: Default::default(),
             release: Default::default(),
             environment: Default::default(),
@@ -546,8 +543,7 @@ pub struct Event<'a> {
 impl<'a> Default for Event<'a> {
     fn default() -> Self {
         Self {
-            event_id: uuid::Builder::from_random_bytes(crate::crypto::get_random_values().unwrap())
-                .into_uuid(),
+            event_id: uuid::Builder::from_random_bytes(crate::js::get_random_values()).into_uuid(),
             level: Default::default(),
             culprit: Default::default(),
             transaction: Default::default(),

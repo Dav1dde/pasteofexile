@@ -2,19 +2,14 @@ use std::ops::Deref;
 
 use worker::Bucket;
 
-use crate::{
-    cache::CacheEntry,
-    route,
-    sentry::{self, TraceId},
-    utils::RequestExt,
-};
+use crate::{cache::CacheEntry, route, utils::RequestExt};
 
 pub struct RequestContext {
     req: worker::Request,
     env: Env,
     ctx: worker::Context,
     route: route::Route,
-    trace_id: TraceId,
+    trace_id: sentry::TraceId,
     session: Option<app::User>,
 }
 
@@ -31,12 +26,12 @@ impl RequestContext {
             env,
             ctx,
             route,
-            trace_id: TraceId::default(),
+            trace_id: sentry::TraceId::default(),
             session,
         }
     }
 
-    pub fn trace_id(&self) -> TraceId {
+    pub fn trace_id(&self) -> sentry::TraceId {
         self.trace_id
     }
 

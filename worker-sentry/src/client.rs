@@ -1,11 +1,16 @@
 use git_version::git_version;
 
-use super::protocol::{self, Envelope, EnvelopeItem, Metric};
-use crate::{net, Error, Result};
+use crate::{
+    protocol::{self, Envelope, EnvelopeItem, Metric},
+    Result,
+};
 
-#[derive(Clone)]
+pub trait Transport {
+    fn send(&self, url: String, auth: String, content: Vec<u8>) -> Result<()>;
+}
+
 pub struct Sentry {
-    ctx: worker::Context,
+    transport: Box<dyn Transport>,
     project: String,
     token: String,
     breadcrumbs: Vec<protocol::Breadcrumb>,
@@ -19,9 +24,9 @@ pub struct Sentry {
 }
 
 impl Sentry {
-    pub fn new(ctx: worker::Context, options: super::Options) -> Self {
+    pub fn new(transport: Box<dyn Transport>, options: super::Options) -> Self {
         Self {
-            ctx,
+            transport,
             project: options.project,
             token: options.token,
             breadcrumbs: Vec::new(),
@@ -52,8 +57,8 @@ impl Sentry {
         self.request = request.into();
     }
 
-    pub fn capture_err(&self, err: &Error) {
-        self.do_capture_err(err, err.level());
+    pub fn capture_err(&self, err: &dyn std::error::Error, level: protocol::Level) {
+        self.do_capture_err(err, level);
     }
 
     pub(crate) fn push_trace_context(&mut self, trace_context: protocol::TraceContext) {
@@ -166,12 +171,10 @@ impl Sentry {
             envelope.add_item(protocol::EnvelopeItem::Attachment(attachment));
         }
 
-        if let Err(err) = self.send_envelope(envelope) {
-            worker::console_log!("failed to caputre error with sentry: {:?}", err);
-        }
+        let _ = self.send_envelope(envelope);
     }
 
-    fn do_capture_err(&self, err: &Error, level: protocol::Level) {
+    fn do_capture_err(&self, err: &dyn std::error::Error, level: protocol::Level) {
         if matches!(level, protocol::Level::Debug) {
             return;
         }
@@ -195,35 +198,6 @@ impl Sentry {
         );
         let url = format!("https://sentry.io/api/{}/envelope/", self.project);
 
-        self.ctx.wait_until(async move {
-            let response = net::Request::post(url)
-                .header("Content-Type", "application/x-sentry-envelope")
-                .header("User-Agent", "pobb.bin/1.0")
-                .header("X-Sentry-Auth", &auth)
-                .body_u8(&body)
-                .no_sentry()
-                .send()
-                .await;
-
-            match response {
-                Err(err) => worker::console_log!("failed to send envelope: {:?}", err),
-                Ok(mut response) => {
-                    if response.status_code() >= 300 {
-                        worker::console_log!(
-                            "failed to send envelope: {:?}",
-                            response.status_code()
-                        );
-                        if cfg!(feature = "debug") {
-                            worker::console_log!(
-                                "response: {}",
-                                response.text().await.unwrap_or_default()
-                            );
-                        }
-                    }
-                }
-            }
-        });
-
-        Ok(())
+        self.transport.send(url, auth, body)
     }
 }

@@ -1,5 +1,3 @@
-use crate::sentry::MetricName;
-
 pub enum Counters {
     Request,
     RequestError,
@@ -11,7 +9,7 @@ pub enum Counters {
     Fetch,
 }
 
-impl MetricName for Counters {
+impl sentry::MetricName for Counters {
     fn name(&self) -> &'static str {
         match self {
             Counters::Request => "request.total",
@@ -30,7 +28,7 @@ pub enum Distributions {
     PobSize,
 }
 
-impl MetricName for Distributions {
+impl sentry::MetricName for Distributions {
     fn name(&self) -> &'static str {
         match self {
             Distributions::PobSize => "pob.size",

@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 app = { path = "../app", features = ["ssr"] }
 pob = { path = "../pob/", features = ["better-errors"] }
+sentry = { path = "../worker-sentry/", package = "worker-sentry" }
 poe-data = { path = "../poe-data/" }
 poe-tree = { path = "../poe-tree/" }
 shared = { path = "../shared/" }
@@ -22,7 +23,7 @@ serde.workspace = true
 sycamore-router.workspace = true
 
 web-sys = { workspace = true, features = [
-    "Crypto", "SubtleCrypto", "CryptoKey", "HmacImportParams", "WorkerGlobalScope"
+    "Crypto", "SubtleCrypto", "CryptoKey", "HmacImportParams",
 ] }
 wasm-bindgen.workspace = true
 js-sys.workspace = true
@@ -34,8 +35,6 @@ percent-encoding.workspace = true
 base64.workspace = true
 thiserror.workspace = true
 git-version.workspace = true
-time = { workspace = true, features = ["formatting", "parsing"] }
-uuid.workspace = true
 strum.workspace = true
 pin-project-lite.workspace = true
 once_cell.workspace = true

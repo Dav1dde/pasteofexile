@@ -9,8 +9,7 @@ pub struct Layer {}
 impl<S: Subscriber> layer::Layer<S> for Layer {
     #[cfg(pobbin_develop)]
     fn on_event(&self, event: &tracing::Event<'_>, _ctx: layer::Context<'_, S>) {
-        let (message, _) = crate::sentry::converter::extract_event_data(event);
-        let message = message.unwrap_or_default();
+        let message = sentry::extract_event_message(event).unwrap_or_default();
 
         let now = worker::Date::now().as_millis();
         let mut last = LAST_LOG_MSG.with(|last| last.replace(now));

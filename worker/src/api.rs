@@ -1,6 +1,7 @@
 use std::{borrow::Cow, num::NonZeroU8, rc::Rc, time::Duration};
 
 use pob::{PathOfBuilding, PathOfBuildingExt, SerdePathOfBuilding};
+use sentry::MetricUnit;
 use serde::{Deserialize, Serialize};
 use shared::{model::PasteMetadata, validation, PasteId, User, UserPasteId};
 
@@ -9,7 +10,6 @@ use crate::{
     request_context::RequestContext,
     response,
     route::{self, DeleteEndpoints, GetEndpoints, PostEndpoints},
-    sentry::{self, MetricUnit},
     statsd::Distributions,
     utils::{self, CacheControl, Etag, LenientId, RequestExt},
     Error, Response, Result,

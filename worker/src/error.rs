@@ -1,7 +1,8 @@
+use sentry::Level;
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::{dangerous::DangerousError, sentry::Level};
+use crate::dangerous::DangerousError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

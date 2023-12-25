@@ -1637,14 +1637,13 @@ dependencies = [
  "strum",
  "sycamore-router",
  "thiserror",
- "time",
  "tracing",
  "tracing-subscriber",
  "url",
- "uuid",
  "wasm-bindgen",
  "web-sys",
  "worker",
+ "worker-sentry",
 ]
 
 [[package]]
@@ -1675,6 +1674,25 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-macro-support",
  "worker-sys",
+]
+
+[[package]]
+name = "worker-sentry"
+version = "0.1.0"
+dependencies = [
+ "git-version",
+ "js-sys",
+ "pin-project-lite",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "time",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

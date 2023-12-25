@@ -7,7 +7,6 @@ use shared::{
 use crate::{
     crypto::Sha1,
     request_context::{Env, FromEnv},
-    sentry,
     statsd::Counters,
     Result,
 };
