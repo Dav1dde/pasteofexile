@@ -3,6 +3,7 @@ pub enum Config {
     BrittleEffect,
     Boss,
     CoveredInAsh,
+    CustomMods,
     EnemyBrittled,
     EnemeyHit,
     EnemySapped,
@@ -25,6 +26,7 @@ impl Config {
             Self::BrittleEffect => "conditionBrittleEffect",
             Self::Boss => "enemyIsBoss",
             Self::CoveredInAsh => "conditionEnemyCoveredInAsh",
+            Self::CustomMods => "customMods",
             Self::EnemyBrittled => "conditionEnemyBrittle",
             Self::EnemeyHit => "enemyHit",
             Self::EnemySapped => "conditionEnemySapped",
@@ -88,7 +90,7 @@ impl<'a> ConfigValue<'a> {
         }
     }
 
-    pub fn string(&self) -> Option<&str> {
+    pub fn string(&self) -> Option<&'a str> {
         match self {
             Self::String(value) => Some(value),
             _ => None,

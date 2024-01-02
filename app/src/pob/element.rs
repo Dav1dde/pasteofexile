@@ -3,12 +3,15 @@ use std::{borrow::Cow, marker::PhantomData};
 use sycamore::prelude::*;
 use thousands::Separable;
 
+use crate::{components::StaticPopup, utils::IteratorExt};
+
 pub struct Element<'a> {
     name: &'static str,
     title: Option<&'static str>,
     color: Option<&'static str>,
     stat: Option<Cow<'a, str>>,
     percent: Option<Cow<'a, str>>,
+    hover: Option<Cow<'a, str>>,
     values: Option<Vec<(&'static str, Cow<'a, str>)>>,
 }
 
@@ -20,6 +23,7 @@ impl<'a> Element<'a> {
             color: None,
             stat: None,
             percent: None,
+            hover: None,
             values: None,
         }
     }
@@ -31,6 +35,14 @@ impl<'a> Element<'a> {
 
     pub fn color(mut self, value: &'static str) -> Self {
         self.color = Some(value);
+        self
+    }
+
+    pub fn hover<T>(mut self, value: Option<T>) -> Self
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        self.hover = value.map(Into::into);
         self
     }
 
@@ -101,7 +113,7 @@ impl<'a> Element<'a> {
         self.render_priv(StringRenderer::new())
     }
 
-    pub fn render_to_view<G: GenericNode>(self, cx: Scope) -> Option<View<G>> {
+    pub fn render_to_view<G: Html>(self, cx: Scope) -> Option<View<G>> {
         self.render_priv(ViewRenderer::new(cx))
     }
 
@@ -126,19 +138,17 @@ impl<'a> Element<'a> {
             _ => return None,
         };
 
-        let color = self.color.unwrap_or("");
-
-        if let Some(title) = self.title {
-            renderer.push(Fragment::with_formatting(
-                Formatting::title(title),
-                self.name,
-            ));
-        } else {
-            renderer.push(self.name);
-        }
+        renderer.push(Fragment::with_formatting(
+            Formatting::default().with_title(self.title),
+            self.name,
+        ));
         renderer.push(": ");
 
-        let mut sub = renderer.sub(Formatting::class(color));
+        let mut sub = renderer.sub(
+            Formatting::default()
+                .with_class(self.color)
+                .with_hover(self.hover),
+        );
         sub.push(stat);
         if let Some(percent) = percent {
             sub.push(percent);
@@ -158,7 +168,7 @@ impl<'a> Element<'a> {
             let is_last = i == values.len() - 1;
 
             renderer.push(Fragment::with_formatting(
-                Formatting::class(color),
+                Formatting::default().with_class(Some(color)),
                 value.clone(),
             ));
 
@@ -186,21 +196,26 @@ trait Renderer {
 struct Formatting {
     class: Option<&'static str>,
     title: Option<&'static str>,
+    hover: Option<String>,
 }
 
 impl Formatting {
-    fn class(class: &'static str) -> Self {
-        Self {
-            class: Some(class),
-            title: None,
-        }
+    fn with_class(mut self, class: Option<&'static str>) -> Self {
+        self.class = class;
+        self
     }
 
-    fn title(title: &'static str) -> Self {
-        Self {
-            class: None,
-            title: Some(title),
-        }
+    fn with_title(mut self, title: Option<&'static str>) -> Self {
+        self.title = title;
+        self
+    }
+
+    fn with_hover<T>(mut self, hover: Option<T>) -> Self
+    where
+        T: Into<String>,
+    {
+        self.hover = hover.map(Into::into);
+        self
     }
 }
 
@@ -305,7 +320,7 @@ struct ViewRenderer<'a, G: GenericNode> {
     _g: PhantomData<G>,
 }
 
-impl<'a, G: GenericNode> ViewRenderer<'a, G> {
+impl<'a, G: Html> ViewRenderer<'a, G> {
     fn new(cx: Scope<'a>) -> Self {
         Self {
             cx,
@@ -325,7 +340,7 @@ impl<'a, G: GenericNode> ViewRenderer<'a, G> {
     }
 }
 
-impl<'a, G: GenericNode> Renderer for ViewRenderer<'a, G> {
+impl<'a, G: Html> Renderer for ViewRenderer<'a, G> {
     type Output = View<G>;
 
     fn push<T>(&mut self, fragment: T)
@@ -336,12 +351,18 @@ impl<'a, G: GenericNode> Renderer for ViewRenderer<'a, G> {
 
         let class = fragment.formatting.class.unwrap_or("");
         let title = fragment.formatting.title.unwrap_or("");
-
+        let hover = fragment.formatting.hover;
         let cx = self.cx;
-        let view = match fragment.typ {
+
+        let mut view = match fragment.typ {
             FragmentType::Text => view! { cx, span(class=class, title=title) { (fragment.value) } },
             FragmentType::Super => view! { cx, sup(class=class, title=title) { (fragment.value) } },
         };
+        if let Some(hover) = hover {
+            let content = render_hover(cx, &hover);
+            view = view! { cx, StaticPopup(content=content) { (view) } }
+        };
+
         self.views.push(view);
     }
 
@@ -349,12 +370,19 @@ impl<'a, G: GenericNode> Renderer for ViewRenderer<'a, G> {
         let inner = View::new_fragment(element.views);
         let class = element.formatting.class.unwrap_or("");
         let title = element.formatting.title.unwrap_or("");
+        let hover = element.formatting.hover;
         let cx = self.cx;
-        let element = view! { cx,
+
+        let mut element = view! { cx,
             span(class=class, title=title) {
                 (inner)
             }
         };
+        if let Some(hover) = hover {
+            let content = render_hover(cx, &hover);
+            element = view! { cx, StaticPopup(content=content) { (element) } }
+        };
+
         self.views.push(element);
     }
 
@@ -367,5 +395,21 @@ impl<'a, G: GenericNode> Renderer for ViewRenderer<'a, G> {
         let cx = self.cx;
 
         view! { cx, div(class="inline-block ml-3") { (inner) } }
+    }
+}
+
+fn render_hover<G: Html>(cx: Scope<'_>, s: &str) -> View<G> {
+    let lines = s
+        .lines()
+        .map(|line| {
+            let line = line.to_owned();
+            view! { cx, li { (line) }}
+        })
+        .collect_view();
+
+    view! { cx,
+        ul(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-4") {
+            (lines)
+        }
     }
 }

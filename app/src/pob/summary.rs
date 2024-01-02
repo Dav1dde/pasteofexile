@@ -4,8 +4,7 @@ use crate::pob::{self, Element};
 
 static AMBER_50: &str = "dark:text-amber-50 text-slate-800";
 
-// TODO: accept any PathOfBuilding
-pub fn core_stats(pob: &impl PathOfBuilding) -> Vec<Element> {
+pub fn core_stats(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     let mut elements = Vec::with_capacity(5);
 
     Element::new("Life")
@@ -83,7 +82,7 @@ pub fn core_stats(pob: &impl PathOfBuilding) -> Vec<Element> {
     elements
 }
 
-pub fn defense(pob: &impl PathOfBuilding) -> Vec<Element> {
+pub fn defense(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     let mut elements = Vec::with_capacity(5);
 
     Element::new("Resistances")
@@ -175,7 +174,7 @@ pub fn defense(pob: &impl PathOfBuilding) -> Vec<Element> {
     elements
 }
 
-pub fn offense(pob: &impl PathOfBuilding) -> Vec<Element> {
+pub fn offense(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     let mut elements = Vec::with_capacity(5);
 
     // TODO: real minion support
@@ -235,7 +234,7 @@ pub fn offense(pob: &impl PathOfBuilding) -> Vec<Element> {
     elements
 }
 
-pub fn config(pob: &impl PathOfBuilding) -> Vec<Element> {
+pub fn config(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     let mut configs = Vec::with_capacity(5);
 
     let boss = pob.config(Config::Boss);
@@ -299,13 +298,19 @@ pub fn config(pob: &impl PathOfBuilding) -> Vec<Element> {
         }
     }
 
+    let custom_mods = pob.config(Config::CustomMods);
+    if custom_mods.string().is_some() {
+        configs.push("Custom Mods".to_owned());
+    }
+
     if configs.is_empty() {
         configs.push("None".to_owned());
     }
 
     let element = Element::new("Config")
         .color(AMBER_50)
-        .stat_str(Some(configs.join(", ")));
+        .stat_str(Some(configs.join(", ")))
+        .hover(custom_mods.string());
 
     vec![element]
 }
