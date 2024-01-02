@@ -3,7 +3,7 @@ use std::{borrow::Cow, marker::PhantomData};
 use sycamore::prelude::*;
 use thousands::Separable;
 
-use crate::{components::StaticPopup, utils::IteratorExt};
+use crate::components::{PobColoredText, StaticPopup};
 
 pub struct Element<'a> {
     name: &'static str,
@@ -399,17 +399,10 @@ impl<'a, G: Html> Renderer for ViewRenderer<'a, G> {
 }
 
 fn render_hover<G: Html>(cx: Scope<'_>, s: &str) -> View<G> {
-    let lines = s
-        .lines()
-        .map(|line| {
-            let line = line.to_owned();
-            view! { cx, li { (line) }}
-        })
-        .collect_view();
-
+    let s = s.trim();
     view! { cx,
-        ul(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-4") {
-            (lines)
+        div(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-4 text-sm whitespace-pre-line") {
+            PobColoredText(text=s, links=false)
         }
     }
 }
