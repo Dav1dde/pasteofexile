@@ -1,3 +1,5 @@
+use std::iter::FusedIterator;
+
 #[derive(Debug, thiserror::Error)]
 #[error("cannot parse item {0}")]
 pub struct InvalidItem(&'static str);
@@ -254,24 +256,21 @@ impl<'a> Item<'a> {
     }
 
     pub fn enchants(&self) -> impl Iterator<Item = Mod<'a>> {
-        self.implicits
-            .lines()
+        ModLines::new(self.implicits)
             .map(Mod::parse)
             .filter(|m| m.has_variant(self.selected_variant))
             .take_while(|m| m.crafted)
     }
 
     pub fn implicits(&self) -> impl Iterator<Item = Mod<'a>> {
-        self.implicits
-            .lines()
+        ModLines::new(self.implicits)
             .map(Mod::parse)
             .filter(|m| m.has_variant(self.selected_variant))
             .skip_while(|m| m.crafted)
     }
 
     pub fn explicits(&self) -> impl Iterator<Item = Mod<'a>> {
-        self.explicits
-            .lines()
+        ModLines::new(self.explicits)
             .map(Mod::parse)
             .filter(|m| m.has_variant(self.selected_variant))
     }
@@ -330,6 +329,51 @@ impl<'a> Mod<'a> {
         variant.split(',').any(|variant| variant == target)
     }
 }
+
+/// Iterator which supports mods split over multiple lines.
+struct ModLines<'a> {
+    lines: &'a str,
+}
+
+impl<'a> ModLines<'a> {
+    fn new(lines: &'a str) -> Self {
+        Self { lines }
+    }
+}
+
+impl<'a> Iterator for ModLines<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.lines.is_empty() {
+            return None;
+        }
+
+        let mut offset = 0;
+        loop {
+            let eom = match self.lines[offset..].find('\n') {
+                Some(eom) => eom + offset,
+                None => {
+                    let next = self.lines;
+                    self.lines = "";
+                    break Some(next);
+                }
+            };
+            let next = &self.lines[..eom];
+
+            let is_multiline = next.ends_with("you've");
+
+            if is_multiline {
+                offset = eom + 1;
+            } else {
+                self.lines = &self.lines[eom + 1..];
+                break Some(next);
+            }
+        }
+    }
+}
+
+impl<'a> FusedIterator for ModLines<'a> {}
 
 /// 'Fixes' a PoE item name, this can be an actual name (Unique)
 /// or a base item.
@@ -426,6 +470,9 @@ Removes Curses on use"#,
         .unwrap();
 
         assert_eq!(item.base, "Grand Life Flask");
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 0);
+        assert_eq!(item.explicits().count(), 2);
     }
 
     #[test]
@@ -445,6 +492,9 @@ Implicits: 0
         .unwrap();
 
         assert_eq!(item.base, "Eternal Mana Flask");
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 0);
+        assert_eq!(item.explicits().count(), 2);
     }
 
     #[test]
@@ -462,6 +512,9 @@ Implicits: 0
         .unwrap();
 
         assert_eq!(item.base, "Silver Flask");
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 0);
+        assert_eq!(item.explicits().count(), 2);
     }
 
     #[test]
@@ -482,6 +535,9 @@ Implicits: 0
 
         assert_eq!(item.name, Some("Jade Flask"));
         assert_eq!(item.base, "Jade Flask");
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 0);
+        assert_eq!(item.explicits().count(), 1);
     }
 
     #[test]
@@ -517,6 +573,9 @@ Extra gore"#,
         assert_eq!(item.item_level, 0);
         assert_eq!(item.name, Some("Endgame - Carcass-Jack [123]"));
         assert_eq!(item.fixed_item_name(), Some("Carcass-Jack"));
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 0);
+        assert_eq!(item.explicits().count(), 6);
     }
 
     #[test]
@@ -555,6 +614,40 @@ Adds 1 to 23 Lightning Damage to Attacks
         assert_eq!(item.energy_shield, 0);
         assert_eq!(item.influence1, Some(Influence::Fracture));
         assert_eq!(item.influence2, Some(Influence::Fracture));
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 2);
+        assert_eq!(item.explicits().count(), 7);
+    }
+
+    #[test]
+    fn multiline_enchant() {
+        let item = Item::parse(
+            r#"Rarity: UNIQUE
+March of the Legion
+Legion Boots
+Armour: 496
+ArmourBasePercentile: 0.9341
+Energy Shield: 104
+EnergyShieldBasePercentile: 0.985
+Unique ID: a497050cd8fd2f5ba43b9ab0cc9d721335a642ae35f77cd62e809b9eb912b8d4
+Item Level: 82
+Quality: 20
+Sockets: R-B-B-R
+LevelReq: 58
+Implicits: 2
+{crafted}+8% chance to Suppress Spell Damage if you've
+taken Spell Damage Recently
++3 to Level of Socketed Aura Gems
+Socketed Gems are Supported by Level 25 Divine Blessing
+297% increased Armour and Energy Shield
++17% to all Elemental Resistances
+24% increased Movement Speed"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.enchants().count(), 1);
+        assert_eq!(item.implicits().count(), 0);
+        assert_eq!(item.explicits().count(), 5);
     }
 
     #[test]
@@ -659,7 +752,7 @@ Implicits: 0
     }
 
     #[test]
-    pub fn mod_tag() {
+    fn mod_tag() {
         let item = Item::parse(
             r#"Rarity: RELIC
 Farrul's Fur
@@ -675,5 +768,17 @@ Implicits: 0
         let chaos_res = explicits.next().unwrap();
         assert_eq!(life.tag, None);
         assert_eq!(chaos_res.tag, Some("crucible"));
+    }
+
+    #[test]
+    fn mod_lines() {
+        let lines = ModLines::new("foo\nbar\nfirst you've\nsecond\nbaz").collect::<Vec<_>>();
+        assert_eq!(lines, vec!["foo", "bar", "first you've\nsecond", "baz"]);
+
+        let lines = ModLines::new("first you've\nsecond").collect::<Vec<_>>();
+        assert_eq!(lines, vec!["first you've\nsecond"]);
+
+        let lines = ModLines::new("first you've").collect::<Vec<_>>();
+        assert_eq!(lines, vec!["first you've"]);
     }
 }
