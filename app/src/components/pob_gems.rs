@@ -183,7 +183,8 @@ fn render_skills<'a, G: GenericNode + Html>(
             // a bunch of skills with gems
             skills.extend(
                 group
-                    .filter(has_active_gem)
+                    // Show only skills which have an active gem or are in the weapons (e.g. Squire)
+                    .filter(|skill| has_active_gem(skill) || is_in_weapon_slot(skill))
                     .map(|skill| render_skill(cx, skill, data)),
             );
         }
@@ -221,6 +222,10 @@ fn is_enchant(skill: &Skill) -> bool {
 
 fn has_active_gem(skill: &Skill) -> bool {
     skill.gems.iter().any(|g| g.is_active)
+}
+
+fn is_in_weapon_slot(skill: &Skill) -> bool {
+    skill.slot == Some("Weapon 1") || skill.slot == Some("Weapon 2")
 }
 
 fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Data) -> View<G> {
