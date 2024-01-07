@@ -1,8 +1,9 @@
 use std::str::FromStr;
 
+use js_sys::Reflect;
 use serde::{de::DeserializeOwned, Serialize};
 use sycamore::prelude::*;
-use wasm_bindgen::{JsCast, UnwrapThrowExt};
+use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
 
 pub mod hooks;
 pub mod links;
@@ -90,6 +91,11 @@ pub fn document<T: JsCast>() -> T {
         .document()
         .unwrap()
         .unchecked_into()
+}
+
+pub fn reflect_set<T: Into<JsValue>>(target: &JsValue, name: &'static str, value: T) {
+    // could cache the name here
+    Reflect::set(target, &name.into(), &value.into()).unwrap();
 }
 
 /// Checks if the current viewport size is at least `md:`.

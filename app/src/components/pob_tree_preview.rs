@@ -1,26 +1,26 @@
-use std::cell::RefCell;
-
 use itertools::Itertools;
+use js_sys::{Object, Uint32Array};
 use pob::TreeSpec;
 use shared::model::data;
 use sycamore::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{Event, HtmlElement, PointerEvent};
+use wasm_bindgen::{prelude::*, JsCast};
+use web_sys::Event;
 
 use crate::{
-    build::Build, components::PobColoredSelect, consts, utils::IteratorExt, Prefetch,
-    ResponseContext,
+    build::Build,
+    components::PobColoredSelect,
+    consts,
+    utils::{from_ref, reflect_set, IteratorExt},
 };
 
 #[derive(Debug)]
 struct Tree<'build> {
     name: String,
-    image_url: String,
     tree_url: String,
-    active: bool,
+    svg_url: &'static str,
+    spec: TreeSpec<'build>,
     nodes: &'build data::Nodes,
     overrides: Vec<Override<'build>>,
-    allocated: usize,
 }
 
 #[derive(Debug)]
@@ -35,15 +35,16 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let trees = build
         .trees()
         .filter_map(|(nodes, spec)| {
-            let url = get_tree_url(&spec)?;
+            let tree_url = get_tree_url(&spec)?;
+            let svg_url = get_svg_url(&spec);
+            let overrides = extract_overrides(&spec.overrides);
             Some(Tree {
                 name: spec.title.unwrap_or("<Default>").to_owned(),
-                image_url: get_tree_image_url(&spec, &url)?,
-                tree_url: url,
-                active: spec.active,
+                tree_url,
+                svg_url,
+                spec,
                 nodes,
-                overrides: extract_overrides(spec.overrides),
-                allocated: spec.nodes.len(),
+                overrides,
             })
         })
         .collect::<Vec<_>>();
@@ -52,16 +53,43 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         return view! { cx, };
     }
 
-    if !G::IS_BROWSER {
-        for tree in trees.iter() {
-            if tree.active {
-                ResponseContext::preload(Prefetch::Image(tree.image_url.clone()));
-            }
-        }
-    }
-
     let trees = create_ref(cx, trees);
-    let current_tree = create_signal(cx, trees.iter().find_or_first(|t| t.active).unwrap());
+    let current_tree = create_signal(cx, trees.iter().find_or_first(|t| t.spec.active).unwrap());
+    let tree_loaded = create_signal(cx, false);
+    let node_ref = create_node_ref(cx);
+
+    let current_svg = create_signal(cx, current_tree.get().svg_url);
+    create_effect(cx, || {
+        let new_svg = current_tree.get().svg_url;
+        // Debounce the svg and reset loading state when it changed.
+        if new_svg != *current_svg.get() {
+            tree_loaded.set(false);
+            current_svg.set(new_svg);
+        }
+    });
+
+    create_effect(cx, || {
+        let tree = current_tree.get();
+        if !*tree_loaded.get() {
+            return;
+        }
+
+        let obj = Object::new();
+        reflect_set(&obj, "nodes", Uint32Array::from(tree.spec.nodes));
+        reflect_set(&obj, "classId", tree.spec.class_id);
+        reflect_set(&obj, "ascendancyId", tree.spec.ascendancy_id);
+        reflect_set(
+            &obj,
+            "alternateAscendancyId",
+            tree.spec.alternate_ascendancy_id,
+        );
+
+        from_ref::<web_sys::HtmlObjectElement>(node_ref)
+            .content_window()
+            .unwrap()
+            .unchecked_into::<TreeObj>()
+            .load(obj.into());
+    });
 
     // TODO: this updates the currently active tree, but it doesn't read from it
     // the select would need to be updated as well if the tree changes, kinda tricky...
@@ -70,55 +98,10 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         build.active_tree().set(index);
     });
 
-    let node_ref = create_node_ref(cx);
-    let state = create_ref(cx, RefCell::new(TouchState::new(node_ref.clone())));
-    let on_move_start = |event: Event| {
-        let event = event.unchecked_into::<PointerEvent>();
-        state.borrow_mut().add_pointer(&event);
-    };
-    let on_move_move = |event: Event| {
-        let event = event.unchecked_into::<PointerEvent>();
-        let mut state = state.borrow_mut();
-
-        let pointer_state = match state.get_pointer(&event) {
-            Some(pointer_state) => pointer_state,
-            None => return,
-        };
-
-        if state.size() == 1 {
-            let dx = event.client_x() - pointer_state.x;
-            let dy = event.client_y() - pointer_state.y;
-            state.move_canvas(dx, dy);
-            state.apply();
-        } else if state.size() == 2 {
-            let other = state
-                .pointers()
-                .find(|p| p.id != event.pointer_id())
-                .unwrap();
-
-            let distance = f32::hypot(
-                other.x as f32 - event.client_x() as f32,
-                other.y as f32 - event.client_y() as f32,
-            );
-
-            state.zoom_pinch(distance);
-            state.apply();
-        }
-
-        state.update_pointer(&event);
-    };
-    let on_move_end = |event: Event| {
-        let event = event.unchecked_into::<PointerEvent>();
-        state.borrow_mut().remove_pointer(&event);
-    };
-
     let nodes = create_memo(cx, move || render_nodes(cx, &current_tree.get()));
-    let tree_background = create_memo(cx, || {
-        format!("background-image: url({})", current_tree.get().image_url)
-    });
     let tree_level = create_memo(cx, move || {
         let current_tree = current_tree.get();
-        let (nodes, level) = resolve_level(current_tree.allocated);
+        let (nodes, level) = resolve_level(current_tree.spec.nodes.len());
         let desc = format!("Level {level} ({nodes} passives)");
         view! { cx,
             a(href=current_tree.tree_url, rel="external", target="_blank",
@@ -134,18 +117,15 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             div(class="flex-1 text-right sm:mr-3 whitespace-nowrap") { (&*tree_level.get()) }
         }
         div(class="grid grid-cols-10 gap-3") {
-            div(class="col-span-10 lg:col-span-7 h-[450px] md:h-[800px] cursor-move md:overflow-auto mt-2",
-                on:pointerdown=on_move_start,
-                on:pointermove=on_move_move,
-                on:pointerup=on_move_end,
-                on:pointerleave=on_move_end,
-                on:pointercancel=on_move_end,
-            ) {
-                div(ref=node_ref,
+            div(class="col-span-10 lg:col-span-7 h-[450px] md:h-[800px] cursor-move md:overflow-auto mt-2") {
+                object(
+                    ref=node_ref,
+                    data=current_svg.get(),
                     class="h-full w-full bg-center bg-no-repeat touch-pan
                     transition-[background-image] duration-1000 will-change-[background-image]",
-                    style=tree_background.get()) {
-                }
+                    type="image/svg+xml",
+                    on:load=|_: Event| { tree_loaded.set(true); }
+                ) {}
             }
 
             div(class="col-span-10 lg:col-span-3 flex flex-col gap-3 h-full relative") {
@@ -198,11 +178,10 @@ fn resolve_level(allocated: usize) -> (usize, usize) {
     (allocated - asc, 1 + allocated - asc - bandits - quests)
 }
 
-fn extract_overrides(mut overrides: Vec<pob::Override<'_>>) -> Vec<Override<'_>> {
-    overrides.sort_unstable_by_key(|k| (k.name, k.effect));
-
+fn extract_overrides<'a>(overrides: &[pob::Override<'a>]) -> Vec<Override<'a>> {
     overrides
-        .into_iter()
+        .iter()
+        .sorted_unstable_by_key(|k| (k.name, k.effect))
         .dedup_by_with_count(|a, b| (a.name, a.effect) == (b.name, b.effect))
         .map(|(count, o)| Override {
             count,
@@ -331,7 +310,7 @@ where
     }
 
     let options = trees.iter().map(|t| t.name.clone()).collect();
-    let selected = trees.iter().position(|t| t.active);
+    let selected = trees.iter().position(|t| t.spec.active);
     let on_change = move |index| {
         if let Some(index) = index {
             on_change(index, &trees[index])
@@ -343,13 +322,6 @@ where
     }
 }
 
-fn get_tree_image_url(spec: &TreeSpec, url: &str) -> Option<String> {
-    url.rsplit_once('/')
-        .map(|(_, data)| data)
-        .zip(spec.version)
-        .map(|(data, ver)| format!("https://tree.pobb.in/{ver}/{data}"))
-}
-
 fn get_tree_url(spec: &TreeSpec) -> Option<String> {
     spec.url
         .filter(|url| {
@@ -359,138 +331,25 @@ fn get_tree_url(spec: &TreeSpec) -> Option<String> {
         .map(|url| url.to_owned())
 }
 
-#[derive(Debug)]
-struct PointerState {
-    id: i32,
-    x: i32,
-    y: i32,
-}
-
-#[derive(Debug)]
-struct TouchState<G: GenericNode> {
-    node: NodeRef<G>,
-
-    // pointer state
-    pointers: Vec<PointerState>,
-    distance: Option<f32>,
-
-    // canvas state
-    center_x: i32,
-    center_y: i32,
-    zoom: Option<f32>,
-}
-
-impl<G: GenericNode> TouchState<G> {
-    fn new(node: NodeRef<G>) -> Self {
-        Self {
-            node,
-            pointers: Vec::with_capacity(3),
-            distance: None,
-            center_x: 0,
-            center_y: 0,
-            zoom: None,
-        }
-    }
-
-    fn size(&self) -> usize {
-        self.pointers.len()
-    }
-
-    fn pointers(&self) -> impl Iterator<Item = &PointerState> {
-        self.pointers.iter()
-    }
-
-    fn get_pointer(&self, event: &PointerEvent) -> Option<&PointerState> {
-        self.pointers.iter().find(|p| p.id == event.pointer_id())
-    }
-
-    fn add_pointer(&mut self, event: &PointerEvent) {
-        let pointer = PointerState {
-            id: event.pointer_id(),
-            x: event.client_x(),
-            y: event.client_y(),
-        };
-        self.pointers.push(pointer);
-    }
-
-    fn update_pointer(&mut self, event: &PointerEvent) {
-        if let Some(p) = self
-            .pointers
-            .iter_mut()
-            .find(|p| p.id == event.pointer_id())
-        {
-            p.x = event.client_x();
-            p.y = event.client_y();
-        }
-    }
-
-    fn remove_pointer(&mut self, event: &PointerEvent) {
-        self.pointers.retain(|p| p.id != event.pointer_id());
-        self.distance = None;
-    }
-
-    fn move_canvas(&mut self, dx: i32, dy: i32) {
-        self.center_x += dx;
-        self.center_y += dy;
-    }
-
-    fn zoom_pinch(&mut self, new_distance: f32) {
-        if self.zoom.is_none() {
-            // Zoomed at least once, now enable drag of the tree
-            // instead of scrolling the page (pan-y).
-            let _ = crate::utils::from_ref::<HtmlElement>(&self.node)
-                .style()
-                .set_property("touch-action", "none");
-        }
-
-        if let Some(distance) = self.distance {
-            let zoom = self.zoom.unwrap_or_else(|| {
-                let element = crate::utils::from_ref::<HtmlElement>(&self.node);
-                get_background_size(&element)
-            });
-
-            let pinch = distance - new_distance;
-            let new_zoom = (zoom - pinch / 2.0).clamp(100.0, 300.0);
-
-            self.center_x -= (self.center_x as f32 * (1.0 - new_zoom / zoom)) as i32;
-            self.center_y -= (self.center_y as f32 * (1.0 - new_zoom / zoom)) as i32;
-
-            self.zoom = Some(new_zoom);
-        }
-
-        self.distance = Some(new_distance);
-    }
-
-    fn apply(&self) {
-        let element = &crate::utils::from_ref::<HtmlElement>(&self.node);
-        let position = format!(
-            "calc(50% + {}px) calc(50% + {}px)",
-            self.center_x, self.center_y
-        );
-        let _ = element
-            .style()
-            .set_property("background-position", &position);
-        if let Some(zoom) = self.zoom {
-            let _ = element
-                .style()
-                .set_property("background-size", &format!("{zoom}%"));
-        }
+fn get_svg_url(spec: &TreeSpec) -> &'static str {
+    match spec.version {
+        Some("3_15") => "/assets/3.15.svg",
+        Some("3_16") => "/assets/3.16.svg",
+        Some("3_17") => "/assets/3.17.svg",
+        Some("3_18") => "/assets/3.18.svg",
+        Some("3_19") => "/assets/3.19.svg",
+        Some("3_20") => "/assets/3.20.svg",
+        Some("3_21") => "/assets/3.21.svg",
+        Some("3_22") => "/assets/3.22.svg",
+        _ => "/assets/3.23.svg",
     }
 }
 
-fn get_background_size(element: &HtmlElement) -> f32 {
-    let bg_size = web_sys::window()
-        .unwrap()
-        .get_computed_style(element)
-        .unwrap()
-        .unwrap()
-        .get_property_value("background-size")
-        .ok()
-        .unwrap_or_default();
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen]
+    type TreeObj;
 
-    if bg_size.is_empty() {
-        return 100.0;
-    }
-
-    bg_size.replace('%', "").parse().unwrap_or(100.0)
+    #[wasm_bindgen(method, js_name=tree_load)]
+    fn load(this: &TreeObj, data: JsValue);
 }

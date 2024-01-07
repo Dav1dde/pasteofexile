@@ -150,7 +150,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     fn main_skill_name(&self) -> Option<&str> {
         let skill = self.main_skill()?;
 
-        let index = skill.main_active_skill.checked_sub(1)? as usize;
+        let index = skill.main_active_skill.unwrap_or(0).checked_sub(1)? as usize;
         active_skill_names(&skill.gems).nth(index)
     }
 
@@ -255,6 +255,9 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                 title: spec.title.as_deref(),
                 url: spec.url.as_deref(),
                 version: spec.version.as_deref(),
+                class_id: spec.class_id,
+                ascendancy_id: spec.ascend_class_id,
+                alternate_ascendancy_id: spec.secondary_ascend_class_id,
                 nodes: &spec.nodes,
                 sockets: spec
                     .sockets
@@ -342,7 +345,7 @@ fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill {
         .map(|g| {
             let is_selected = if g.is_active() {
                 actives += 1;
-                is_selected && skill.main_active_skill == actives
+                is_selected && skill.main_active_skill == Some(actives)
             } else {
                 false
             };

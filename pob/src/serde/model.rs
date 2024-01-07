@@ -123,7 +123,7 @@ pub(crate) struct SkillSet {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Skill {
     #[serde(default, deserialize_with = "utils::u8_or_nil")]
-    pub main_active_skill: u8,
+    pub main_active_skill: Option<u8>,
     #[serde(default)]
     pub enabled: bool,
     #[serde(default)]
@@ -239,19 +239,24 @@ pub(crate) struct Tree {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Spec {
-    #[serde(default)]
     pub title: Option<String>,
+    #[serde(default, deserialize_with = "utils::u8_or_nil")]
+    pub class_id: Option<u8>,
+    #[serde(default, deserialize_with = "utils::u8_or_nil")]
+    pub ascend_class_id: Option<u8>,
+    #[serde(default, deserialize_with = "utils::u8_or_nil")]
+    pub secondary_ascend_class_id: Option<u8>,
     #[serde(default, deserialize_with = "utils::comma_separated")]
     pub nodes: Vec<u32>,
     #[serde(default, deserialize_with = "utils::lua_table")]
     pub mastery_effects: Vec<(u32, u32)>,
-    #[serde(default, rename = "URL")]
+    #[serde(rename = "URL")]
     pub url: Option<String>,
     #[serde(default, rename = "Sockets")]
     pub sockets: Sockets,
     #[serde(default, rename = "Overrides")]
     pub overrides: Overrides,
-    #[serde(default, rename = "treeVersion")]
+    #[serde(rename = "treeVersion")]
     pub version: Option<String>,
 }
 

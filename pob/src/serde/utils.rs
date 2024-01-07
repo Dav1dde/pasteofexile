@@ -4,14 +4,14 @@ use serde::{de, Deserialize, Deserializer};
 
 macro_rules! or_nil_impl {
     ($name:ident, $t:ty) => {
-        pub fn $name<'de, D>(deserializer: D) -> Result<$t, D::Error>
+        pub fn $name<'de, D>(deserializer: D) -> Result<Option<$t>, D::Error>
         where
             D: Deserializer<'de>,
         {
             struct NumVisitor;
 
             impl<'de> de::Visitor<'de> for NumVisitor {
-                type Value = $t;
+                type Value = Option<$t>;
 
                 fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                     formatter.write_str("a number or nil")
@@ -19,9 +19,9 @@ macro_rules! or_nil_impl {
 
                 fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
                     if value == "nil" {
-                        Ok(0)
+                        Ok(None)
                     } else {
-                        value.parse().map_err(de::Error::custom)
+                        value.parse().map_err(de::Error::custom).map(Some)
                     }
                 }
             }

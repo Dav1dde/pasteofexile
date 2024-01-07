@@ -61,7 +61,7 @@ impl ResponseContext {
         });
     }
 
-    #[allow(dead_code)] // currently unused but still useful
+    #[allow(dead_code)]
     pub(crate) fn prefetch(prefetch: Prefetch) {
         RESPONSE_CONTEXT.with(|ctx| {
             with_ctx!(ctx, {
@@ -70,6 +70,7 @@ impl ResponseContext {
         });
     }
 
+    #[allow(dead_code)]
     pub(crate) fn preload(preload: Prefetch) {
         RESPONSE_CONTEXT.with(|ctx| {
             with_ctx!(ctx, {
