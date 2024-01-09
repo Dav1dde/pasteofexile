@@ -74,7 +74,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     view! { cx,
         (select)
 
-        Popup(attach=attach) { (&*popup.get()) }
+        Popup(attach=attach, parent=None) { (&*popup.get()) }
         div(class="columns-2xs gap-5 sm:ml-3 leading-[1.35rem]") {
             div(on:mouseover=mouseover, on:mouseout=mouseout) { (&*content.get()) }
         }

@@ -12,6 +12,7 @@ mod pob_item_set;
 mod pob_tree_preview;
 mod popup;
 mod static_popup;
+mod tree_node;
 mod view_paste;
 
 pub use self::create_paste::{CreatePaste, CreatePasteProps};
@@ -28,4 +29,5 @@ pub use self::pob_item_set::PobItemSet;
 pub use self::pob_tree_preview::PobTreePreview;
 pub use self::popup::Popup;
 pub use self::static_popup::StaticPopup;
+pub use self::tree_node::TreeNode;
 pub use self::view_paste::{ViewPaste, ViewPasteProps};

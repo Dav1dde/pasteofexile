@@ -68,7 +68,7 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     };
 
     view! { cx,
-        Popup(attach=attach) { (&*popup.get()) }
+        Popup(attach=attach, parent=None) { (&*popup.get()) }
         div(class=select_classes) {
             PobColoredSelect(options=options, selected=selected, label="Select gear set", on_change=on_change)
         }

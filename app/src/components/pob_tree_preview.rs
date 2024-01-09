@@ -4,13 +4,13 @@ use pob::TreeSpec;
 use shared::model::data;
 use sycamore::prelude::*;
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::Event;
+use web_sys::{Event, HtmlElement, HtmlObjectElement};
 
 use crate::{
     build::Build,
-    components::PobColoredSelect,
+    components::{PobColoredSelect, Popup, TreeNode},
     consts,
-    utils::{from_ref, reflect_set, IteratorExt},
+    utils::{from_ref, hooks::scoped_event_passive, reflect_set, IteratorExt},
 };
 
 #[derive(Debug)]
@@ -68,7 +68,30 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         }
     });
 
-    create_effect(cx, || {
+    let events = std::sync::Once::new();
+    let attach = create_signal(cx, None);
+    let popup = create_signal(cx, view! { cx, });
+    let on_mouseover = move |event: web_sys::Event| {
+        let target: HtmlElement = event.target().unwrap().unchecked_into();
+
+        let dataset = target.dataset();
+        match dataset.get("name") {
+            Some(name) => {
+                let stats = dataset
+                    .get("stats")
+                    .map(|s| s.split(";;").map(Into::into).collect())
+                    .unwrap_or_default();
+
+                popup.set(view! { cx, TreeNode(name=name, stats=stats) });
+                attach.set(Some(target.unchecked_into()));
+            }
+            None => {
+                attach.set(None);
+            }
+        }
+    };
+
+    create_effect(cx, move || {
         let tree = current_tree.get();
         if !*tree_loaded.get() {
             return;
@@ -89,6 +112,15 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             .unwrap()
             .unchecked_into::<TreeObj>()
             .load(obj.into());
+
+        let inner = from_ref::<HtmlObjectElement>(node_ref)
+            .content_document()
+            .unwrap()
+            .unchecked_into();
+
+        events.call_once(|| {
+            scoped_event_passive(cx, inner, "mouseover", on_mouseover);
+        });
     });
 
     // TODO: this updates the currently active tree, but it doesn't read from it
@@ -112,6 +144,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     });
 
     view! { cx,
+        Popup(attach=attach, parent=Some(node_ref)) { (&*popup.get()) }
         div(class="flex flex-wrap align-center") {
             div(class="h-9 max-w-full") { (select) }
             div(class="flex-1 text-right sm:mr-3 whitespace-nowrap") { (&*tree_level.get()) }

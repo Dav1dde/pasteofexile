@@ -1,11 +1,15 @@
 use sycamore::prelude::*;
 
-use crate::utils::try_from_ref;
+use crate::utils::{from_ref, try_from_ref};
 
 #[derive(Prop)]
 pub struct PopupProps<'a, G: Html> {
     children: Children<'a, G>,
     attach: &'a ReadSignal<Option<web_sys::Element>>,
+    /// Parent node used for an additional offset to the attach node.
+    ///
+    /// Useful when the attach node lives in a different window/frame.
+    parent: Option<&'a NodeRef<G>>,
 }
 
 #[component]
@@ -13,7 +17,7 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
     let children = props.children.call(cx);
     let node_ref = create_node_ref(cx);
 
-    create_effect(cx, || {
+    create_effect(cx, move || {
         let element = props.attach.get();
 
         let Some(popup) = try_from_ref::<web_sys::HtmlElement>(node_ref) else {
@@ -43,9 +47,20 @@ pub fn Popup<'a, G: Html>(cx: Scope<'a>, props: PopupProps<'a, G>) -> View<G> {
         let el_rect = element.get_bounding_client_rect();
         let p_rect = popup.get_bounding_client_rect();
 
+        let (parent_x, parent_y) = match props.parent {
+            Some(parent) => {
+                let rect = from_ref::<web_sys::HtmlElement>(parent).get_bounding_client_rect();
+                (rect.x(), rect.y())
+            }
+            None => (0.0, 0.0),
+        };
+
         // TODO: dynamic attach points depending on most space available
         // and content width/height
-        let el_attach = (el_rect.x() + el_rect.width() / 2.0, el_rect.y()); // middle top
+        let el_attach = (
+            el_rect.x() + el_rect.width() / 2.0 + parent_x,
+            el_rect.y() + parent_y,
+        ); // middle top
 
         // TODO: dont perfectly center if it would go out of bounds (left or right)
         let mut p_root = (

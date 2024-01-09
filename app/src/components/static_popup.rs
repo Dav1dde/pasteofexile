@@ -31,6 +31,6 @@ pub fn StaticPopup<'a, G: Html>(cx: Scope<'a>, props: StaticPopupProps<'a, G>) -
             on:mouseout=mouseout,
             class="inline-block",
         ) { (children) }
-        Popup(attach=attach) { (props.content) }
+        Popup(attach=attach, parent=None) { (props.content) }
     }
 }
