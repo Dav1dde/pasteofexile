@@ -18,7 +18,7 @@ svg {
     stroke-opacity: 0;
 }
 .nodes circle:hover {
-    color: var(--hover-color);
+    color: var(--hover-color) !important;
 }
 .nodes circle.keystone {
 }
