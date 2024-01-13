@@ -81,8 +81,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                     .get("stats")
                     .map(|s| s.split(";;").map(Into::into).collect())
                     .unwrap_or_default();
+                let kind = dataset.get("kind");
 
-                popup.set(view! { cx, TreeNode(name=name, stats=stats) });
+                popup.set(view! { cx, TreeNode(name=name, stats=stats, kind=kind) });
                 attach.set(Some(target.unchecked_into()));
             }
             None => {
