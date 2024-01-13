@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use js_sys::{Object, Uint32Array};
+use js_sys::{Array, Object, Uint32Array};
 use pob::TreeSpec;
 use shared::model::data;
 use sycamore::prelude::*;
@@ -28,6 +28,7 @@ struct Override<'build> {
     count: usize,
     name: &'build str,
     effect: &'build str,
+    node_id: u32,
 }
 
 #[component]
@@ -71,7 +72,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let events = std::sync::Once::new();
     let attach = create_signal(cx, None);
     let popup = create_signal(cx, view! { cx, });
-    let on_mouseover = move |event: web_sys::Event| {
+    let on_mouseover_tree = move |event: web_sys::Event| {
         let target: HtmlElement = event.target().unwrap().unchecked_into();
 
         let dataset = target.dataset();
@@ -120,7 +121,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             .unchecked_into();
 
         events.call_once(|| {
-            scoped_event_passive(cx, inner, "mouseover", on_mouseover);
+            scoped_event_passive(cx, inner, "mouseover", on_mouseover_tree);
         });
     });
 
@@ -144,6 +145,36 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         }
     });
 
+    let on_mouseover_side = |event: Event| {
+        let target: HtmlElement = event.target().unwrap().unchecked_into();
+        let Some(node_id) = target.dataset().get("nodeId") else {
+            return;
+        };
+
+        let obj = Array::new();
+        for node_id in node_id.split(',') {
+            obj.push(&node_id.into());
+        }
+
+        from_ref::<web_sys::HtmlObjectElement>(node_ref)
+            .content_window()
+            .unwrap()
+            .unchecked_into::<TreeObj>()
+            .highlight(obj.into());
+    };
+    let on_mouseout_side = |event: Event| {
+        let target: HtmlElement = event.target().unwrap().unchecked_into();
+        if target.dataset().get("nodeId").is_none() {
+            return;
+        };
+
+        from_ref::<web_sys::HtmlObjectElement>(node_ref)
+            .content_window()
+            .unwrap()
+            .unchecked_into::<TreeObj>()
+            .highlight(Array::new().into());
+    };
+
     view! { cx,
         Popup(attach=attach, parent=Some(node_ref)) { (&*popup.get()) }
         div(class="flex flex-wrap align-center") {
@@ -164,7 +195,11 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             }
 
             div(class="col-span-10 lg:col-span-3 flex flex-col gap-3 h-full relative") {
-                div(class="flex flex-col gap-3 md:gap-6 h-full w-full lg:absolute overflow-y-auto") {
+                div(
+                    class="flex flex-col gap-3 md:gap-6 h-full w-full lg:absolute overflow-y-auto cursor-default",
+                    on:mouseover=on_mouseover_side,
+                    on:mouseout=on_mouseout_side,
+                ) {
                     (*nodes.get())
                 }
             }
@@ -222,6 +257,7 @@ fn extract_overrides<'a>(overrides: &[pob::Override<'a>]) -> Vec<Override<'a>> {
             count,
             name: o.name,
             effect: o.effect,
+            node_id: o.node_id,
         })
         .collect()
 }
@@ -270,12 +306,13 @@ fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> V
     } else {
         String::new()
     };
+    let node_id = r#override.node_id;
 
     view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3") {
-            div(class="mb-2 text-stone-200 text-sm md:text-base") {
-                span() { (name) }
-                span(class="text-xs ml-1") { (count) }
+            div(class="mb-2 text-stone-200 text-sm md:text-base", data-node-id=node_id) {
+                span(class="pointer-events-none") { (name) }
+                span(class="pointer-events-none text-xs ml-1") { (count) }
             }
             div(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (effect) }
         }
@@ -285,7 +322,7 @@ fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> V
 fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G> {
     let name = node.name.to_owned();
     let alt = name.clone();
-    let stats = node.stats.iter().join("\n");
+    let stats = node.stats.iter().map(|s| &s.text).join("\n");
 
     let src = node
         .icon
@@ -293,11 +330,14 @@ fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<
         .map(crate::assets::item_image_url)
         .unwrap_or_default();
 
+    let node_ids = node_ids(&node.stats);
+
     view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3", title=stats) {
-            div(class="text-stone-200 text-sm md:text-base flex items-center gap-2") {
-                img(class="rounded-xl w-7 h-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
-                span() { (name) }
+            div(class="text-stone-200 text-sm md:text-base flex items-center gap-2", data-node-id=node_ids) {
+                img(class="pointer-events-none rounded-xl w-7 h-7",
+                    src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
+                span(class="pointer-events-none") { (name) }
             }
         }
     }
@@ -311,7 +351,7 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G
         .iter()
         .map(|stat| {
             let stat = stat.clone();
-            view! { cx, li(class="leading-tight") { (stat) } }
+            view! { cx, li(class="leading-tight", data-node-id=stat.id) { (stat.text) } }
         })
         .collect_view();
 
@@ -321,11 +361,14 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G
         .map(crate::assets::item_image_url)
         .unwrap_or_default();
 
+    let node_ids = node_ids(&node.stats);
+
     view! { cx,
         div(class="bg-slate-900 rounded-xl px-4 py-3") {
-            div(class="mb-2 text-stone-200 text-sm md:text-base flex items-center gap-2") {
-                img(class="rounded-xl w-7 h-7", src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
-                span() { (name) }
+            div(class="mb-2 text-stone-200 text-sm md:text-base flex items-center gap-2", data-node-id=node_ids) {
+                img(class="pointer-events-none rounded-xl w-7 h-7",
+                    src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
+                span(class="pointer-events-none") { (name) }
             }
             ul(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (stats) }
         }
@@ -380,6 +423,10 @@ fn get_svg_url(spec: &TreeSpec) -> &'static str {
     }
 }
 
+fn node_ids(node: &[data::NodeStat]) -> String {
+    node.iter().map(|n| n.id).unique().join(",")
+}
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen]
@@ -387,4 +434,7 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name=tree_load)]
     fn load(this: &TreeObj, data: JsValue);
+
+    #[wasm_bindgen(method, js_name=tree_highlight)]
+    fn highlight(this: &TreeObj, data: JsValue);
 }

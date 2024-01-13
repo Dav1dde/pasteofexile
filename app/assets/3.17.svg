@@ -4,7 +4,7 @@ svg {
     --bg-color: #1e293b;
     --active-color: #38bdf8;
     --default-color: #64748b;
-    --hover-color: #facc15;
+    --highlight-color: #facc15;
 
     background-color: var(--bg-color);
     color: var(--default-color);
@@ -18,7 +18,7 @@ svg {
     stroke-opacity: 0;
 }
 .nodes circle:hover {
-    color: var(--hover-color) !important;
+    color: var(--highlight-color) !important;
 }
 .nodes circle.keystone {
 }
@@ -4829,7 +4829,10 @@ root.addEventListener('wheel', onWheel, {passive: false});
 const CONNECTIONS = [...root.querySelectorAll('.connections > *')]
     .map(element => element.id.substring(1).split('-').map(n => parseInt(n)));
 
-function load(data) {
+
+document.adoptedStyleSheets = [new CSSStyleSheet(), new CSSStyleSheet()];
+
+window.tree_load = function(data) {
     const css = new CSSStyleSheet();
 
     // Activate nodes.
@@ -4853,9 +4856,17 @@ function load(data) {
         display: block !important;
     }`);
 
-    document.adoptedStyleSheets = [css];
+    document.adoptedStyleSheets[0] = css;
 }
 
-window.tree_load = load;
+window.tree_highlight = function(nodes) {
+    const css = new CSSStyleSheet();
+
+    for (node of nodes) {
+        css.insertRule(`#n${node} { color: var(--highlight-color) !important; stroke-opacity: 1; }`);
+    }
+
+    document.adoptedStyleSheets[1] = css;
+}
  })]]></script>
 </svg>

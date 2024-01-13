@@ -101,9 +101,15 @@ pub mod data {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub icon: Option<String>,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
-        pub stats: Vec<String>,
+        pub stats: Vec<NodeStat>,
         #[serde(skip)]
         pub sort: Option<i8>, // this sucks, but I am lazy right now
+    }
+
+    #[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+    pub struct NodeStat {
+        pub id: u32,
+        pub text: String,
     }
 
     #[derive(Debug, Clone, Deserialize, Serialize)]

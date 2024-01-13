@@ -2,7 +2,10 @@ use std::collections::{BTreeMap, HashMap};
 
 use pob::{PathOfBuilding, SerdePathOfBuilding};
 use shared::{
-    model::{data, Paste, PasteSummary},
+    model::{
+        data::{self, NodeStat},
+        Paste, PasteSummary,
+    },
     PasteId, User, UserPasteId,
 };
 
@@ -112,12 +115,14 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
         let mut keystones = spec
             .nodes
             .iter()
-            .filter_map(|&node| poe_tree::get_node(version, node))
-            .filter(|node| node.kind.is_keystone() || node.kind.is_alternate_ascendancy_notable())
-            .map(|node| data::Node {
+            .filter_map(|&id| Some((id, poe_tree::get_node(version, id)?)))
+            .filter(|(_, node)| {
+                node.kind.is_keystone() || node.kind.is_alternate_ascendancy_notable()
+            })
+            .map(|(id, node)| data::Node {
                 name: node.name.to_owned(),
                 icon: node.icon.map(|icon| icon.to_owned()),
-                stats: stats_to_owned(node.stats),
+                stats: stats_to_owned(id, node.stats),
                 sort: node.kind.is_keystone().then_some(0),
             })
             .collect::<Vec<_>>();
@@ -125,11 +130,11 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
 
         struct MasteryNode {
             icon: Option<String>,
-            stats: Vec<String>,
+            stats: Vec<NodeStat>,
         }
         let mut masteries = BTreeMap::<&'static str, MasteryNode>::new();
-        for &(node, effect) in spec.mastery_effects {
-            let Some(node) = poe_tree::get_node(version, node) else {
+        for &(node_id, effect) in spec.mastery_effects {
+            let Some(node) = poe_tree::get_node(version, node_id) else {
                 continue;
             };
             let Some(mastery) = node.mastery_effects.iter().find(|m| m.effect == effect) else {
@@ -140,7 +145,7 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
                 icon: node.icon.map(|icon| icon.to_owned()),
                 stats: Vec::new(),
             });
-            v.stats.extend(mastery.stats.iter().map(|&s| s.to_owned()));
+            v.stats.extend(stats_to_owned(node_id, mastery.stats));
         }
         let masteries = masteries
             .into_iter()
@@ -161,8 +166,14 @@ fn extract_node_info(pob: &impl PathOfBuilding) -> Vec<data::Nodes> {
     data
 }
 
-fn stats_to_owned(stats: &[&str]) -> Vec<String> {
-    stats.iter().map(|&s| s.to_owned()).collect()
+fn stats_to_owned(id: u32, stats: &[&str]) -> Vec<NodeStat> {
+    stats
+        .iter()
+        .map(|&s| NodeStat {
+            id,
+            text: s.to_owned(),
+        })
+        .collect()
 }
 
 fn extract_gem_info(pob: &impl PathOfBuilding) -> HashMap<String, data::Gem> {
