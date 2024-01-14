@@ -19,6 +19,7 @@ mod router;
 mod session;
 mod storage;
 mod svg;
+mod tree;
 mod utils;
 
 #[cfg(feature = "ssr")]

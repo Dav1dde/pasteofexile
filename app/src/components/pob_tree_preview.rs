@@ -1,16 +1,16 @@
 use itertools::Itertools;
-use js_sys::{Array, Object, Uint32Array};
 use pob::TreeSpec;
 use shared::model::data;
 use sycamore::prelude::*;
-use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{Event, HtmlElement, HtmlObjectElement};
+use wasm_bindgen::JsCast;
+use web_sys::{Event, HtmlElement};
 
 use crate::{
     build::Build,
     components::{PobColoredSelect, Popup, TreeNode},
     consts,
-    utils::{from_ref, hooks::scoped_event_passive, reflect_set, IteratorExt},
+    tree::SvgTree,
+    utils::{hooks::scoped_event_passive, IteratorExt},
 };
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         .trees()
         .filter_map(|(nodes, spec)| {
             let tree_url = get_tree_url(&spec)?;
-            let svg_url = get_svg_url(&spec);
+            let svg_url = SvgTree::url(&spec);
             let overrides = extract_overrides(&spec.overrides);
             Some(Tree {
                 name: spec.title.unwrap_or("<Default>").to_owned(),
@@ -99,29 +99,11 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             return;
         }
 
-        let obj = Object::new();
-        reflect_set(&obj, "nodes", Uint32Array::from(tree.spec.nodes));
-        reflect_set(&obj, "classId", tree.spec.class_id);
-        reflect_set(&obj, "ascendancyId", tree.spec.ascendancy_id);
-        reflect_set(
-            &obj,
-            "alternateAscendancyId",
-            tree.spec.alternate_ascendancy_id,
-        );
-
-        from_ref::<web_sys::HtmlObjectElement>(node_ref)
-            .content_window()
-            .unwrap()
-            .unchecked_into::<TreeObj>()
-            .load(obj.into());
-
-        let inner = from_ref::<HtmlObjectElement>(node_ref)
-            .content_document()
-            .unwrap()
-            .unchecked_into();
+        let s = SvgTree::from_ref(node_ref).unwrap();
+        s.load(&tree.spec);
 
         events.call_once(|| {
-            scoped_event_passive(cx, inner, "mouseover", on_mouseover_tree);
+            scoped_event_passive(cx, s.element(), "mouseover", on_mouseover_tree);
         });
     });
 
@@ -151,16 +133,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             return;
         };
 
-        let obj = Array::new();
-        for node_id in node_id.split(',') {
-            obj.push(&node_id.into());
-        }
-
-        from_ref::<web_sys::HtmlObjectElement>(node_ref)
-            .content_window()
+        SvgTree::from_ref(node_ref)
             .unwrap()
-            .unchecked_into::<TreeObj>()
-            .highlight(obj.into());
+            .highlight(node_id.split(','));
     };
     let on_mouseout_side = |event: Event| {
         let target: HtmlElement = event.target().unwrap().unchecked_into();
@@ -168,11 +143,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             return;
         };
 
-        from_ref::<web_sys::HtmlObjectElement>(node_ref)
-            .content_window()
-            .unwrap()
-            .unchecked_into::<TreeObj>()
-            .highlight(Array::new().into());
+        SvgTree::from_ref(node_ref).unwrap().clear_highlight();
     };
 
     view! { cx,
@@ -409,32 +380,6 @@ fn get_tree_url(spec: &TreeSpec) -> Option<String> {
         .map(|url| url.to_owned())
 }
 
-fn get_svg_url(spec: &TreeSpec) -> &'static str {
-    match spec.version {
-        Some("3_15") => "/assets/3.15.svg",
-        Some("3_16") => "/assets/3.16.svg",
-        Some("3_17") => "/assets/3.17.svg",
-        Some("3_18") => "/assets/3.18.svg",
-        Some("3_19") => "/assets/3.19.svg",
-        Some("3_20") => "/assets/3.20.svg",
-        Some("3_21") => "/assets/3.21.svg",
-        Some("3_22") => "/assets/3.22.svg",
-        _ => "/assets/3.23.svg",
-    }
-}
-
 fn node_ids(node: &[data::NodeStat]) -> String {
     node.iter().map(|n| n.id).unique().join(",")
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen]
-    type TreeObj;
-
-    #[wasm_bindgen(method, js_name=tree_load)]
-    fn load(this: &TreeObj, data: JsValue);
-
-    #[wasm_bindgen(method, js_name=tree_highlight)]
-    fn highlight(this: &TreeObj, data: JsValue);
 }
