@@ -197,6 +197,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                     class="h-full w-full bg-center bg-no-repeat touch-pan
                     transition-[background-image] duration-1000 will-change-[background-image]",
                     type="image/svg+xml",
+                    title="Skilltree Preview",
                     on:load=|_: Event| { tree_loaded.set(true); },
                     on:mouseout=|_: Event| { attach.set(None) }
                 ) {}
