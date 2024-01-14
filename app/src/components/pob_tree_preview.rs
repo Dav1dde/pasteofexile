@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pob::TreeSpec;
+use pob::{PathOfBuilding, Socket, TreeSpec};
 use shared::model::data;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
@@ -7,7 +7,7 @@ use web_sys::{Event, HtmlElement};
 
 use crate::{
     build::Build,
-    components::{PobColoredSelect, Popup, TreeNode},
+    components::{PobColoredSelect, PobItem, Popup, TreeNode},
     consts,
     tree::SvgTree,
     utils::{hooks::scoped_event_passive, IteratorExt},
@@ -21,6 +21,24 @@ struct Tree<'build> {
     spec: TreeSpec<'build>,
     nodes: &'build data::Nodes,
     overrides: Vec<Override<'build>>,
+}
+
+impl<'build> Tree<'build> {
+    fn socket(&self, id: u32) -> Option<&Socket> {
+        self.spec.sockets.iter().find(|socket| socket.node_id == id)
+    }
+
+    fn mastery(&self, id: u32) -> Option<&str> {
+        for mastery in &self.nodes.masteries {
+            for stat in &mastery.stats {
+                if stat.id == id {
+                    return Some(&stat.text);
+                }
+            }
+        }
+
+        None
+    }
 }
 
 #[derive(Debug)]
@@ -75,22 +93,39 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let on_mouseover_tree = move |event: web_sys::Event| {
         let target: HtmlElement = event.target().unwrap().unchecked_into();
 
-        let dataset = target.dataset();
-        match dataset.get("name") {
-            Some(name) => {
-                let stats = dataset
+        let Some(id) = target.id().strip_prefix('n').and_then(|s| s.parse().ok()) else {
+            attach.set(None);
+            return;
+        };
+
+        let item = current_tree
+            .get()
+            .socket(id)
+            .and_then(|socket| build.item_by_id(socket.item_id))
+            .and_then(|item| pob::Item::parse(item).ok());
+
+        let content = if let Some(item) = item {
+            view! { cx, PobItem(item) }
+        } else {
+            let dataset = target.dataset();
+
+            let kind = dataset.get("kind");
+            let name = dataset.get("name").unwrap_or_default();
+
+            let stats = if let Some(mastery) = current_tree.get().mastery(id) {
+                vec![mastery.to_owned()]
+            } else {
+                dataset
                     .get("stats")
                     .map(|s| s.split(";;").map(Into::into).collect())
-                    .unwrap_or_default();
-                let kind = dataset.get("kind");
+                    .unwrap_or_default()
+            };
 
-                popup.set(view! { cx, TreeNode(name=name, stats=stats, kind=kind) });
-                attach.set(Some(target.unchecked_into()));
-            }
-            None => {
-                attach.set(None);
-            }
-        }
+            view! { cx, TreeNode(kind=kind, name=name, stats=stats) }
+        };
+
+        popup.set(content);
+        attach.set(Some(target.unchecked_into()));
     };
 
     create_effect(cx, move || {
@@ -133,9 +168,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             return;
         };
 
-        SvgTree::from_ref(node_ref)
-            .unwrap()
-            .highlight(node_id.split(','));
+        if let Some(tree) = SvgTree::from_ref(node_ref) {
+            tree.highlight(node_id.split(','));
+        }
     };
     let on_mouseout_side = |event: Event| {
         let target: HtmlElement = event.target().unwrap().unchecked_into();
@@ -143,7 +178,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             return;
         };
 
-        SvgTree::from_ref(node_ref).unwrap().clear_highlight();
+        if let Some(tree) = SvgTree::from_ref(node_ref) {
+            tree.clear_highlight();
+        }
     };
 
     view! { cx,
@@ -280,12 +317,15 @@ fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> V
     let node_id = r#override.node_id;
 
     view! { cx,
-        div(class="bg-slate-900 rounded-xl px-4 py-3") {
-            div(class="mb-2 text-stone-200 text-sm md:text-base", data-node-id=node_id) {
-                span(class="pointer-events-none") { (name) }
-                span(class="pointer-events-none text-xs ml-1") { (count) }
+        div(class="bg-slate-900 rounded-xl px-4 py-3", data-node-id=node_id) {
+            div(class="mb-2 text-stone-200 text-sm md:text-base pointer-events-none") {
+                span() { (name) }
+                span(class="text-xs ml-1") { (count) }
             }
-            div(class="flex flex-col gap-2 pb-1 whitespace-pre-line text-xs md:text-sm text-slate-400") { (effect) }
+            div(class="flex flex-col gap-2 pb-1 whitespace-pre-line pointer-events-none
+                text-xs md:text-sm text-slate-400") {
+                (effect)
+            }
         }
     }
 }
