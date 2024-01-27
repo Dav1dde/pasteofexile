@@ -40,6 +40,29 @@ pub enum Influence {
     Fracture,
 }
 
+impl Influence {
+    fn parse(value: &str) -> Option<Self> {
+        let influence = match value {
+            "Shaper Item" => Influence::Shaper,
+            "Elder Item" => Influence::Elder,
+
+            "Crusader Item" => Influence::Crusader,
+            "Hunter Item" => Influence::Hunter,
+            "Redeemer Item" => Influence::Redeemer,
+            "Warlord Item" => Influence::Warlord,
+
+            "Searing Exarch Item" => Influence::SearingExarch,
+            "Eater of Worlds Item" => Influence::EaterOfWorlds,
+
+            value if value.starts_with("Synthesised") => Influence::Synthesis,
+
+            _ => return None,
+        };
+
+        Some(influence)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Item<'a> {
     pub rarity: Rarity,
@@ -49,6 +72,7 @@ pub struct Item<'a> {
     pub item_level: u8,
     pub level_requirement: u8,
     pub quality: u8,
+    pub alt_quality: Option<&'a str>,
     pub armour: u16,
     pub evasion: u16,
     pub energy_shield: u16,
@@ -67,7 +91,7 @@ pub struct Item<'a> {
 
 impl<'a> Item<'a> {
     pub fn parse(item: &'a str) -> Result<Self, InvalidItem> {
-        let mut lines = item.lines();
+        let mut lines = item.lines().peekable();
 
         let rarity = lines
             .next()
@@ -96,6 +120,7 @@ impl<'a> Item<'a> {
         let mut item_level = 0;
         let mut level_requirement = 0;
         let mut quality = 0;
+        let mut alt_quality = None;
         let mut armour = 0;
         let mut evasion = 0;
         let mut energy_shield = 0;
@@ -104,95 +129,72 @@ impl<'a> Item<'a> {
         let mut influence2 = None;
 
         let mut selected_variant = "";
-        let mut num_implicits = 0;
-        for line in lines.by_ref() {
+        let mut implicits = "";
+
+        loop {
+            let Some(line) = lines.peek() else {
+                break;
+            };
+
             if let Some((cmd, arg)) = line.split_once(": ") {
-                macro_rules! parse {
-                    ($(($pat:expr, $name:ident)),*) => {
-                        match cmd {
-                            $($pat => $name = arg.parse().unwrap_or($name)),*,
-                            "Selected Variant" => selected_variant = arg,
-                            _ => (),
-                        }
+                let _ = lines.next();
+
+                macro_rules! p {
+                    ($name:ident) => {
+                        $name = arg.parse().unwrap_or($name)
                     };
                 }
 
-                parse! {
-                    ("Item Level", item_level),
-                    ("LevelReq", level_requirement),
-                    ("Quality", quality),
-                    ("Armour", armour),
-                    ("Evasion", evasion),
-                    ("Energy Shield", energy_shield),
-
-                    ("Implicits", num_implicits)
-                };
-
-                // Section with mods starts
-                if cmd == "Implicits" {
-                    break;
-                }
-            } else {
-                let influence = match line {
-                    "Shaper Item" => Some(Influence::Shaper),
-                    "Elder Item" => Some(Influence::Elder),
-
-                    "Crusader Item" => Some(Influence::Crusader),
-                    "Hunter Item" => Some(Influence::Hunter),
-                    "Redeemer Item" => Some(Influence::Redeemer),
-                    "Warlord Item" => Some(Influence::Warlord),
-
-                    "Searing Exarch Item" => Some(Influence::SearingExarch),
-                    "Eater of Worlds Item" => Some(Influence::EaterOfWorlds),
-
-                    line if line.starts_with("Synthesised") => Some(Influence::Synthesis),
-
-                    _ => None,
-                };
-
-                if let Some(influence) = influence {
-                    if influence1.is_none() {
-                        influence1 = Some(influence);
-                    } else if influence2.is_none() {
-                        influence2 = Some(influence);
+                match cmd {
+                    "Item Level" => p!(item_level),
+                    "LevelReq" => p!(level_requirement),
+                    "Quality" => p!(quality),
+                    "Catalyst" => alt_quality = Some(catalyst_to_alt_quality(arg)),
+                    "CatalystQuality" => p!(quality),
+                    "Armour" => p!(armour),
+                    "Evasion" => p!(evasion),
+                    "Energy Shield" => p!(energy_shield),
+                    "Implicits" => {
+                        let num = arg.parse().unwrap_or(0);
+                        implicits = unsafe { get_n_lines(item, &mut lines, num) };
                     }
-                }
-            }
-        }
+                    "Selected Variant" => selected_variant = arg,
+                    _ => {
+                        if let Some((a, q)) = parse_alt_quality(cmd, arg) {
+                            alt_quality = Some(a);
+                            quality = q;
+                        }
+                    }
+                };
+            } else if let Some(influence) = Influence::parse(line) {
+                let _ = lines.next();
 
-        let mut lines = lines.peekable();
-
-        let mut implicits = &item[0..0];
-        if num_implicits > 0 {
-            if let Some(first_mod) = lines.peek() {
-                // in case we have 0 implicits
-                let first_mod_idx =
-                    unsafe { first_mod.as_ptr().offset_from(item.as_ptr()) } as usize;
-                for _ in 0..num_implicits - 1 {
-                    lines.next();
+                if influence1.is_none() {
+                    influence1 = Some(influence);
+                } else if influence2.is_none() {
+                    influence2 = Some(influence);
                 }
-                let last_mod_idx = lines
-                    .next()
-                    .map(|m| unsafe { m.as_ptr().offset_from(item.as_ptr()) as usize + m.len() })
-                    .unwrap_or(item.len());
-                implicits = &item[first_mod_idx..last_mod_idx];
+            } else if line == &base {
+                // Skip random base names which are not mods or commands,
+                // bugged pob?
+                let _ = lines.next();
+            } else {
+                break;
             }
         }
 
         let mut corrupted = false;
         let mut mirrored = false;
         let mut split = false;
-        let mut rev_lines = item.lines().rev().peekable();
-        let mut mods_end = None;
-        loop {
-            match rev_lines.peek() {
-                Some(&"Corrupted") => corrupted = true,
-                Some(&"Mirrored") => mirrored = true,
-                Some(&"Split") => split = true,
-                _ => break,
+        let mut rev_lines = item.lines().rev();
+        let mods_end = loop {
+            match rev_lines.next() {
+                Some("Corrupted") => corrupted = true,
+                Some("Mirrored") => mirrored = true,
+                Some("Split") => split = true,
+                m => break m,
             }
-            mods_end = rev_lines.next();
-        }
+        };
 
         let is_mod = |line: &&str| {
             !line
@@ -203,21 +205,16 @@ impl<'a> Item<'a> {
         };
         let first_explicit_mod = lines.find(is_mod);
 
-        let mut explicits = &item[0..0];
-        if let Some(first_mod) = first_explicit_mod {
-            // in case we have 0 implicits
-            let first_mod_idx = unsafe { first_mod.as_ptr().offset_from(item.as_ptr()) } as usize;
-            let mods_end = mods_end
-                .map(|m| unsafe { m.as_ptr().offset_from(item.as_ptr()) } as usize)
-                .unwrap_or(item.len());
-            explicits = &item[first_mod_idx..mods_end];
-        }
+        let explicits = first_explicit_mod
+            .map(|start| unsafe { extract_slice_between(item, start, mods_end) })
+            .unwrap_or("");
 
         // Postprocess magic items based on mod count ...
         if matches!(rarity, Rarity::Magic) {
             base = extract_magic_base(base, explicits.lines().count());
         }
 
+        println!("lol {} - {explicits}", influence1.is_none());
         if influence1.is_none() && explicits.lines().any(|m| m.starts_with("{fractured}")) {
             influence1 = Some(Influence::Fracture);
         }
@@ -233,6 +230,7 @@ impl<'a> Item<'a> {
             item_level,
             level_requirement,
             quality,
+            alt_quality,
             armour,
             evasion,
             energy_shield,
@@ -374,6 +372,70 @@ impl<'a> Iterator for ModLines<'a> {
 }
 
 impl<'a> FusedIterator for ModLines<'a> {}
+
+/// Reads the next `num` lines from the `lines` iterator and returns
+/// a continuous str slice of the iterated range.
+///
+/// ## Safety:
+///
+/// Lines yielded from the `lines` iterator must be contained within `item`.
+unsafe fn get_n_lines<'a>(
+    item: &'a str,
+    lines: &mut std::iter::Peekable<std::str::Lines<'a>>,
+    num: usize,
+) -> &'a str {
+    if num == 0 {
+        return "";
+    }
+
+    let Some(start) = lines.peek() else {
+        return "";
+    };
+
+    unsafe { extract_slice_between(item, start, lines.nth(num - 1)) }
+}
+
+/// Extracts the string slice between `start` and `end`.
+///
+/// If `end` is `None` it returns the slice from `start` to the end of `s`.
+///
+///
+/// ## Safety:
+///
+/// `start` and `end` must be slices taken from `s`.
+unsafe fn extract_slice_between<'a>(s: &'a str, start: &'a str, end: Option<&'a str>) -> &'a str {
+    let start = unsafe { start.as_ptr().offset_from(s.as_ptr()) } as usize;
+    let end = end
+        .map(|end| unsafe { end.as_ptr().offset_from(s.as_ptr()) as usize + end.len() })
+        .unwrap_or(s.len());
+
+    &s[start..end]
+}
+
+/// Parses an alt quality string into the type of quality and it's value.
+fn parse_alt_quality<'a>(cmd: &'a str, arg: &'a str) -> Option<(&'a str, u8)> {
+    let s = cmd.strip_prefix("Quality (")?.strip_suffix(')')?;
+    let value = arg.strip_prefix('+')?.strip_suffix('%')?.parse().ok()?;
+
+    Some((s, value))
+}
+
+/// Maps a catalyst name to the alt quality name in game.
+fn catalyst_to_alt_quality(s: &str) -> &str {
+    match s {
+        "Abrasive" => "Attack Modifiers",
+        "Accelerating" => "Speed Modifiers",
+        "Fertile" => "Life and Mana Modifiers",
+        "Imbued" => "Caster Modifiers",
+        "Intrinsic" => "Attribute Modifiers",
+        "Noxious" => "Physical and Chaos Damage Modifiers",
+        "Prismatic" => "Resistance Modifiers",
+        "Tempering" => "Defense Modifiers",
+        "Turbulent" => "Elemental Modifiers",
+        "Unstable" => "Critical Modifiers",
+        s => s,
+    }
+}
 
 /// 'Fixes' a PoE item name, this can be an actual name (Unique)
 /// or a base item.
@@ -570,7 +632,7 @@ Corrupted
     }
 
     #[test]
-    fn unique_carcas_jack() {
+    fn unique_carcass_jack() {
         let item = Item::parse(
             r#"Rarity: UNIQUE
 Endgame - Carcass-Jack [123]
@@ -598,6 +660,8 @@ Implicits: 0
 Extra gore"#,
         )
         .unwrap();
+
+        dbg!(&item);
 
         assert_eq!(item.item_level, 0);
         assert_eq!(item.name, Some("Endgame - Carcass-Jack [123]"));
@@ -646,6 +710,58 @@ Adds 1 to 23 Lightning Damage to Attacks
         assert_eq!(item.enchants().count(), 0);
         assert_eq!(item.implicits().count(), 2);
         assert_eq!(item.explicits().count(), 7);
+    }
+
+    #[test]
+    fn rare_alt_quality_ring() {
+        let item = Item::parse(
+            r#"Rarity: RARE
+Sorrow Hold
+Amethyst Ring
+Item Level: 85
+LevelReq: 65
+Implicits: 1
++27% to Chaos Resistance
+Quality (Resistance Modifiers): +17%
+{fractured}+18% to all Elemental Resistances
++45 to Intelligence
+Adds 1 to 2 Physical Damage to Attacks
++58 to maximum Life
+Regenerate 5.3 Mana per second
++32% to Chaos Resistance
+{crafted}Non-Channelling Skills have -7 to Total Mana Cost"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.item_level, 85);
+        assert_eq!(item.level_requirement, 65);
+        assert_eq!(item.quality, 17);
+        assert_eq!(item.alt_quality, Some("Resistance Modifiers"));
+        assert_eq!(item.influence1, Some(Influence::Fracture));
+        assert_eq!(item.influence2, Some(Influence::Fracture));
+    }
+
+    #[test]
+    fn rare_alt_quality_amulet() {
+        let item = Item::parse(
+            r#"Rarity: RARE
+Amulet
+Agate Amulet
+Crafted: true
+Catalyst: Accelerating
+CatalystQuality: 13
+LevelReq: 35
+Implicits: 1
+{tags:attribute}{range:0.5}+(16-24) to Strength and Intelligence
++30 to Strength
++30 to Intelligence"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.quality, 13);
+        assert_eq!(item.alt_quality, Some("Speed Modifiers"));
+        assert_eq!(item.influence1, None);
+        assert_eq!(item.influence2, None);
     }
 
     #[test]
