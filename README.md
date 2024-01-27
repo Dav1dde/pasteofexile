@@ -2,12 +2,12 @@ Paste of Exile
 ==============
 
 [![Build Status][actions-badge]][actions-url]
-[![License][gplv3-badge]][gplv3-url]
+[![License][license-badge]][license-url]
 
 [actions-badge]: https://img.shields.io/github/actions/workflow/status/dav1dde/pasteofexile/ci.yaml?branch=master&style=for-the-badge&logo=github
 [actions-url]: https://github.com/Dav1dde/pasteofexile/actions?query=workflow%3ACI+branch%3Amaster
-[gplv3-badge]: https://img.shields.io/badge/license-GPL3-blue.svg?style=for-the-badge
-[gplv3-url]: ./LICENSE
+[license-badge]: https://img.shields.io/badge/license-AGPL-blue.svg?style=for-the-badge
+[license-url]: ./LICENSE
 
 [pobb.in](https://pobb.in), a pastebin for [Path Of Building](https://pathofbuilding.community/) builds.
 
