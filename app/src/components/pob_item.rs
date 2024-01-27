@@ -37,6 +37,15 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
         .map(|mods| view! { cx, Mods(mods) })
         .collect_view();
 
+    let mut stats = Vec::new();
+    if let Some(alt_quality) = item.alt_quality {
+        stats.push(render_property(
+            cx,
+            format!("Quality ({alt_quality}):"),
+            format!("+{}%", item.quality),
+        ))
+    }
+
     let mut unmet = Vec::new();
     if item.split {
         unmet.push(view! { cx, li(style="color: #88f") { "Split" } });
@@ -66,6 +75,7 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
                 (influence2)
             }
             div(class="p-2 pt-1") {
+                Mods(stats)
                 Mods(enchants)
                 Mods(implicits)
                 (explicits)
@@ -83,6 +93,13 @@ pub fn Mods<G: Html>(cx: Scope, mods: Vec<View<G>>) -> View<G> {
 
     let content = View::new_fragment(mods);
     view! { cx, ul { (content) } }
+}
+
+fn render_property<G: Html>(cx: Scope<'_>, key: String, value: String) -> View<G> {
+    view! { cx,
+        span(style="color: #7f7f7f", class="pr-1") { (key) }
+        span(style="color: #88f") { (value) }
+    }
 }
 
 fn rarity_str(rarity: pob::Rarity) -> &'static str {
