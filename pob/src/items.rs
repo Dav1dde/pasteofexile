@@ -396,6 +396,9 @@ fn extract_magic_base(base: &str, num_mods: usize) -> &str {
         return base;
     }
 
+    // Strip common prefixes.
+    let base = base.trim_start_matches("Synthesised ");
+
     let end = base.find(" of").unwrap_or(base.len());
     let has_suffix_in_name = end != base.len();
     // strip off the suffix if there is one
@@ -538,6 +541,32 @@ Implicits: 0
         assert_eq!(item.enchants().count(), 0);
         assert_eq!(item.implicits().count(), 0);
         assert_eq!(item.explicits().count(), 1);
+    }
+
+    #[test]
+    fn magic_synthesised_jewel() {
+        let item = Item::parse(
+            r#"Rarity: MAGIC
+Synthesised Flaring Ghastly Eye Jewel of Shelter
+Item Level: 85
+LevelReq: 66
+Implicits: 1
+You cannot be Hindered
++11% to Cold and Lightning Resistances
+Minions deal 26 to 33 additional Physical Damage
+Corrupted
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            item.name,
+            Some("Synthesised Flaring Ghastly Eye Jewel of Shelter")
+        );
+        assert_eq!(item.base, "Ghastly Eye Jewel");
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 1);
+        assert_eq!(item.explicits().count(), 2);
     }
 
     #[test]
