@@ -214,7 +214,6 @@ impl<'a> Item<'a> {
             base = extract_magic_base(base, explicits.lines().count());
         }
 
-        println!("lol {} - {explicits}", influence1.is_none());
         if influence1.is_none() && explicits.lines().any(|m| m.starts_with("{fractured}")) {
             influence1 = Some(Influence::Fracture);
         }
@@ -409,7 +408,11 @@ unsafe fn extract_slice_between<'a>(s: &'a str, start: &'a str, end: Option<&'a 
         .map(|end| unsafe { end.as_ptr().offset_from(s.as_ptr()) as usize + end.len() })
         .unwrap_or(s.len());
 
-    &s[start..end]
+    if start > end {
+        ""
+    } else {
+        &s[start..end]
+    }
 }
 
 /// Parses an alt quality string into the type of quality and it's value.
@@ -762,6 +765,28 @@ Implicits: 1
         assert_eq!(item.alt_quality, Some("Speed Modifiers"));
         assert_eq!(item.influence1, None);
         assert_eq!(item.influence2, None);
+    }
+
+    #[test]
+    fn unique_tabula_no_explicits() {
+        let item = Item::parse(
+            r#"Rarity: UNIQUE
+Tabula Rasa
+Simple Robe
+Quality: 20
+Sockets: W-W-W-W-W-W
+Implicits: 1
+{tags:gem}+1 to Level of Socketed Gems
+Corrupted"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.name, Some("Tabula Rasa"));
+        assert_eq!(item.base, "Simple Robe");
+        assert_eq!(item.enchants().count(), 0);
+        assert_eq!(item.implicits().count(), 1);
+        assert_eq!(item.explicits().count(), 0);
+        assert!(item.corrupted);
     }
 
     #[test]
