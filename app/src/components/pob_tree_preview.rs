@@ -152,7 +152,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let nodes = create_memo(cx, move || render_nodes(cx, &current_tree.get()));
     let tree_level = create_memo(cx, move || {
         let current_tree = current_tree.get();
-        let (nodes, level) = resolve_level(current_tree.spec.nodes.len());
+        let (nodes, level) = resolve_level(&current_tree.spec);
         let desc = format!("Level {level} ({nodes} passives)");
         view! { cx,
             a(href=current_tree.tree_url, rel="external", target="_blank",
@@ -216,7 +216,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
 }
 
-fn resolve_level(allocated: usize) -> (usize, usize) {
+fn resolve_level(tree: &TreeSpec) -> (usize, usize) {
+    let allocated = tree.nodes.len();
+
     // TODO: needs auto-generated node information for ascendancies
     if allocated == 0 {
         return (0, 0);
@@ -225,14 +227,22 @@ fn resolve_level(allocated: usize) -> (usize, usize) {
     // character start node
     let allocated = allocated - 1;
 
-    // points count towards allocated but aren't available skill tree points
-    let asc = match allocated {
-        0..=38 => 0,
-        39..=69 => 3, // 2 points + ascendancy start node
-        70..=90 => 5,
-        91..=98 => 7,
-        _ => 9,
+    let resolve_asc = || {
+        match allocated {
+            0..=38 => 0,
+            39..=69 => 3, // 2 points + ascendancy start node
+            70..=90 => 5,
+            91..=98 => 7,
+            _ => 9,
+        }
     };
+
+    // Points count towards allocated but aren't available skill tree points.
+    let asc = tree.ascendancy_id.map(|_| resolve_asc()).unwrap_or(0);
+    let asc2 = tree
+        .alternate_ascendancy_id
+        .map(|_| resolve_asc())
+        .unwrap_or(0);
 
     // TODO: check for bandits
     let bandits = match allocated {
@@ -254,7 +264,10 @@ fn resolve_level(allocated: usize) -> (usize, usize) {
         _ => 22,
     };
 
-    (allocated - asc, 1 + allocated - asc - bandits - quests)
+    (
+        allocated - asc - asc2,
+        1 + allocated - asc - asc2 - bandits - quests,
+    )
 }
 
 fn extract_overrides<'a>(overrides: &[pob::Override<'a>]) -> Vec<Override<'a>> {
