@@ -390,6 +390,36 @@ impl FromStr for PantheonMinorGod {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Bandit {
+    Alira,
+    Kraityn,
+    Oak,
+}
+
+impl Bandit {
+    pub fn name(self) -> &'static str {
+        match self {
+            Bandit::Alira => "Alira",
+            Bandit::Kraityn => "Kraityn",
+            Bandit::Oak => "Oak",
+        }
+    }
+}
+
+impl FromStr for Bandit {
+    type Err = Invalid;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "Alira" => Self::Alira,
+            "Kraityn" => Self::Kraityn,
+            "Oak" => Self::Oak,
+            _ => return Err(Invalid("Bandit")),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

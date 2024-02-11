@@ -1,7 +1,7 @@
 use std::{borrow::Cow, collections::HashMap, str::FromStr};
 
 use serde::{de, Deserialize, Deserializer};
-use shared::{Ascendancy, Class, PantheonMajorGod, PantheonMinorGod};
+use shared::{Ascendancy, Bandit, Class, PantheonMajorGod, PantheonMinorGod};
 
 use crate::serde::utils;
 
@@ -36,6 +36,8 @@ pub(crate) struct Build {
     #[serde(rename = "$value")]
     pub stats: Vec<StatType>,
     pub main_socket_group: u8,
+    #[serde(deserialize_with = "deserialize_str_none")]
+    pub bandit: Option<Bandit>,
     #[serde(deserialize_with = "deserialize_str_none")]
     pub pantheon_major_god: Option<PantheonMajorGod>,
     #[serde(deserialize_with = "deserialize_str_none")]
