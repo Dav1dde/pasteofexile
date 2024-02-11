@@ -245,7 +245,7 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Da
             let open_wiki = move |event: web_sys::Event| {
                 let has_ctrl = event
                     .dyn_into::<web_sys::MouseEvent>()
-                    .map_or(false, |event| event.ctrl_key());
+                    .map_or(false, |event| event.ctrl_key() || event.meta_key());
 
                 if !has_ctrl {
                     return;
