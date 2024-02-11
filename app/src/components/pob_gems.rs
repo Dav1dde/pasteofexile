@@ -10,7 +10,7 @@ use crate::{
     consts,
     pob::formatting::strip_colors,
     svg,
-    utils::{open_wiki_page, IteratorExt},
+    utils::{click_has_ctrl, open_wiki_page, IteratorExt},
 };
 
 #[component]
@@ -243,16 +243,10 @@ fn render_skill<'a, G: Html>(cx: Scope<'a>, skill: Skill<'a>, data: &'a data::Da
             let data = gem.gem_id.and_then(|gem_id| data.gems.get(gem_id));
 
             let open_wiki = move |event: web_sys::Event| {
-                let has_ctrl = event
-                    .dyn_into::<web_sys::MouseEvent>()
-                    .map_or(false, |event| event.ctrl_key() || event.meta_key());
-
-                if !has_ctrl {
-                    return;
-                }
-
-                if let Some(data) = data {
-                    open_wiki_page(&data.name);
+                if click_has_ctrl(event) {
+                    if let Some(data) = data {
+                        open_wiki_page(&data.name);
+                    }
                 }
             };
 

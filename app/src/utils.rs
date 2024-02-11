@@ -197,6 +197,12 @@ pub fn open_wiki_page(page: &str) {
     open_in_new_tab(&wiki_url(page));
 }
 
+pub fn click_has_ctrl(event: web_sys::Event) -> bool {
+    event
+        .dyn_into::<web_sys::MouseEvent>()
+        .map_or(false, |event| event.ctrl_key() || event.meta_key())
+}
+
 pub trait IteratorExt: Iterator {
     fn collect_view<G: Html>(self) -> View<G>
     where

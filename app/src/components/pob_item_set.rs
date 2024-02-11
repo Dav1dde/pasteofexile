@@ -2,7 +2,11 @@ use itertools::Itertools;
 use pob::PathOfBuilding;
 use sycamore::prelude::*;
 
-use crate::{build::Build, consts::IMG_ONERROR_EMPTY, utils::IteratorExt};
+use crate::{
+    build::Build,
+    consts::IMG_ONERROR_EMPTY,
+    utils::{click_has_ctrl, open_wiki_page, IteratorExt},
+};
 
 #[component(inline_props)]
 pub fn PobItemSet<'a, 'b, G: Html>(
@@ -103,11 +107,20 @@ fn render_item<'a, G: Html>(
     let src = crate::assets::item_image_url(image_name);
 
     let mouseover = move |_: web_sys::Event| current_item.set(item);
+    let open_wiki = move |event: web_sys::Event| {
+        if let Some(item) = item {
+            if item.rarity.is_unique() && click_has_ctrl(event) {
+                if let Some(name) = item.name {
+                    open_wiki_page(name);
+                }
+            }
+        }
+    };
 
     view! { cx,
         img(src=src, class=class, alt=image_name,
             onerror=IMG_ONERROR_EMPTY, loading="lazy",
-            on:mouseover=mouseover) {}
+            on:mouseover=mouseover, on:click=open_wiki) {}
     }
 }
 
