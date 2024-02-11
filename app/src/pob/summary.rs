@@ -298,8 +298,11 @@ pub fn config(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
         }
     }
 
-    let custom_mods = pob.config(Config::CustomMods);
-    if custom_mods.string().is_some() {
+    let custom_mods = pob
+        .config(Config::CustomMods)
+        .string()
+        .filter(|s| !s.trim().is_empty());
+    if custom_mods.is_some() {
         configs.push("Custom Mods".to_owned());
     }
 
@@ -310,7 +313,7 @@ pub fn config(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     let element = Element::new("Config")
         .color(AMBER_50)
         .stat_str(Some(configs.join(", ")))
-        .hover(custom_mods.string());
+        .hover(custom_mods);
 
     vec![element]
 }
