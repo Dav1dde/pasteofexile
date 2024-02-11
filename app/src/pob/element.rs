@@ -139,9 +139,7 @@ impl<'a> Element<'a> {
         };
 
         renderer.push(Fragment::with_formatting(
-            Formatting::default()
-                .with_class(Some("underline"))
-                .with_title(self.title),
+            Formatting::default().with_title(self.title),
             self.name,
         ));
         renderer.push(": ");
@@ -162,9 +160,7 @@ impl<'a> Element<'a> {
 
     fn render_values<R: Renderer>(self, mut renderer: R) -> Option<<R as Renderer>::Output> {
         renderer.push(Fragment::with_formatting(
-            Formatting::default()
-                .with_class(Some("underline"))
-                .with_title(self.title),
+            Formatting::default().with_title(self.title),
             self.name,
         ));
         renderer.push(": ");
