@@ -354,6 +354,12 @@ impl<'a, G: Html> Renderer for ViewRenderer<'a, G> {
         let hover = fragment.formatting.hover;
         let cx = self.cx;
 
+        let class = if hover.is_some() {
+            Cow::Owned(format!("{class} underline decoration-dotted"))
+        } else {
+            Cow::Borrowed(class)
+        };
+
         let mut view = match fragment.typ {
             FragmentType::Text => view! { cx, span(class=class, title=title) { (fragment.value) } },
             FragmentType::Super => view! { cx, sup(class=class, title=title) { (fragment.value) } },
@@ -372,6 +378,12 @@ impl<'a, G: Html> Renderer for ViewRenderer<'a, G> {
         let title = element.formatting.title.unwrap_or("");
         let hover = element.formatting.hover;
         let cx = self.cx;
+
+        let class = if hover.is_some() {
+            Cow::Owned(format!("{class} underline decoration-dotted"))
+        } else {
+            Cow::Borrowed(class)
+        };
 
         let mut element = view! { cx,
             span(class=class, title=title) {

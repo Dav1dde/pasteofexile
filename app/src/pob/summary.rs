@@ -70,6 +70,7 @@ pub fn core_stats(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
             .title("Total effective Health Pool")
             .color(AMBER_50)
             .stat_int(Some(ehp))
+            .hover(pob::formatted_max_hit(pob))
             .add_to(&mut elements);
     } else {
         Element::new("Pool")

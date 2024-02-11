@@ -1,11 +1,11 @@
 #[derive(Debug, Copy, Clone)]
 pub enum Config {
-    BrittleEffect,
     Boss,
+    BrittleEffect,
     CoveredInAsh,
     CustomMods,
-    EnemyBrittled,
     EnemeyHit,
+    EnemyBrittled,
     EnemySapped,
     EnemyScorched,
     EnemyShocked,
@@ -14,9 +14,9 @@ pub enum Config {
     FrenzyChargesAmount,
     PowerCharges,
     PowerChargesAmount,
-    WitherStacks,
     SapEffect,
     ScorchedEffect,
+    WitherStacks,
     ShockEffect,
 }
 

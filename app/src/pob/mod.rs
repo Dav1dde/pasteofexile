@@ -1,4 +1,5 @@
 use pob::{Keystone, PathOfBuilding, PathOfBuildingExt, Stat};
+use thousands::Separable;
 
 mod element;
 pub mod formatting;
@@ -71,6 +72,27 @@ pub fn hp_pool<T: PathOfBuilding>(pob: &T) -> u32 {
     }
 
     ehp
+}
+
+pub fn formatted_max_hit<T: PathOfBuilding>(pob: &T) -> Option<String> {
+    // TODO: this should return `Vec<Element>` and `hover` should take elements
+    // TODO: these random hex codes suck
+    let result = [
+        ("^xFFFBEBPhys Max Hit", Stat::MaxHitPhysical),
+        ("^xFB923CFire Max Hit", Stat::MaxHitFire),
+        ("^x60A5FACold Max Hit", Stat::MaxHitCold),
+        ("^xFDE047Lightning Max Hit", Stat::MaxHitLightning),
+        ("^xD946EFChaos Max Hit", Stat::MaxHitChaos),
+    ]
+    .into_iter()
+    .filter_map(|(name, stat)| {
+        let value = pob.stat_parse::<u64>(stat)?.separate_with_commas();
+        Some(format!("{name}^xCBD5E1: {value}"))
+    })
+    .collect::<Vec<_>>()
+    .join("\n");
+
+    Some(result).filter(|r| !r.is_empty())
 }
 
 #[derive(Default)]
