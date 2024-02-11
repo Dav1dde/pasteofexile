@@ -336,7 +336,7 @@ impl FromStr for PantheonMajorGod {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "BrineKing" => Self::BrineKing,
+            "TheBrineKing" => Self::BrineKing,
             "Lunaris" => Self::Lunaris,
             "Solaris" => Self::Solaris,
             "Arakaali" => Self::Arakaali,

@@ -318,3 +318,34 @@ pub fn config(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
 
     vec![element]
 }
+
+pub fn choices(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
+    let mut elements = Vec::with_capacity(2);
+
+    let bandit = pob
+        .bandit()
+        .map(|bandit| bandit.name())
+        .unwrap_or("Kill All");
+
+    Element::new("Bandit")
+        .color(AMBER_50)
+        .stat_str(Some(bandit))
+        .add_to(&mut elements);
+
+    let pantheons = [
+        pob.pantheon_major_god().map(|god| god.name()),
+        pob.pantheon_minor_god().map(|god| god.name()),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+
+    if !pantheons.is_empty() {
+        Element::new("Pantheon")
+            .color(AMBER_50)
+            .stat_str(Some(pantheons.join(", ")))
+            .add_to(&mut elements);
+    }
+
+    elements
+}

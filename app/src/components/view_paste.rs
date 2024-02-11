@@ -120,8 +120,9 @@ pub fn ViewPaste<'a, G: Html>(
     let defense = pob::summary::defense(build.pob());
     let offense = pob::summary::offense(build.pob());
     let config = pob::summary::config(build.pob());
+    let choices = pob::summary::choices(build.pob());
 
-    let summary = [core_stats, defense, offense, config]
+    let summary = [core_stats, defense, offense, config, choices]
         .into_iter()
         .map(|stat| render(cx, stat))
         .map(|stat| view! { cx, div(class="flex-row gap-x-5") { (stat) } })
