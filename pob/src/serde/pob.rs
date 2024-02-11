@@ -1,4 +1,4 @@
-use shared::{Ascendancy, Class};
+use shared::{Ascendancy, Class, PantheonMajorGod, PantheonMinorGod};
 
 use crate::serde::model::*;
 use crate::{Config, ConfigValue, Error, Keystone, Result, Stat};
@@ -101,6 +101,14 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
 
     fn ascendancy(&self) -> Option<Ascendancy> {
         self.pob.build.ascend_class_name
+    }
+
+    fn pantheon_major_god(&self) -> Option<PantheonMajorGod> {
+        self.pob.build.pantheon_major_god
+    }
+
+    fn pantheon_minor_god(&self) -> Option<PantheonMinorGod> {
+        self.pob.build.pantheon_minor_god
     }
 
     fn notes(&self) -> &str {

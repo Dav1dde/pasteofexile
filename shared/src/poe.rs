@@ -2,6 +2,17 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
+pub struct Invalid(&'static str);
+
+impl std::fmt::Display for Invalid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Invalid {}", self.0)
+    }
+}
+
+impl std::error::Error for Invalid {}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum Color {
     Red,
@@ -34,19 +45,8 @@ impl Class {
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidClass;
-
-impl std::fmt::Display for InvalidClass {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Invalid class")
-    }
-}
-
-impl std::error::Error for InvalidClass {}
-
 impl FromStr for Class {
-    type Err = InvalidClass;
+    type Err = Invalid;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
@@ -66,7 +66,7 @@ impl FromStr for Class {
             "Templar" => Self::Templar,
             "Witch" => Self::Witch,
 
-            _ => return Err(InvalidClass),
+            _ => return Err(Invalid("Class")),
         })
     }
 }
@@ -233,19 +233,8 @@ impl Ascendancy {
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidAscendancy;
-
-impl std::fmt::Display for InvalidAscendancy {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Invalid ascendancy")
-    }
-}
-
-impl std::error::Error for InvalidAscendancy {}
-
 impl FromStr for Ascendancy {
-    type Err = InvalidAscendancy;
+    type Err = Invalid;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
@@ -269,7 +258,7 @@ impl FromStr for Ascendancy {
             "Slayer" => Self::Slayer,
             "Trickster" => Self::Trickster,
 
-            _ => return Err(InvalidAscendancy),
+            _ => return Err(Invalid("Ascendancy")),
         })
     }
 }
@@ -309,19 +298,8 @@ impl From<Class> for AscendancyOrClass {
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidAscendancyOrClass;
-
-impl std::fmt::Display for InvalidAscendancyOrClass {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Invalid ascendancy or class")
-    }
-}
-
-impl std::error::Error for InvalidAscendancyOrClass {}
-
 impl FromStr for AscendancyOrClass {
-    type Err = InvalidAscendancyOrClass;
+    type Err = Invalid;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Ok(ascendancy) = s.parse() {
@@ -330,7 +308,85 @@ impl FromStr for AscendancyOrClass {
         if let Ok(class) = s.parse() {
             return Ok(Self::Class(class));
         }
-        Err(InvalidAscendancyOrClass)
+        Err(Invalid("Ascendancy or Class"))
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PantheonMajorGod {
+    BrineKing,
+    Lunaris,
+    Solaris,
+    Arakaali,
+}
+
+impl PantheonMajorGod {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::BrineKing => "Soul of the Brine King",
+            Self::Lunaris => "Soul of Lunaris",
+            Self::Solaris => "Soul of Solaris",
+            Self::Arakaali => "Sould of Arakaali",
+        }
+    }
+}
+
+impl FromStr for PantheonMajorGod {
+    type Err = Invalid;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "BrineKing" => Self::BrineKing,
+            "Lunaris" => Self::Lunaris,
+            "Solaris" => Self::Solaris,
+            "Arakaali" => Self::Arakaali,
+            _ => return Err(Invalid("Pantheon Major God")),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PantheonMinorGod {
+    Gruthkul,
+    Yugul,
+    Abberath,
+    Tukohama,
+    Garukhan,
+    Ralakesh,
+    Ryslatha,
+    Shakari,
+}
+
+impl PantheonMinorGod {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Gruthkul => "Soul of Gruthkul",
+            Self::Yugul => "Soul of Yugul",
+            Self::Abberath => "Soul of Abberath",
+            Self::Tukohama => "Soul of Tukohama",
+            Self::Garukhan => "Soul of Garukhan",
+            Self::Ralakesh => "Soul of Ralakesh",
+            Self::Ryslatha => "Soul of Ryslatha",
+            Self::Shakari => "Soul of Shakari",
+        }
+    }
+}
+
+impl FromStr for PantheonMinorGod {
+    type Err = Invalid;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "Gruthkul" => Self::Gruthkul,
+            "Lunaris" => Self::Yugul,
+            "Solaris" => Self::Abberath,
+            "Tukohama" => Self::Tukohama,
+            "Garukhan" => Self::Garukhan,
+            "Ralakesh" => Self::Ralakesh,
+            "Ryslatha" => Self::Ryslatha,
+            "Shakari" => Self::Shakari,
+            _ => return Err(Invalid("Pantheon Minor God")),
+        })
     }
 }
 

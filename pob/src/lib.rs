@@ -9,7 +9,7 @@ mod serde;
 mod stats;
 mod utils;
 
-use shared::{Ascendancy, AscendancyOrClass, Class};
+use shared::{Ascendancy, AscendancyOrClass, Class, PantheonMajorGod, PantheonMinorGod};
 
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
@@ -24,6 +24,8 @@ pub trait PathOfBuilding {
 
     fn class(&self) -> Class;
     fn ascendancy(&self) -> Option<Ascendancy>;
+    fn pantheon_major_god(&self) -> Option<PantheonMajorGod>;
+    fn pantheon_minor_god(&self) -> Option<PantheonMinorGod>;
     fn notes(&self) -> &str;
 
     fn stat(&self, stat: Stat) -> Option<&str>;

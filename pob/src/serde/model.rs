@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap, str::FromStr};
 
 use serde::{de, Deserialize, Deserializer};
-use shared::{Ascendancy, Class};
+use shared::{Ascendancy, Class, PantheonMajorGod, PantheonMinorGod};
 
 use crate::serde::utils;
 
@@ -36,18 +36,34 @@ pub(crate) struct Build {
     #[serde(rename = "$value")]
     pub stats: Vec<StatType>,
     pub main_socket_group: u8,
+    #[serde(deserialize_with = "deserialize_str_none")]
+    pub pantheon_major_god: Option<PantheonMajorGod>,
+    #[serde(deserialize_with = "deserialize_str_none")]
+    pub pantheon_minor_god: Option<PantheonMinorGod>,
 }
 
 fn deserialize_ascendancy<'de, D>(deserializer: D) -> Result<Option<Ascendancy>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let value = Option::<String>::deserialize(deserializer)?;
+    let value = Option::<Cow<'_, str>>::deserialize(deserializer)?;
     match value.as_deref() {
         Some("None") => Ok(None),
         Some(value) => Ok(Some(value.parse().map_err(|_| {
             de::Error::invalid_value(de::Unexpected::Str(value), &"a valid ascendancy name")
         })?)),
+        None => Ok(None),
+    }
+}
+
+fn deserialize_str_none<'de, D, T: FromStr>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<Cow<'_, str>>::deserialize(deserializer)?;
+    match value.as_deref() {
+        Some("None") => Ok(None),
+        Some(value) => Ok(value.parse().ok()),
         None => Ok(None),
     }
 }
