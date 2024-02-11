@@ -152,7 +152,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let nodes = create_memo(cx, move || render_nodes(cx, &current_tree.get()));
     let tree_level = create_memo(cx, move || {
         let current_tree = current_tree.get();
-        let (nodes, level) = resolve_level(&current_tree.spec);
+        let (nodes, level) = resolve_level(build, &current_tree.spec);
         let desc = format!("Level {level} ({nodes} passives)");
         view! { cx,
             a(href=current_tree.tree_url, rel="external", target="_blank",
@@ -216,7 +216,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
 }
 
-fn resolve_level(tree: &TreeSpec) -> (usize, usize) {
+fn resolve_level(build: &Build, tree: &TreeSpec) -> (usize, usize) {
     let allocated = tree.nodes.len();
 
     // TODO: needs auto-generated node information for ascendancies
@@ -244,10 +244,12 @@ fn resolve_level(tree: &TreeSpec) -> (usize, usize) {
         .map(|_| resolve_asc())
         .unwrap_or(0);
 
-    // TODO: check for bandits
-    let bandits = match allocated {
-        0..=21 => 0,
-        _ => 2,
+    let bandits = match build.bandit() {
+        Some(_) => 0,
+        None => match allocated {
+            0..=21 => 0,
+            _ => 2,
+        },
     };
 
     let quests = match allocated - asc - bandits {
