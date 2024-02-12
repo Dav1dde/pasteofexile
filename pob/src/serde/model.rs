@@ -36,11 +36,11 @@ pub(crate) struct Build {
     #[serde(rename = "$value")]
     pub stats: Vec<StatType>,
     pub main_socket_group: u8,
-    #[serde(deserialize_with = "deserialize_str_none")]
+    #[serde(default, deserialize_with = "deserialize_str_none")]
     pub bandit: Option<Bandit>,
-    #[serde(deserialize_with = "deserialize_str_none")]
+    #[serde(default, deserialize_with = "deserialize_str_none")]
     pub pantheon_major_god: Option<PantheonMajorGod>,
-    #[serde(deserialize_with = "deserialize_str_none")]
+    #[serde(default, deserialize_with = "deserialize_str_none")]
     pub pantheon_minor_god: Option<PantheonMinorGod>,
 }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PathOfBuilding>
-	<Build level="1" targetVersion="3_0" pantheonMajorGod="None" bandit="None" className="Scion" ascendClassName="None" mainSocketGroup="1" viewMode="IMPORT" pantheonMinorGod="None">
+	<Build level="1" targetVersion="3_0" className="Scion" ascendClassName="None" mainSocketGroup="1" viewMode="IMPORT">
 		<PlayerStat stat="AverageDamage" value="1.8857142857143"/>
 		<PlayerStat stat="Speed" value="1.2"/>
 		<PlayerStat stat="Speed" value="1.2"/>
