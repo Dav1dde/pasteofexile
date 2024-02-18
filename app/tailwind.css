@@ -63,7 +63,7 @@
     display: block;
     background: var(--separator) center no-repeat;
     height: 8px;
-    margin: 1px 0;
+    margin: 2px 0;
 }
 
 .dark {

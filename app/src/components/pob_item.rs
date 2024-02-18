@@ -1,3 +1,5 @@
+use std::{borrow::Cow, fmt::Display};
+
 use itertools::Itertools;
 use sycamore::prelude::*;
 
@@ -44,6 +46,21 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
             format!("Quality ({alt_quality}):"),
             format!("+{}%", item.quality),
         ))
+    } else if item.quality > 0 {
+        stats.push(render_property(
+            cx,
+            "Quality:",
+            format!("+{}%", item.quality),
+        ))
+    }
+    if item.armour > 0 {
+        stats.push(render_property(cx, "Armour:", item.armour))
+    }
+    if item.evasion > 0 {
+        stats.push(render_property(cx, "Evasion Rating:", item.evasion))
+    }
+    if item.energy_shield > 0 {
+        stats.push(render_property(cx, "Energy Shield:", item.energy_shield))
     }
 
     let mut unmet = Vec::new();
@@ -74,7 +91,7 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
                 (base)
                 (influence2)
             }
-            div(class="p-2 pt-1") {
+            div(class="p-2 pt-1 leading-tight") {
                 Mods(stats)
                 Mods(enchants)
                 Mods(implicits)
@@ -95,10 +112,18 @@ pub fn Mods<G: Html>(cx: Scope, mods: Vec<View<G>>) -> View<G> {
     view! { cx, ul { (content) } }
 }
 
-fn render_property<G: Html>(cx: Scope<'_>, key: String, value: String) -> View<G> {
+fn render_property<G: Html>(
+    cx: Scope<'_>,
+    key: impl Into<Cow<'static, str>>,
+    value: impl Display,
+) -> View<G> {
+    let key = key.into();
+    let value = value.to_string();
     view! { cx,
-        span(style="color: #7f7f7f", class="pr-1") { (key) }
-        span(style="color: #88f") { (value) }
+        li {
+            span(style="color: #7f7f7f", class="pr-1") { (key) }
+            span(style="color: #88f") { (value) }
+        }
     }
 }
 
