@@ -31,7 +31,8 @@ impl SvgTree {
             Some("3_20") | Some("3.20") => "/assets/3.20.svg",
             Some("3_21") | Some("3.21") => "/assets/3.21.svg",
             Some("3_22") | Some("3.22") => "/assets/3.22.svg",
-            _ => "/assets/3.23.svg",
+            Some("3_23") | Some("3.23") => "/assets/3.23.svg",
+            _ => "/assets/3.24.svg",
         }
     }
 
