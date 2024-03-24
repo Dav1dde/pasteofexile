@@ -73,8 +73,6 @@ where
 #[derive(Debug, Deserialize)]
 pub(crate) enum StatType {
     PlayerStat(BuildStat),
-    #[serde(rename = "FullDPSSkill")]
-    FullDpsSkill(BuildStat),
     MinionStat(BuildStat),
     #[serde(other)]
     Unknown,

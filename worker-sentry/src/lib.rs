@@ -20,7 +20,7 @@ pub use self::protocol::{
 };
 
 type SentryCell = Rc<RefCell<Sentry>>;
-thread_local!(static SENTRY: RefCell<Vec<SentryCell>> = RefCell::new(Vec::new()));
+thread_local!(static SENTRY: RefCell<Vec<SentryCell>> = const { RefCell::new(Vec::new()) });
 
 pub struct Options {
     pub project: String,

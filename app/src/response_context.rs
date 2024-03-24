@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use crate::{meta::Prefetch, Meta};
 
 thread_local! {
-    static RESPONSE_CONTEXT: RefCell<Option<ResponseContext>> = RefCell::new(None);
+    static RESPONSE_CONTEXT: RefCell<Option<ResponseContext>> = const { RefCell::new(None) };
 }
 
 macro_rules! with_ctx {
