@@ -326,7 +326,7 @@ impl PantheonMajorGod {
             Self::BrineKing => "Soul of the Brine King",
             Self::Lunaris => "Soul of Lunaris",
             Self::Solaris => "Soul of Solaris",
-            Self::Arakaali => "Sould of Arakaali",
+            Self::Arakaali => "Soul of Arakaali",
         }
     }
 }
