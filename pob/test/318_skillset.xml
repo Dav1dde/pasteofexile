@@ -518,6 +518,7 @@ Gain 7 Charges when you are Hit by an Enemy
 	<Skills activeSkillSet="1" matchGemLevelToCharacterLevel="false" sortGemsByDPS="true" sortGemsByDPSField="CombinedDPS" defaultGemLevel="20" showAltQualityGems="false" defaultGemQuality="20" showSupportGemTypes="ALL">
 		<SkillSet id="1" title="Arc SS">
 			<Skill includeInFullDPS="false" groupCount="nil" skillSet="nil" label="" mainActiveSkill="1" enabled="true" mainActiveSkillCalcs="1">
+				<Gem enableGlobal2="false" level="20" enableGlobal1="true" skillId="PoisonousConcoction" qualityId="Default" skillPart="2" gemId="Metadata/Items/Gems/SkillGemPoisonousConcoction" quality="20" enabled="false" skillPartCalcs="1" count="7" nameSpec="Poisonous Concoction" skillMinion="SummonedPhantasm"/>
 				<Gem skillMinionCalcs="AbsolutionTemplarJudge" gemId="Metadata/Items/Gems/SkillGemArc" skillMinion="SummonedPhantasm" enableGlobal1="true" level="20" qualityId="Default" count="1" skillMinionSkillCalcs="1" skillMinionSkill="1" enabled="true" skillId="Arc" quality="20" nameSpec="Arc" enableGlobal2="false"/>
 				<Gem gemId="Metadata/Items/Gems/SupportGemArcaneSurge" enableGlobal1="true" level="20" qualityId="Default" count="1" enabled="true" skillId="SupportArcaneSurge" quality="20" nameSpec="Arcane Surge" enableGlobal2="false"/>
 			</Skill>

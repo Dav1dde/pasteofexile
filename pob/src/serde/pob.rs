@@ -316,7 +316,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
 
 /// Returns an iterator of active skills as PoB sees it.
 fn active_skill_names(gems: &[Gem]) -> impl Iterator<Item = &str> {
-    gems.iter().flat_map(|gem| {
+    gems.iter().filter(|gem| gem.enabled).flat_map(|gem| {
         let active = gem.is_active().then_some(gem.name.as_str());
         // all vaal gems are implicitly also active
         let vaal = gem.is_vaal().then(|| gem.non_vaal_name());
