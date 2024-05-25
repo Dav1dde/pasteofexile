@@ -66,7 +66,11 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let select = match show_select {
         true => {
-            view! { cx, PobColoredSelect(options=options, selected=selected, label="Select skill set", on_change=on_change) }
+            view! { cx,
+                div(class="-mb-5") {
+                    PobColoredSelect(options=options, selected=selected, label="Select skill set", on_change=on_change)
+                }
+            }
         }
         false => View::default(),
     };
@@ -75,7 +79,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         (select)
 
         Popup(attach=attach, parent=None) { (&*popup.get()) }
-        div(class="columns-2xs gap-5 sm:ml-3 leading-[1.35rem]") {
+        div(class="columns-2xs gap-5 sm:ml-3 mt-5 leading-[1.35rem]") {
             div(on:mouseover=mouseover, on:mouseout=mouseout) { (&*content.get()) }
         }
     }
