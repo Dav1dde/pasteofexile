@@ -35,7 +35,7 @@ opt-level = 'z'
 sycamore = { git = "https://github.com/Dav1dde/sycamore.git", rev = "3f6320b", package = "sycamore", features = ["suspense", "hydrate"] }
 sycamore-router = { git = "https://github.com/Dav1dde/sycamore.git", rev = "3f6320b", package = "sycamore-router" }
 
-worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "7cd3674", package = "worker" }
+worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "cef50d2", package = "worker" }
 poe-api = { git = "https://github.com/Dav1dde/poe-rs/", rev = "619a8b3", default-features = false }
 
 js-sys = "0.3"
