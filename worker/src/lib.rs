@@ -29,7 +29,7 @@ mod app_metadata {
 }
 
 use request_context::RequestContext;
-use utils::CacheControl;
+use utils::{CacheControl, RequestExt};
 
 pub use self::error::{Error, ErrorResponse, Result};
 pub use self::response::Response;
@@ -96,9 +96,29 @@ async fn cached(rctx: &mut RequestContext) -> Response {
         .tag("status", "miss")
         .tag("transaction", rctx.transaction());
 
-    let response = handle(rctx).await;
+    let response = cors(rctx).await;
 
     cache_entry.store(response).await
+}
+
+async fn cors(rctx: &mut RequestContext) -> Response {
+    let response = handle(rctx).await;
+
+    let matches = |allowed: &[&str]| {
+        let origin = rctx.header("Origin");
+        origin.filter(|origin| allowed.contains(&origin.as_str()))
+    };
+
+    use route::{Api::*, GetEndpoints::*, Route::*};
+    let origin = match rctx.route() {
+        Api(Get(PobPaste(_) | PobUserPaste(_, _))) => matches(consts::CORS_POB_API),
+        _ => None,
+    };
+
+    response.append_header(
+        "Access-Control-Allow-Origin",
+        origin.as_deref().unwrap_or(""),
+    )
 }
 
 #[tracing::instrument(skip_all)]

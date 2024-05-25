@@ -104,6 +104,12 @@ impl ClassSet {
     }
 }
 
+impl Default for ClassSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl std::fmt::Debug for ClassSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ClassSet(")?;
