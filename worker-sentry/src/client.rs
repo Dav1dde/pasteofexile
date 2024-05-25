@@ -117,9 +117,9 @@ impl Sentry {
 
         transaction.timestamp = Some(protocol::Timestamp::now());
         transaction.release = Some(git_version!().into());
-        transaction.request = self.request.clone();
-        transaction.user = self.user.clone();
-        transaction.breadcrumbs = self.breadcrumbs.clone();
+        transaction.request.clone_from(&self.request);
+        transaction.user.clone_from(&self.user);
+        transaction.breadcrumbs.clone_from(&self.breadcrumbs);
         transaction
             .contexts
             .insert("trace".into(), protocol::Context::Trace(trace_context));
@@ -150,11 +150,11 @@ impl Sentry {
             .as_ref()
             .and_then(|t| t.0.name.to_owned())
             .map(Into::into);
-        event.breadcrumbs = self.breadcrumbs.clone();
+        event.breadcrumbs.clone_from(&self.breadcrumbs);
         event.release = Some(git_version!().into());
         event.server_name = server_name;
-        event.request = self.request.clone();
-        event.user = self.user.clone();
+        event.request.clone_from(&self.request);
+        event.user.clone_from(&self.user);
 
         let tc = self
             .trace_context

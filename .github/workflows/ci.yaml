@@ -2,49 +2,39 @@ on: [workflow_dispatch, push, pull_request]
 
 name: CI
 
+env:
+  nightly: nightly
+
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: Swatinem/rust-cache@v1
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install stable --profile minimal --no-self-update
+      - uses: Swatinem/rust-cache@v2
       - run: mkdir app/dist && touch app/dist/index.html
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features
+      - name: Test
+        run: cargo test --all-features
 
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: rustfmt
-          override: true
-      - run: cargo +nightly fmt --all -- --check
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install ${{ env.nightly }} --profile minimal --component rustfmt --no-self-update
+      - name: Rustfmt
+        run: cargo +nightly fmt --all -- --check
+
 
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: clippy
-          override: true
-      - uses: Swatinem/rust-cache@v1
+      - uses: actions/checkout@v4
+      - name: Install Rust Toolchain
+        run: rustup toolchain install stable --profile minimal --component clippy --no-self-update
+      - uses: Swatinem/rust-cache@v2
       - run: mkdir app/dist && touch app/dist/index.html
-      - run: cargo clippy --all-features -- -D warnings
-
+      - name: Clippy
+        run: cargo clippy --all-features -- -D warnings

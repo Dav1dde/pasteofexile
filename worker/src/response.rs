@@ -90,8 +90,8 @@ impl PartialMeta for &StoredPaste {
             return;
         };
         meta.ascendancy_or_class = Some(this.ascendancy_or_class);
-        meta.main_skill_name = this.main_skill_name.clone();
-        meta.version = this.version.clone();
+        meta.main_skill_name.clone_from(&this.main_skill_name);
+        meta.version.clone_from(&this.version);
         meta.last_modified = Some(self.last_modified);
     }
 }
@@ -114,8 +114,8 @@ impl PartialMeta for &shared::model::Paste {
             return;
         };
         meta.ascendancy_or_class = Some(this.ascendancy_or_class);
-        meta.main_skill_name = this.main_skill_name.clone();
-        meta.version = this.version.clone();
+        meta.main_skill_name.clone_from(&this.main_skill_name);
+        meta.version.clone_from(&this.version);
         meta.last_modified = Some(self.last_modified);
     }
 }

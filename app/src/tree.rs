@@ -1,3 +1,4 @@
+#![allow(clippy::empty_docs)] // Clippy bug
 use js_sys::{Array, Object, Uint32Array};
 use pob::TreeSpec;
 use sycamore::prelude::{GenericNode, NodeRef};

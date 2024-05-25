@@ -19,9 +19,7 @@ pub fn serialize_id<S: serde::Serializer>(
 }
 
 pub mod ts_rfc3339 {
-    use std::fmt;
-
-    use serde::{de, ser};
+    use serde::ser;
 
     use super::*;
 
@@ -38,25 +36,6 @@ pub mod ts_rfc3339 {
             None => Err(ser::Error::custom(format!(
                 "invalid `Timestamp` instance: {st:?}"
             ))),
-        }
-    }
-
-    pub(super) struct Rfc3339Deserializer;
-
-    impl<'de> de::Visitor<'de> for Rfc3339Deserializer {
-        type Value = Timestamp;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            write!(formatter, "an RFC3339 timestamp")
-        }
-
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            let dt = OffsetDateTime::parse(v, &Rfc3339).map_err(|e| E::custom(format!("{e}")))?;
-            let secs = u64::try_from(dt.unix_timestamp()).map_err(|e| E::custom(format!("{e}")))?;
-            Ok(Timestamp::from_secs(secs))
         }
     }
 }

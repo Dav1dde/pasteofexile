@@ -49,9 +49,9 @@ impl Dangerous {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn sign<T: Serialize>(&self, data: &T) -> Result<String>
+    pub async fn sign<T>(&self, data: &T) -> Result<String>
     where
-        T: std::fmt::Debug,
+        T: Serialize + std::fmt::Debug,
     {
         let mut payload = serde_json::to_vec(data).map_err(|_| DangerousError::Serialize)?;
 
