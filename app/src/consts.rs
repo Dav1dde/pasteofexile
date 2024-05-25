@@ -23,3 +23,5 @@ pub const LINK_WHITELIST: [&str; 13] = [
 ];
 
 pub const POE_WIKI: &str = "https://www.poewiki.net/wiki/";
+
+pub const SELF_URL: &str = "https://pobb.in";

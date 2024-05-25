@@ -8,7 +8,7 @@ use super::PobGearPreview;
 use crate::{
     build::Build,
     components::{PobColoredText, PobGems, PobTreePreview},
-    consts::IMG_ONERROR_HIDDEN,
+    consts::{IMG_ONERROR_HIDDEN, SELF_URL},
     pob::{self, Element},
     storage::Storage,
     utils::{async_callback, document, from_ref, view_cond, IteratorExt},
@@ -60,6 +60,7 @@ pub fn ViewPaste<'a, G: Html>(
     let date = js_sys::Date::new(&JsValue::from_f64(last_modified as f64)).to_string();
 
     let open_in_pob_url = id.to_pob_open_url();
+    let pob_cool_url = format!("https://pob.cool/#build={SELF_URL}{}", id.to_url());
 
     let notes = view_cond!(cx, !build.notes().is_empty(), {
         div(class="flex-auto") {
@@ -159,13 +160,19 @@ pub fn ViewPaste<'a, G: Html>(
                 ) {
                     (build.content)
                 }
-                div(class="text-right") {
+                div(class="flex gap-3 self-end") {
                     button(
                         on:click=copy_to_clipboard,
                         disabled=*btn_copy_disabled.get(),
                         title="Copy to Clipboard",
-                        class="hover:underline hover:cursor-pointer px-6 py-2 text-sm disabled:cursor-not-allowed inline-flex"
+                        class="hover:underline hover:cursor-pointer px-3 py-2 text-sm disabled:cursor-not-allowed inline-flex"
                     ) { (btn_copy_name.get()) }
+                    a(
+                        href=pob_cool_url,
+                        target="_blank",
+                        title="Open in web PoB on pob.cool",
+                        class="btn btn-primary"
+                    ) { "Web" }
                     a(
                         href=open_in_pob_url,
                         title="Open build in Path of Building, requires up to date PoB",
