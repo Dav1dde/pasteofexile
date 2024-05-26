@@ -109,16 +109,20 @@ async fn cors(rctx: &mut RequestContext) -> Response {
         origin.filter(|origin| allowed.contains(&origin.as_str()))
     };
 
-    use route::{Api::*, GetEndpoints::*, Route::*};
+    use route::{Api::*, GetEndpoints::*, PostEndpoints::*, Route::*};
     let origin = match rctx.route() {
         Api(Get(PobPaste(_) | PobUserPaste(_, _))) => matches(consts::CORS_POB_API),
+        Api(Post(PobUpload)) => matches(consts::CORS_POB_API),
         _ => None,
     };
 
-    response.append_header(
-        "Access-Control-Allow-Origin",
-        origin.as_deref().unwrap_or(""),
-    )
+    if let Some(origin) = origin {
+        response
+            .append_header("Access-Control-Allow-Origin", &origin)
+            .append_header("Vary", "Origin")
+    } else {
+        response
+    }
 }
 
 #[tracing::instrument(skip_all)]
