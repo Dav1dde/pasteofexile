@@ -7,7 +7,7 @@ use web_sys::{Event, HtmlElement};
 
 use crate::{
     build::Build,
-    components::{PobColoredSelect, PobItem, Popup, TreeNode},
+    components::{PobColoredSelect, PobItem, Popup, StaticPopup, TreeNode},
     consts,
     tree::SvgTree,
     utils::{hooks::scoped_event_passive, IteratorExt},
@@ -203,9 +203,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
                 ) {}
             }
 
-            div(class="col-span-10 lg:col-span-3 flex flex-col gap-3 h-full relative") {
+            div(class="col-span-10 lg:col-span-3 flex flex-col gap-3 h-full") {
                 div(
-                    class="flex flex-col gap-3 md:gap-6 h-full w-full lg:absolute overflow-y-auto cursor-default",
+                    class="flex flex-col gap-3 md:gap-6 h-full w-full overflow-y-auto cursor-default",
                     on:mouseover=on_mouseover_side,
                     on:mouseout=on_mouseout_side,
                 ) {
@@ -359,12 +359,20 @@ fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<
 
     let node_ids = node_ids(&node.stats);
 
+    let stats = view! { cx,
+        div(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-4 text-sm whitespace-pre-line") {
+            (stats)
+        }
+    };
+
     view! { cx,
-        div(class="bg-slate-900 rounded-xl px-4 py-3", title=stats) {
-            div(class="text-stone-200 text-sm md:text-base flex items-center gap-2", data-node-id=node_ids) {
-                img(class="pointer-events-none rounded-xl w-7 h-7",
-                    src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
-                span(class="pointer-events-none") { (name) }
+        div(class="bg-slate-900 rounded-xl px-4 py-3") {
+            StaticPopup(content=stats) {
+                div(class="text-stone-200 text-sm md:text-base flex items-center gap-2", data-node-id=node_ids) {
+                    img(class="pointer-events-none rounded-xl w-7 h-7",
+                        src=src, alt=alt, onerror=consts::IMG_ONERROR_HIDDEN, loading="lazy") {}
+                    span(class="pointer-events-none") { (name) }
+                }
             }
         }
     }
