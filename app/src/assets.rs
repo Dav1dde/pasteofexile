@@ -37,6 +37,8 @@ pub fn ascendancy_image(ascendancy_or_class: AscendancyOrClass) -> &'static str 
         AscendancyOrClass::Ascendancy(Ascendancy::Occultist) => Int_Occultist,
         AscendancyOrClass::Ascendancy(Ascendancy::Pathfinder) => Dex_Pathfinder,
         AscendancyOrClass::Ascendancy(Ascendancy::Raider) => Dex_Raider,
+        // No new asset for Warden yet.
+        AscendancyOrClass::Ascendancy(Ascendancy::Warden) => Dex_Raider,
         AscendancyOrClass::Ascendancy(Ascendancy::Saboteur) => DexInt_Saboteur,
         AscendancyOrClass::Ascendancy(Ascendancy::Slayer) => StrDex_Slayer,
         AscendancyOrClass::Ascendancy(Ascendancy::Trickster) => DexInt_Trickster
