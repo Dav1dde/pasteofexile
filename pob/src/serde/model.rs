@@ -498,6 +498,22 @@ impl<'de> de::Deserialize<'de> for Gear {
 #[derive(Default, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Config {
+    // With loadout support
+    pub active_config_set: Option<String>,
+    #[serde(default, rename = "ConfigSet")]
+    pub config_sets: Vec<ConfigSet>,
+
+    // Pre loadout patch
+    #[serde(default, rename = "Input")]
+    pub input: Vec<Input>,
+}
+
+#[derive(Default, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ConfigSet {
+    // For loadout support.
+    pub id: Option<String>,
+
     #[serde(default, rename = "Input")]
     pub input: Vec<Input>,
 }

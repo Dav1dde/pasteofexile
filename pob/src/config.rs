@@ -75,6 +75,7 @@ impl PartialEq<Config> for String {
     }
 }
 
+#[derive(Debug)]
 pub enum ConfigValue<'a> {
     String(&'a str),
     Number(f32),

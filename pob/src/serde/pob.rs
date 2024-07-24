@@ -140,9 +140,22 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     }
 
     fn config(&self, config: Config) -> ConfigValue {
-        self.pob
+        let input = self
+            .pob
             .config
-            .input
+            .active_config_set
+            .as_deref()
+            .and_then(|id| {
+                self.pob
+                    .config
+                    .config_sets
+                    .iter()
+                    .find(|cs| cs.id.as_deref() == Some(id))
+            })
+            .map(|cs| &cs.input)
+            .unwrap_or(&self.pob.config.input);
+
+        input
             .iter()
             .find(|x| config == x.name)
             .map(|stat| {
@@ -398,6 +411,7 @@ mod tests {
     static V319_MASTERY_EFFECTS: &str = include_str!("../../test/319_mastery_effects.xml");
     static V320_IMPENDING_DOOM: &str = include_str!("../../test/320_impending_doom.xml");
     static V322_OVERRIDES: &str = include_str!("../../test/322_overrides.xml");
+    static V325_LOADOUTS: &str = include_str!("../../test/325_loadouts.xml");
 
     #[test]
     fn parse_v316_empty() {
@@ -414,7 +428,6 @@ mod tests {
         assert_eq!(Some(3), pob.stat_parse(Stat::EnduranceChargesMax));
         assert_eq!(None, pob.stat_parse::<u8>(Stat::AverageDamage));
         assert_eq!(Some("3.16".to_owned()), pob.max_tree_version());
-        // TODO: test configs
     }
 
     #[test]
@@ -457,7 +470,7 @@ mod tests {
         assert_eq!(None, pob.item_sets()[0].title);
         assert_eq!(Some("Perfect Gear"), pob.item_sets()[1].title);
 
-        // TODO: test configs
+        assert_eq!(pob.config(Config::Boss).string(), Some("Sirus"));
     }
 
     #[test]
@@ -526,5 +539,11 @@ mod tests {
             .unwrap();
         assert_eq!(wise.node_id, 50197);
         assert_eq!(wise.effect, "+1\n\t\t\t\t\tLimited to 1");
+    }
+
+    #[test]
+    fn parse_v325_loadouts() {
+        let pob = SerdePathOfBuilding::from_xml(V325_LOADOUTS).unwrap();
+        assert!(pob.config(Config::PowerCharges).is_true());
     }
 }
