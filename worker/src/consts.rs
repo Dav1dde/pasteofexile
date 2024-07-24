@@ -27,3 +27,4 @@ pub const CACHE_A_BIT: Duration = Duration::from_secs(21600); // 6 Hours
 pub const CACHE_FOREVER: Duration = Duration::from_secs(31536000);
 
 pub const CORS_POB_API: &[&str] = &["https://pob.cool"];
+pub const CORS_READ_API: &[&str] = &["https://pobarchives.com"];

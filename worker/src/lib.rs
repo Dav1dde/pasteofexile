@@ -113,6 +113,7 @@ async fn cors(rctx: &mut RequestContext) -> Response {
     let origin = match rctx.route() {
         Api(Get(PobPaste(_) | PobUserPaste(_, _))) => matches(consts::CORS_POB_API),
         Api(Post(PobUpload)) => matches(consts::CORS_POB_API),
+        Api(Get(Paste(_) | UserPaste(_, _))) => matches(consts::CORS_READ_API),
         _ => None,
     };
 
