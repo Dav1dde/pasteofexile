@@ -5,6 +5,9 @@ authors.workspace = true
 edition.workspace = true
 build = "build/build.rs"
 
+[lints]
+workspace = true
+
 [features]
 
 [dependencies]

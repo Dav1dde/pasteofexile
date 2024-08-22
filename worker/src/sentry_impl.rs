@@ -33,7 +33,7 @@ impl sentry::Transport for Transport {
                             "failed to send envelope: {:?}",
                             response.status_code()
                         );
-                        if cfg!(feature = "debug") {
+                        if cfg!(pobbin_develop) {
                             worker::console_log!(
                                 "response: {}",
                                 response.text().await.unwrap_or_default()

@@ -114,25 +114,6 @@ impl<'a> From<Transaction<'a>> for Envelope<'a> {
     }
 }
 
-#[derive(Serialize)]
-pub struct Store<'a> {
-    pub logger: &'a str,
-    pub platform: &'a str,
-    pub level: &'a str,
-    // extra: Option<HashMap<&'a str, >,
-    // exception: &'a Exception,
-    // request: &'a Request,
-    pub user: &'a User,
-    pub server_name: &'a str,
-    pub release: &'a str,
-    pub transaction: &'a str,
-}
-
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
-pub struct Exceptions {
-    values: Vec<Exception>,
-}
-
 #[derive(Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct Exception {
     /// The type of the exception.

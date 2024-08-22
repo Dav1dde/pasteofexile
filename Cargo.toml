@@ -16,6 +16,9 @@ version = "0.1.0"
 authors = ["David Herberth <github@dav1d.de>"]
 edition = "2021"
 
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(pobbin_develop)'] }
+
 [profile.release]
 panic = 'abort'
 codegen-units = 1
