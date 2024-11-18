@@ -31,7 +31,7 @@ pub struct PasteList<'a> {
     max_size: Option<usize>,
 }
 
-impl<'a> PasteList<'a> {
+impl PasteList<'_> {
     pub fn add(&self, summary: PasteSummary) {
         let mut entries = self.get_all();
 

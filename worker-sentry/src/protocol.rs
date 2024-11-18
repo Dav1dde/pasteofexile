@@ -425,7 +425,7 @@ pub struct Transaction<'a> {
     pub breadcrumbs: Vec<Breadcrumb>,
 }
 
-impl<'a> Default for Transaction<'a> {
+impl Default for Transaction<'_> {
     fn default() -> Self {
         Self {
             event_id: uuid::Builder::from_random_bytes(crate::js::get_random_values()).into_uuid(),
@@ -521,7 +521,7 @@ pub struct Event<'a> {
     pub extra: Map<String, Value>,
 }
 
-impl<'a> Default for Event<'a> {
+impl Default for Event<'_> {
     fn default() -> Self {
         Self {
             event_id: uuid::Builder::from_random_bytes(crate::js::get_random_values()).into_uuid(),

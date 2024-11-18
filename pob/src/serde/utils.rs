@@ -56,7 +56,7 @@ where
 
     struct Visitor<T>(PhantomData<T>);
 
-    impl<'de, T> de::Visitor<'de> for Visitor<T>
+    impl<T> de::Visitor<'_> for Visitor<T>
     where
         T: FromStr,
         T::Err: fmt::Display,
@@ -94,7 +94,7 @@ where
         _phantom: PhantomData<(K, V)>,
     }
 
-    impl<'de, K, V> de::Visitor<'de> for Visitor<K, V>
+    impl<K, V> de::Visitor<'_> for Visitor<K, V>
     where
         K: FromStr,
         K::Err: std::error::Error,

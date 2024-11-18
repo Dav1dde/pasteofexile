@@ -23,7 +23,7 @@ struct Tree<'build> {
     overrides: Vec<Override<'build>>,
 }
 
-impl<'build> Tree<'build> {
+impl Tree<'_> {
     fn socket(&self, id: u32) -> Option<&Socket> {
         self.spec.sockets.iter().find(|socket| socket.node_id == id)
     }

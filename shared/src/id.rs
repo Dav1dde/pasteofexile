@@ -109,7 +109,7 @@ impl UserPasteId {
             .join("api")
             .join("internal")
             .join("paste")
-            .join(UrlSafe::new(&*self.user).push(":").push(&*self.id))
+            .join(UrlSafe::new(&self.user).push(":").push(&*self.id))
     }
 
     pub fn to_paste_edit_url(&self) -> UrlSafe<'static> {
@@ -128,7 +128,7 @@ impl UserPasteId {
         // TODO: maybe get rid of this format?
         UrlSafe::SLASH
             .join("pob")
-            .join(UrlSafe::new(&*self.user).push(":").push(&*self.id))
+            .join(UrlSafe::new(&self.user).push(":").push(&*self.id))
     }
 
     pub fn to_pob_long_load_url(&self) -> UrlSafe<'static> {

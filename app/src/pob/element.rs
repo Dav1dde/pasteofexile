@@ -343,7 +343,7 @@ impl<'a, G: Html> ViewRenderer<'a, G> {
     }
 }
 
-impl<'a, G: Html> Renderer for ViewRenderer<'a, G> {
+impl<G: Html> Renderer for ViewRenderer<'_, G> {
     type Output = View<G>;
 
     fn push<T>(&mut self, fragment: T)

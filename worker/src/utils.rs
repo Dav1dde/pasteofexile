@@ -163,7 +163,7 @@ impl<'a> Etag<'a> {
     }
 }
 
-impl<'a> fmt::Display for Etag<'a> {
+impl fmt::Display for Etag<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.weak {
             write!(f, "W/")?;

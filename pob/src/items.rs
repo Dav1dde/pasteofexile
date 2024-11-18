@@ -370,7 +370,7 @@ impl<'a> Iterator for ModLines<'a> {
     }
 }
 
-impl<'a> FusedIterator for ModLines<'a> {}
+impl FusedIterator for ModLines<'_> {}
 
 /// Reads the next `num` lines from the `lines` iterator and returns
 /// a continuous str slice of the iterated range.
@@ -453,7 +453,7 @@ fn fixup_item_name(mut name: &str) -> &str {
     // PoB generates Legion Jewels with `[Seed]` at the end:
     // Burtal Restraint [...] -> Brutal Restraint
     let end = name.find('[').unwrap_or(name.len());
-    return name[..end].trim();
+    name[..end].trim()
 }
 
 fn extract_magic_base(base: &str, num_mods: usize) -> &str {
