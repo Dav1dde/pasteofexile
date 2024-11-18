@@ -2,7 +2,7 @@ use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
 use shared::{
     model::{Paste, PasteSummary},
-    PasteId, UserPasteId,
+    PasteId, User, UserPasteId,
 };
 
 use crate::{Error, Result};
@@ -48,7 +48,7 @@ pub async fn get_paste(id: &PasteId) -> Result<Paste> {
     let _in_flight = crate::progress::start_request();
     let path = id.to_json_url();
 
-    let resp = Request::get(&path).send().await?;
+    let resp = Request::get(&path.into_cow()).send().await?;
 
     if resp.status() == 404 {
         return Err(Error::NotFound("paste", id.to_string()));
@@ -63,7 +63,7 @@ pub async fn get_paste(id: &PasteId) -> Result<Paste> {
 
 pub async fn delete_paste(id: &UserPasteId) -> Result<()> {
     let _in_flight = crate::progress::start_request();
-    let resp = Request::delete(&format!("/api/internal/paste/{id}"))
+    let resp = Request::delete(&id.to_paste_api_url().into_cow())
         .send()
         .await?;
 
@@ -74,11 +74,9 @@ pub async fn delete_paste(id: &UserPasteId) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_user(user: &str) -> Result<Vec<PasteSummary>> {
+pub async fn get_user(user: &User) -> Result<Vec<PasteSummary>> {
     let _in_flight = crate::progress::start_request();
-    let resp = Request::get(&format!("/api/internal/user/{user}"))
-        .send()
-        .await?;
+    let resp = Request::get(&user.to_api_url().into_cow()).send().await?;
 
     if resp.status() == 404 {
         return Err(Error::NotFound("user", user.to_string()));

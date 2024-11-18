@@ -3,6 +3,8 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
+use crate::UrlSafe;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct User(String);
@@ -20,6 +22,20 @@ impl User {
     /// returns a normalized version of the username (lowercase).
     pub fn normalized(&self) -> Self {
         Self(self.0.to_lowercase())
+    }
+
+    /// Returns the URL to the user API.
+    pub fn to_api_url(&self) -> UrlSafe<'static> {
+        UrlSafe::SLASH
+            .join("api")
+            .join("internal")
+            .join("user")
+            .join(&*self.0)
+    }
+
+    /// Returns the URL to the frontend user page.
+    pub fn to_url(&self) -> UrlSafe<'static> {
+        UrlSafe::SLASH.join("u").join(&*self.0)
     }
 }
 

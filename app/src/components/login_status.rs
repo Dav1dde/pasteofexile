@@ -22,7 +22,7 @@ pub fn LoginStatus<G: Html>(cx: Scope) -> View<G> {
             }
             Session::LoggedIn(user) => {
                 let name = user.name.clone();
-                let href = format!("/u/{name}");
+                let href = user.name.to_url();
 
                 view! { cx,
                     div(class="flex gap-x-2 items-center") {

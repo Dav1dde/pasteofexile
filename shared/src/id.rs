@@ -2,8 +2,16 @@ use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
+use crate::UrlSafe;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Id(String);
+
+impl Id {
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
 
 impl std::ops::Deref for Id {
     type Target = str;
@@ -84,41 +92,60 @@ pub struct UserPasteId {
 }
 
 impl UserPasteId {
-    pub fn to_user_url(&self) -> String {
-        format!("/u/{}", self.user)
+    pub fn to_user_api_url(&self) -> UrlSafe<'static> {
+        self.user.to_api_url()
     }
 
-    pub fn to_user_api_url(&self) -> String {
-        format!("/api/internal/user/{}", self.user)
+    pub fn to_user_url(&self) -> UrlSafe<'static> {
+        self.user.to_url()
     }
 
-    pub fn to_paste_url(&self) -> String {
-        format!("/u/{}/{}", self.user, self.id)
+    pub fn to_paste_url(&self) -> UrlSafe<'static> {
+        UrlSafe::SLASH.join("u").join(&*self.user).join(&*self.id)
     }
 
-    pub fn to_paste_edit_url(&self) -> String {
-        format!("/u/{}/{}/edit", self.user, self.id)
+    pub fn to_paste_api_url(&self) -> UrlSafe<'static> {
+        UrlSafe::SLASH
+            .join("api")
+            .join("internal")
+            .join("paste")
+            .join(UrlSafe::new(&*self.user).push(":").push(&*self.id))
     }
 
-    pub fn to_raw_url(&self) -> String {
-        format!("/u/{}/{}/raw", self.user, self.id)
+    pub fn to_paste_edit_url(&self) -> UrlSafe<'static> {
+        self.to_paste_url().join("edit")
     }
 
-    pub fn to_json_url(&self) -> String {
-        format!("/u/{}/{}/json", self.user, self.id)
+    pub fn to_raw_url(&self) -> UrlSafe<'static> {
+        self.to_paste_url().join("raw")
     }
 
-    pub fn to_pob_load_url(&self) -> String {
+    pub fn to_json_url(&self) -> UrlSafe<'static> {
+        self.to_paste_url().join("json")
+    }
+
+    pub fn to_pob_load_url(&self) -> UrlSafe<'static> {
         // TODO: maybe get rid of this format?
-        format!("/pob/{}:{}", self.user, self.id)
+        UrlSafe::SLASH
+            .join("pob")
+            .join(UrlSafe::new(&*self.user).push(":").push(&*self.id))
     }
 
-    pub fn to_pob_long_load_url(&self) -> String {
-        format!("/pob/u/{}/{}", self.user, self.id)
+    pub fn to_pob_long_load_url(&self) -> UrlSafe<'static> {
+        UrlSafe::SLASH
+            .join("pob")
+            .join("u")
+            .join(&*self.user)
+            .join(&*self.id)
     }
 
-    pub fn to_pob_open_url(&self) -> String {
-        format!("pob://pobbin/{}:{}", self.user, self.id)
+    pub fn to_pob_open_url(&self) -> UrlSafe<'static> {
+        // ("pob").join("u").join(&*self.user).join(&*self.id)
+        // format!("pob://pobbin/{}:{}", self.user, self.id)
+        UrlSafe::from_static("pob://pobbin/")
+            .join(&*self.user)
+            .push(":")
+            .join(&*self.id)
     }
 }
 
@@ -149,41 +176,37 @@ impl PasteId {
         }
     }
 
-    pub fn to_url(&self) -> String {
+    pub fn to_url(&self) -> UrlSafe<'static> {
         match self {
-            Self::Paste(id) => format!("/{id}"),
+            Self::Paste(id) => UrlSafe::SLASH.join(id.as_str()),
             Self::UserPaste(up) => up.to_paste_url(),
         }
     }
 
-    pub fn to_raw_url(&self) -> String {
+    pub fn to_raw_url(&self) -> UrlSafe<'static> {
         match self {
-            // TODO: use Display here?
-            Self::Paste(id) => format!("/{id}/raw"),
+            Self::Paste(id) => UrlSafe::SLASH.join(id.as_str()).join("raw"),
             Self::UserPaste(up) => up.to_raw_url(),
         }
     }
 
-    pub fn to_json_url(&self) -> String {
+    pub fn to_json_url(&self) -> UrlSafe<'static> {
         match self {
-            // TODO: use Display here?
-            Self::Paste(id) => format!("/{id}/json"),
+            Self::Paste(id) => UrlSafe::SLASH.join(id.as_str()).join("json"),
             Self::UserPaste(up) => up.to_json_url(),
         }
     }
 
-    pub fn to_pob_load_url(&self) -> String {
-        // TODO: maybe this is just `format!("/pob/{}", self)
+    pub fn to_pob_load_url(&self) -> UrlSafe<'static> {
         match self {
-            Self::Paste(id) => format!("/pob/{id}"),
+            Self::Paste(id) => UrlSafe::SLASH.join("pob").join(id.as_str()),
             Self::UserPaste(up) => up.to_pob_load_url(),
         }
     }
 
-    pub fn to_pob_open_url(&self) -> String {
+    pub fn to_pob_open_url(&self) -> UrlSafe<'static> {
         match self {
-            // TODO: use Display here?
-            Self::Paste(id) => format!("pob://pobbin/{id}"),
+            Self::Paste(id) => UrlSafe::from_static("pob://pobbin/").join(id.as_str()),
             Self::UserPaste(up) => up.to_pob_open_url(),
         }
     }

@@ -49,7 +49,7 @@ pub fn PasteToolbox<'a, G: Html>(
         cx,
         is_current_user,
         {
-            let edit_href = id.to_paste_edit_url();
+            let edit_href = id.to_paste_edit_url().into_cow();
             let on_edit = move |ev: web_sys::Event| {
                 sycamore_router::navigate(&edit_href);
                 ev.stop_propagation();

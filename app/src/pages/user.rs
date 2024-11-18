@@ -115,7 +115,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     summary: &'a PasteSummary,
     on_delete: &'a Signal<bool>,
 ) -> View<G> {
-    let url = create_ref(cx, summary.to_url());
+    let url = create_ref(cx, summary.to_url().into_cow());
     let image = crate::assets::ascendancy_image(summary.ascendancy_or_class);
     let color = crate::meta::get_color(summary.ascendancy_or_class);
 

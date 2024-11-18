@@ -160,7 +160,7 @@ pub fn CreatePaste<G: Html>(cx: Scope, props: CreatePasteProps) -> View<G> {
                     tracing::info!("{:?}", err);
                 }
                 Ok(id) => {
-                    sycamore_router::navigate(&id.to_url());
+                    sycamore_router::navigate(&id.to_url().into_cow());
                 }
             };
         };

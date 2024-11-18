@@ -128,7 +128,7 @@ pub(crate) async fn on_paste_change_async(mut url: url::Url, id: PasteId) {
 
     macro_rules! clear {
         ($e:expr) => {{
-            let r = format!("{prefix}{}", $e.trim_start_matches('/'));
+            let r = format!("{prefix}{}", $e.into_cow().trim_start_matches('/'));
             let _ = cache_default.delete(&r, true).await;
             let _ = cache_owned.delete(&r, true).await;
         }};

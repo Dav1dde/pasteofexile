@@ -114,7 +114,7 @@ fn UserPastePageComponent<G: Html>(
     }: UserPastePage,
 ) -> View<G> {
     let build = create_ref(cx, build);
-    let back_to_user = create_ref(cx, id.to_user_url());
+    let back_to_user = create_ref(cx, id.to_user_url().into_cow());
     let deleted = create_signal(cx, false);
 
     let data = serialize_for_attribute::<G>(build.data());

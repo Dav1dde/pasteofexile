@@ -2,7 +2,7 @@ use std::num::NonZeroU8;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{AscendancyOrClass, PasteId};
+use crate::{AscendancyOrClass, PasteId, UrlSafe};
 
 #[derive(Debug)]
 pub struct ListPaste {
@@ -52,7 +52,7 @@ pub struct PasteSummary {
 }
 
 impl PasteSummary {
-    pub fn to_url(&self) -> String {
+    pub fn to_url(&self) -> UrlSafe<'static> {
         self.id.to_url()
     }
 }

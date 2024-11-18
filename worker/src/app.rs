@@ -1,4 +1,4 @@
-use shared::{PasteId, UserPasteId};
+use shared::{PasteId, UrlSafe, UserPasteId};
 
 use crate::{
     app_metadata, consts, response,
@@ -32,7 +32,7 @@ async fn handle_inner(rctx: &RequestContext, route: app::Route) -> Result<Respon
     });
 
     if let Some(location) = info.redirect {
-        return Ok(Response::redirect_perm(&location));
+        return Ok(Response::redirect_perm(&location.into_cow()));
     }
 
     Ok(render(info, ctx).await)
@@ -48,7 +48,7 @@ async fn render(info: ResponseInfo, ctx: app::Context) -> Response {
         preload: resp_ctx.preload,
     });
 
-    // Not sure if I like that, this requries trunk to run before building the worker.
+    // Not sure if I like that, this requires trunk to run before building the worker.
     let index = include_str!("../../app/dist/index.html")
         .replace("</head>", &format!("{head}</head>"))
         .replace("%app%", &app);
@@ -136,12 +136,12 @@ async fn paste_page(
 struct ResponseInfo {
     cache_control: CacheControl,
     etag: Option<String>,
-    redirect: Option<String>,
+    redirect: Option<UrlSafe<'static>>,
     meta: Option<response::Meta>,
 }
 
 impl ResponseInfo {
-    pub fn redirect(location: String) -> Self {
+    pub fn redirect(location: UrlSafe<'static>) -> Self {
         Self {
             redirect: Some(location),
             ..Default::default()
