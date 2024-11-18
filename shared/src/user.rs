@@ -10,18 +10,16 @@ use crate::UrlSafe;
 pub struct User(String);
 
 impl User {
-    pub fn new_unchecked(user: String) -> Self {
-        Self(user)
+    /// Creates a new [`Self`] from a user name.
+    ///
+    /// The user name is normalized.
+    pub fn new(user: &str) -> Self {
+        // Normalize to lowercase, usernames generally are accepted case insensitive.
+        Self(user.to_lowercase())
     }
 
     pub fn as_str(&self) -> &str {
         self.0.as_str()
-    }
-
-    /// Usernames are case insensitive,
-    /// returns a normalized version of the username (lowercase).
-    pub fn normalized(&self) -> Self {
-        Self(self.0.to_lowercase())
     }
 
     /// Returns the URL to the user API.
@@ -95,7 +93,7 @@ impl FromStr for User {
             }
         }
 
-        Ok(Self(username.into()))
+        Ok(Self::new(username))
     }
 }
 
