@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, time::Duration};
 
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -14,6 +14,7 @@ pub enum DangerousError {
     Serialize,
     Deserialize,
     Crypto,
+    Expired,
 }
 
 impl fmt::Display for DangerousError {
@@ -24,13 +25,14 @@ impl fmt::Display for DangerousError {
             Self::Serialize => write!(f, "Serialization Error"),
             Self::Deserialize => write!(f, "Deserialization Error"),
             Self::Crypto => write!(f, "Crypto Error"),
+            Self::Expired => write!(f, "Expired"),
         }
     }
 }
 
 impl std::error::Error for DangerousError {}
 
-type Result<T> = std::result::Result<T, DangerousError>;
+type Result<T, E = DangerousError> = std::result::Result<T, E>;
 
 pub struct Dangerous {
     secret: Vec<u8>,
@@ -44,6 +46,8 @@ impl FromEnv for Dangerous {
 }
 
 impl Dangerous {
+    const SEP: char = '.';
+
     pub fn new(secret: Vec<u8>) -> Self {
         Self { secret }
     }
@@ -53,29 +57,31 @@ impl Dangerous {
     where
         T: Serialize + std::fmt::Debug,
     {
-        let mut payload = serde_json::to_vec(data).map_err(|_| DangerousError::Serialize)?;
+        let now = worker::Date::now().as_millis();
 
-        let signature = crypto::sign_hmac_256(&self.secret, &mut payload)
+        let mut payload = serde_json::to_string(data).map_err(|_| DangerousError::Serialize)?;
+        payload.push(Self::SEP);
+        payload.push_str(&encode(&now.to_le_bytes()));
+
+        let signature = crypto::sign_hmac_256(&self.secret, payload.as_bytes())
             .await
             .map_err(|_| DangerousError::Crypto)?;
 
-        let mut result = base64::encode_config(payload, base64::URL_SAFE_NO_PAD);
-        result.push('.');
-        result.push_str(&base64::encode_config(signature, base64::URL_SAFE_NO_PAD));
+        let mut result = payload;
+        result.push(Self::SEP);
+        result.push_str(&encode(&signature));
 
         Ok(result)
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn verify<T: DeserializeOwned>(&self, data: &str) -> Result<T> {
-        let (payload, signature) = data.rsplit_once('.').ok_or(DangerousError::BadEncoding)?;
+    pub async fn verify<T: DeserializeOwned>(&self, data: &str, max_age: Duration) -> Result<T> {
+        let (payload, signature) = data
+            .rsplit_once(Self::SEP)
+            .ok_or(DangerousError::BadEncoding)?;
 
-        let mut signature = base64::decode_config(signature, base64::URL_SAFE_NO_PAD)
-            .map_err(|_| DangerousError::BadEncoding)?;
-        let mut payload = base64::decode_config(payload, base64::URL_SAFE_NO_PAD)
-            .map_err(|_| DangerousError::BadEncoding)?;
-
-        let verified = crypto::verify_hmac_256(&self.secret, &mut signature, &mut payload)
+        let signature = decode(signature).map_err(|_| DangerousError::BadEncoding)?;
+        let verified = crypto::verify_hmac_256(&self.secret, &signature, payload.as_bytes())
             .await
             .map_err(|_| DangerousError::Crypto)?;
 
@@ -83,6 +89,30 @@ impl Dangerous {
             return Err(DangerousError::BadSignature);
         }
 
-        serde_json::from_slice(&payload).map_err(|_| DangerousError::Deserialize)
+        let (payload, timestamp) = payload
+            .rsplit_once(Self::SEP)
+            .ok_or(DangerousError::BadEncoding)?;
+
+        let time = u64::from_le_bytes(
+            decode(timestamp)
+                .map_err(|_| DangerousError::BadEncoding)?
+                .try_into()
+                .map_err(|_| DangerousError::BadEncoding)?,
+        );
+
+        let now = worker::Date::now().as_millis();
+        if time > now || (now - time) as u128 > max_age.as_millis() {
+            return Err(DangerousError::Expired);
+        }
+
+        serde_json::from_str(payload).map_err(|_| DangerousError::Deserialize)
     }
+}
+
+fn encode(b: &[u8]) -> String {
+    base64::encode_config(b, base64::URL_SAFE_NO_PAD)
+}
+
+fn decode(s: &str) -> Result<Vec<u8>, base64::DecodeError> {
+    base64::decode_config(s, base64::URL_SAFE_NO_PAD)
 }

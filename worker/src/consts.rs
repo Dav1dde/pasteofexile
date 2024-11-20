@@ -26,5 +26,7 @@ pub const OAUTH_SCOPE: &str = "account:profile";
 pub const CACHE_A_BIT: Duration = Duration::from_secs(21600); // 6 Hours
 pub const CACHE_FOREVER: Duration = Duration::from_secs(31536000);
 
+pub const MAX_SESSION_DURATION: Duration = Duration::from_secs(1814400); // 3 Weeks
+
 pub const CORS_POB_API: &[&str] = &["https://pob.cool"];
 pub const CORS_READ_API: &[&str] = &["https://pobarchives.com"];

@@ -35,7 +35,7 @@ pub async fn sha1(data: &[u8]) -> Result<Sha1> {
     Ok(result)
 }
 
-pub async fn sign_hmac_256(secret: &[u8], payload: &mut [u8]) -> Result<Vec<u8>> {
+pub async fn sign_hmac_256(secret: &[u8], payload: &[u8]) -> Result<Vec<u8>> {
     let worker: WorkerGlobalScope = js_sys::global().unchecked_into();
     let subtle = worker.crypto()?.subtle();
 
@@ -53,11 +53,7 @@ pub async fn sign_hmac_256(secret: &[u8], payload: &mut [u8]) -> Result<Vec<u8>>
     Ok(Uint8Array::new(&signed).to_vec())
 }
 
-pub async fn verify_hmac_256(
-    secret: &[u8],
-    signature: &mut [u8],
-    payload: &mut [u8],
-) -> Result<bool> {
+pub async fn verify_hmac_256(secret: &[u8], signature: &[u8], payload: &[u8]) -> Result<bool> {
     let worker: WorkerGlobalScope = js_sys::global().unchecked_into();
     let subtle = worker.crypto()?.subtle();
 

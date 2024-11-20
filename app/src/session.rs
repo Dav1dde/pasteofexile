@@ -45,13 +45,17 @@ impl Session {
             None => return Ok(Session::None),
         };
 
-        let (session, _) = match session.split_once('.') {
+        let (session, _) = match session.rsplit_once('.') {
             Some((session, sig)) => (session, sig),
             None => return Err("invalid format, missing signature".into()),
         };
 
-        let session = base64::decode_config(session, base64::URL_SAFE_NO_PAD)?;
-        let user = serde_json::from_slice(&session)?;
+        let (session, _) = match session.rsplit_once('.') {
+            Some((session, ts)) => (session, ts),
+            None => return Err("invalid format, missing timestamp".into()),
+        };
+
+        let user = serde_json::from_str(session)?;
 
         Ok(Session::LoggedIn(user))
     }
