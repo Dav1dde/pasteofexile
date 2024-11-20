@@ -18,8 +18,8 @@ pub fn scoped_event_passive<'a, F: FnMut(web_sys::Event) + 'a>(
     let handler: Box<dyn FnMut(web_sys::Event) + 'static> = unsafe { std::mem::transmute(boxed) };
     let closure = create_ref(cx, wasm_bindgen::closure::Closure::wrap(handler));
 
-    let mut options = web_sys::AddEventListenerOptions::new();
-    options.passive(true);
+    let options = web_sys::AddEventListenerOptions::new();
+    options.set_passive(true);
 
     node.add_event_listener_with_callback_and_add_event_listener_options(
         name,

@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use wasm_bindgen::JsCast as _;
 use worker::Bucket;
 
 use crate::{cache::CacheEntry, route, utils::RequestExt};
@@ -45,6 +46,13 @@ impl RequestContext {
 
     pub fn ctx(&self) -> &worker::Context {
         &self.ctx
+    }
+
+    pub fn owned_ctx(&self) -> worker::Context {
+        // `worker::Context` doesn't implement Clone, but there is no reason it shouldn't.
+        let ctx = self.ctx.as_ref().unchecked_ref::<js_sys::Object>().clone();
+        let ctx = ctx.unchecked_into();
+        worker::Context::new(ctx)
     }
 
     pub fn route(&self) -> &route::Route {
@@ -106,7 +114,7 @@ impl RequestContext {
         sentry::User {
             username: self.session().map(|user| user.name.clone().into()),
             ip_address: self.req.headers().get("cf-connecting-ip").ok().flatten(),
-            country: self.req.cf().country(),
+            country: self.req.cf().and_then(|cf| cf.country()),
         }
     }
 
@@ -127,7 +135,7 @@ impl RequestContext {
         self.session.is_some()
     }
 
-    pub fn cache_entry(&self) -> CacheEntry {
+    pub fn cache_entry(&self) -> CacheEntry<'_> {
         self.into()
     }
 }

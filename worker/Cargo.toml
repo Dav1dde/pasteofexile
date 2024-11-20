@@ -11,7 +11,7 @@ workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-app = { path = "../app", features = ["ssr"] }
+app = { path = "../app", default-features = false, features = ["ssr"] }
 pob = { path = "../pob/", features = ["better-errors"] }
 sentry = { path = "../worker-sentry/", package = "worker-sentry" }
 poe-data = { path = "../poe-data/" }

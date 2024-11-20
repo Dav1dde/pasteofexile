@@ -24,6 +24,7 @@ panic = 'abort'
 codegen-units = 1
 opt-level = 3
 lto = true
+strip = true
 
 [profile.release.package.app]
 opt-level = 'z'
@@ -38,12 +39,14 @@ opt-level = 'z'
 sycamore = { git = "https://github.com/Dav1dde/sycamore.git", rev = "3f6320b", package = "sycamore", features = ["suspense", "hydrate"] }
 sycamore-router = { git = "https://github.com/Dav1dde/sycamore.git", rev = "3f6320b", package = "sycamore-router" }
 
-worker = { git = "https://github.com/Dav1dde/workers-rs.git", rev = "cef50d2", package = "worker" }
 poe-api = { git = "https://github.com/Dav1dde/poe-rs/", rev = "619a8b3", default-features = false }
 
+worker = "0.4.2"
 js-sys = "0.3"
 web-sys = "0.3"
-wasm-bindgen = "0.2"
+# Pin to 0.2.93 because of https://github.com/rustwasm/wasm-bindgen/issues/4211
+# and https://github.com/cloudflare/workers-rs/issues/658
+wasm-bindgen = "=0.2.93"
 wasm-bindgen-futures = "0.4"
 reqwasm = { version = "0.5", default-features = false, features = ["http"] }
 
@@ -71,7 +74,7 @@ anyhow = "1"
 strum = { version = "0.24", features = ["derive"] }
 phf = "0.11"
 phf_codegen = "0.11"
-gloo-timers = { version = "0.2.6", features = ["futures"] }
+gloo-timers = { version = "0.3", features = ["futures"] }
 thousands = "0.2"
 itertools = "0.10"
 url = { version = "2", features = ["serde"] }

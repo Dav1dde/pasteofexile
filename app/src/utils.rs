@@ -61,6 +61,7 @@ macro_rules! async_callback {
                 return;
             }
 
+            #[cfg(feature = "browser")]
             sycamore::futures::spawn_local_scoped($cx, async move {
                 $($token)*
             })

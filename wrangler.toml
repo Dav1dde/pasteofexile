@@ -1,19 +1,13 @@
 name = "pasteofexile"
-type = "javascript"
-workers_dev = true
-compatibility_date = "2022-01-05"
+main = "worker/build/worker/shim.mjs"
+compatibility_date = "2024-11-20"
 
 [build]
-command = "./build.sh --release"
+command = "./build.sh --dev"
 
-[build.upload]
-dir    = "worker/build/worker"
-format = "modules"
-main   = "./shim.mjs"
-
-[[build.upload.rules]]
-globs = ["**/*.wasm"]
-type  = "CompiledWasm"
+[[r2_buckets]]
+binding = 'STORAGE_BUCKET'
+bucket_name = 'r2storage'
 
 [site]
 bucket = "./app/dist"

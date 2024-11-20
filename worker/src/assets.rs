@@ -63,17 +63,17 @@ impl Assets {
 
 #[wasm_bindgen(module = "__STATIC_CONTENT_MANIFEST")]
 extern "C" {
-    #[wasm_bindgen(js_name = "default")]
+    #[wasm_bindgen(thread_local, js_name = "default")]
     static STATIC_CONTENT_MANIFEST: String;
 }
 
 fn get_asset(name: &str) -> Option<&'static str> {
-    static MANIFEST: OnceCell<HashMap<&str, &str>> = OnceCell::new();
+    static MANIFEST: OnceCell<HashMap<String, String>> = OnceCell::new();
 
-    let manifest =
-        MANIFEST.get_or_init(|| serde_json::from_str(&STATIC_CONTENT_MANIFEST).unwrap_throw());
+    let manifest = MANIFEST
+        .get_or_init(|| STATIC_CONTENT_MANIFEST.with(|s| serde_json::from_str(s).unwrap_throw()));
 
-    manifest.get(name).copied()
+    manifest.get(name).map(|s| s.as_str())
 }
 
 fn get_mime(path: &str) -> Option<&'static str> {

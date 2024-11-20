@@ -6,44 +6,51 @@ use crate::{
     Response,
 };
 
-struct CacheEntryInner {
+struct CacheEntryInner<'a> {
     cache: Cache,
-    key: web_sys::Request,
-    ctx: worker::Context,
+    key: &'a worker::Request,
+    ctx: &'a worker::Context,
 }
 
-pub struct CacheEntry {
-    inner: Option<CacheEntryInner>,
+pub struct CacheEntry<'a> {
+    inner: Option<CacheEntryInner<'a>>,
 }
 
-impl CacheEntry {
+impl CacheEntry<'_> {
     pub async fn load(&self) -> Option<Response> {
         let inner = self.inner.as_ref()?;
 
         let cache = inner.cache.open().await;
 
         cache
-            .get(&inner.key, true)
+            .get(inner.key, true)
             .await
             .expect("cache api")
             .map(Response::from_cache)
     }
 
     pub async fn store(self, mut response: Response) -> Response {
-        if self.inner.is_none() || !response.is_cacheable() {
+        if !response.is_cacheable() {
             return response;
         }
 
-        let CacheEntryInner { cache, key, ctx } = self.inner.unwrap(); // checked for none above
+        let Some(CacheEntryInner { cache, key, ctx }) = self.inner else {
+            return response;
+        };
+
         let for_cache = response.for_cache();
 
-        ctx.wait_until(async move {
-            tracing::debug!("--> caching response in {cache}");
-            let cache = cache.open().await;
-            let r = cache.put(&key, for_cache).await;
-            debug_assert!(r.is_ok(), "failed to cache response: {r:?}");
-            tracing::debug!("<-- response cached in {cache:?}");
-        });
+        // This is technically not necessary we should be able to clone the inner JS request,
+        // and use that for caching but workers crate is bad.
+        if let Ok(key) = key.clone() {
+            ctx.wait_until(async move {
+                tracing::debug!("--> caching response in {cache}");
+                let cache = cache.open().await;
+                let r = cache.put(&key, for_cache).await;
+                debug_assert!(r.is_ok(), "failed to cache response: {r:?}");
+                tracing::debug!("<-- response cached in {cache:?}");
+            });
+        }
 
         response
             .header("X-Pobbin-Cache", &cache.to_string())
@@ -51,23 +58,20 @@ impl CacheEntry {
     }
 }
 
-impl From<&RequestContext> for CacheEntry {
-    fn from(value: &RequestContext) -> Self {
+impl<'a> From<&'a RequestContext> for CacheEntry<'a> {
+    fn from(value: &'a RequestContext) -> Self {
         if value.req().method() != worker::Method::Get {
             return Self { inner: None };
         }
 
         let cache = Cache::select(value);
-        // This can only fail if the body was already consumed,
-        // but we're cloning a get request here.
-        // This may also fail for URLs with credentials (-> MDN) on Firefox only,
-        // we're not running on Firefox, also we should never have credentials in URLs at
-        // this point.
-        let key = value.req().inner().clone().expect("clone request");
-        let ctx = value.ctx().clone();
 
         Self {
-            inner: Some(CacheEntryInner { cache, key, ctx }),
+            inner: Some(CacheEntryInner {
+                cache,
+                key: value.req(),
+                ctx: value.ctx(),
+            }),
         }
     }
 }
@@ -101,7 +105,7 @@ impl Cache {
     pub async fn open(&self) -> worker::Cache {
         match self {
             Self::Default => worker::Cache::default(),
-            Self::Owned => worker::Cache::open("owned").await,
+            Self::Owned => worker::Cache::open("owned".to_owned()).await,
         }
     }
 }

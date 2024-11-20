@@ -1,6 +1,6 @@
 use ::pob::{PathOfBuilding, PathOfBuildingExt};
 use shared::PasteId;
-use sycamore::{futures::spawn_local_scoped, prelude::*};
+use sycamore::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
 
@@ -11,7 +11,7 @@ use crate::{
     consts::{IMG_ONERROR_HIDDEN, SELF_URL},
     pob::{self, Element},
     storage::Storage,
-    utils::{async_callback, document, from_ref, view_cond, IteratorExt},
+    utils::{self, view_cond, IteratorExt},
 };
 
 pub struct ViewPasteProps<'a> {
@@ -86,14 +86,14 @@ pub fn ViewPaste<'a, G: Html>(
     let content_ref = create_node_ref(cx);
     let copy_state = create_signal(cx, CopyState::Ready);
 
-    let copy_to_clipboard = async_callback!(
+    let copy_to_clipboard = utils::async_callback!(
         cx,
         {
             copy_state.set(CopyState::Progress);
 
-            from_ref::<web_sys::HtmlTextAreaElement>(content_ref).select();
+            utils::from_ref::<web_sys::HtmlTextAreaElement>(content_ref).select();
 
-            let document: web_sys::HtmlDocument = document();
+            let document: web_sys::HtmlDocument = utils::document();
             let state = if document.exec_command("copy").is_ok() {
                 CopyState::Done
             } else {
@@ -221,6 +221,7 @@ fn push_paste_to_history<G: Html>(
     last_modified: u64,
     build: &Build,
 ) {
+    #[cfg(feature = "browser")]
     if G::IS_BROWSER {
         let storage = use_context::<Storage>(cx);
 
@@ -235,7 +236,7 @@ fn push_paste_to_history<G: Html>(
             private: false,
         };
 
-        spawn_local_scoped(cx, async move {
+        sycamore::futures::spawn_local_scoped(cx, async move {
             gloo_timers::future::sleep(std::time::Duration::from_millis(500)).await;
             storage.visited().add(s);
         });

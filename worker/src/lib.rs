@@ -47,11 +47,7 @@ pub async fn main(req: Request, env: Env, ctx: Context) -> worker::Result<Worker
     });
 
     let mut rctx = RequestContext::new(req, env, ctx).await;
-
-    let mut sentry = sentry::new(
-        sentry_impl::Transport(rctx.ctx().clone()),
-        rctx.inject_opt(),
-    );
+    let mut sentry = sentry::new(sentry_impl::Transport(rctx.owned_ctx()), rctx.inject_opt());
 
     sentry
         .set_trace_id(rctx.trace_id())
@@ -81,7 +77,6 @@ async fn cached(rctx: &mut RequestContext) -> Response {
         .tag("transaction", rctx.transaction());
 
     let cache_entry = rctx.cache_entry();
-
     if let Some(response) = cache_entry.load().await {
         tracing::debug!("cache hit");
         sentry::counter(Counters::Cache)
@@ -98,7 +93,7 @@ async fn cached(rctx: &mut RequestContext) -> Response {
 
     let response = cors(rctx).await;
 
-    cache_entry.store(response).await
+    rctx.cache_entry().store(response).await
 }
 
 async fn cors(rctx: &mut RequestContext) -> Response {

@@ -9,3 +9,5 @@ yarn.lock
 .pnp*
 .env
 .mf/
+.dev.vars
+.wrangler

@@ -8,7 +8,9 @@ edition.workspace = true
 workspace = true
 
 [features]
+default = ["browser"]
 ssr = ["sycamore/ssr", "strum"]
+browser = ["dep:gloo-timers"]
 
 [dependencies]
 pob = { path = "../pob/" }
@@ -25,7 +27,6 @@ web-sys = { workspace = true, features = [
 ] }
 js-sys.workspace = true
 wasm-bindgen.workspace = true
-wasm-bindgen-futures.workspace = true
 reqwasm.workspace = true
 
 serde.workspace = true
@@ -41,7 +42,7 @@ cfg-if.workspace = true
 thiserror.workspace = true
 strum = { workspace = true, optional = true }
 
-gloo-timers.workspace = true
+gloo-timers = { workspace = true, optional = true }
 thousands.workspace = true
 itertools.workspace = true
 percent-encoding.workspace = true

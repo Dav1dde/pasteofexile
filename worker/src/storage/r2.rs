@@ -95,12 +95,13 @@ impl R2Storage {
 
         retry::retry_all(3, |_| {
             self.bucket
-                .put(&path, worker::Data::Bytes(data))
+                // TODO the to_vec() is wasted compute, but the worker crate sucks.
+                .put(&path, worker::Data::Bytes(data.to_vec()))
                 .http_metadata(HttpMetadata {
                     content_type: Some("text/plain".to_owned()),
                     ..Default::default()
                 })
-                .custom_metdata(custom_metdata.clone())
+                .custom_metadata(custom_metdata.clone())
                 .sha1(sha1.0)
                 .execute()
         })

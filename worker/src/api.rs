@@ -280,7 +280,7 @@ async fn handle_upload(rctx: &mut RequestContext) -> Result<Response> {
     } else {
         validate_access!(data.id.is_none());
         // TODO: should unused fields (like title) be validated?
-        // Currently not validated becuse frontend may send old values
+        // Currently not validated because frontend may send old values
         // validate!(data.title.is_none(), "Cannot set title");
         // validate!(data.custom_id.is_none(), "Cannot set custom id");
 

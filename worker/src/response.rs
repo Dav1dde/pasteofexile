@@ -377,9 +377,10 @@ impl From<Response> for worker::Response {
 
 impl From<worker::Response> for Response {
     fn from(wr: worker::Response) -> Response {
-        let (status_code, headers, body) = wr.into();
-        #[allow(clippy::redundant_clone)]
-        let headers = headers.clone(); // make mutable
+        let status_code = wr.status_code();
+        // Need to clone to make mutable.
+        let headers = wr.headers().clone();
+        let (_, body) = wr.into_parts();
 
         Response {
             status_code,
