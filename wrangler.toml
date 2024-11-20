@@ -4,6 +4,15 @@ compatibility_date = "2024-11-20"
 
 [build]
 command = "./build.sh --dev"
+watch_dir = [
+    "app/src",
+    "worker/src",
+    "pob/src",
+    "shared/src",
+    "poe-data/src",
+    "poe-data/build",
+    "worker-sentry/src",
+]
 
 [[r2_buckets]]
 binding = 'STORAGE_BUCKET'

@@ -2,6 +2,7 @@
     "name": "PasteOfExile",
     "version": "1.0.0",
     "scripts": {
+        "start": "wrangler dev",
         "build:css": "tailwindcss -i app/tailwind.css -o app/dist/.stage/styles.css --minify",
         "tailwindcss": "tailwindcss"
     },
