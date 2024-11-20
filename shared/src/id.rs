@@ -125,7 +125,6 @@ impl UserPasteId {
     }
 
     pub fn to_pob_load_url(&self) -> UrlSafe<'static> {
-        // TODO: maybe get rid of this format?
         UrlSafe::SLASH
             .join("pob")
             .join(UrlSafe::new(&self.user).push(":").push(&*self.id))
@@ -140,12 +139,8 @@ impl UserPasteId {
     }
 
     pub fn to_pob_open_url(&self) -> UrlSafe<'static> {
-        // ("pob").join("u").join(&*self.user).join(&*self.id)
-        // format!("pob://pobbin/{}:{}", self.user, self.id)
         UrlSafe::from_static("pob://pobbin/")
-            .join(&*self.user)
-            .push(":")
-            .join(&*self.id)
+            .join(UrlSafe::new(&self.user).push(":").push(&*self.id))
     }
 }
 
