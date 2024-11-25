@@ -6,7 +6,7 @@ mod api;
 mod assets;
 mod build;
 mod components;
-mod consts;
+pub mod consts;
 mod context;
 mod error;
 mod future;

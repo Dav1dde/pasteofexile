@@ -3,7 +3,7 @@ use std::ops::Deref;
 use wasm_bindgen::JsCast as _;
 use worker::Bucket;
 
-use crate::{cache::CacheEntry, consts, route, utils::RequestExt};
+use crate::{cache::CacheEntry, route, utils::RequestExt};
 
 pub struct RequestContext {
     req: worker::Request,
@@ -178,7 +178,10 @@ async fn parse_session(req: &worker::Request, env: &Env) -> Option<app::User> {
     let session = req.session()?;
 
     let dangerous = crate::dangerous::Dangerous::from_env(env).expect("failed to create Dangerous");
-    match dangerous.verify::<app::User>(&session, consts::MAX_SESSION_DURATION).await {
+    match dangerous
+        .verify::<app::User>(&session, app::consts::MAX_SESSION_DURATION)
+        .await
+    {
         Ok(user) => Some(user),
         Err(err) => {
             tracing::warn!("failed to decode session: {err:?}");

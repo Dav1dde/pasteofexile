@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sycamore::{prelude::*, reactive::provide_context};
 
+use crate::consts::MAX_SESSION_DURATION;
+
 // TODO move this into shared
 #[derive(Debug, Deserialize, Serialize)]
 pub struct User {
@@ -50,10 +52,20 @@ impl Session {
             None => return Err("invalid format, missing signature".into()),
         };
 
-        let (session, _) = match session.rsplit_once('.') {
+        let (session, ts) = match session.rsplit_once('.') {
             Some((session, ts)) => (session, ts),
             None => return Err("invalid format, missing timestamp".into()),
         };
+
+        let ts = u64::from_le_bytes(
+            base64::decode_config(ts, base64::URL_SAFE_NO_PAD)?
+                .try_into()
+                .map_err(|_| "Invalid timestamp")?,
+        );
+        let now = js_sys::Date::new_0().get_time() as u64;
+        if ts > now || (now - ts) as u128 > MAX_SESSION_DURATION.as_millis() {
+            return Err("Token Expired".into());
+        }
 
         let user = serde_json::from_str(session)?;
 

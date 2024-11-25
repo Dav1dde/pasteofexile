@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 pub const IMG_ONERROR_EMPTY: &str =
     "this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='";
 pub const IMG_ONERROR_HIDDEN: &str = "this.style.display='none'";
@@ -25,3 +27,5 @@ pub const LINK_WHITELIST: [&str; 13] = [
 pub const POE_WIKI: &str = "https://www.poewiki.net/wiki/";
 
 pub const SELF_URL: &str = "https://pobb.in";
+
+pub const MAX_SESSION_DURATION: Duration = Duration::from_secs(1814400); // 3 Weeks
