@@ -49,7 +49,7 @@ pub fn ascendancy_image(ascendancy_or_class: AscendancyOrClass) -> &'static str 
         2, AscendancyOrClass::Ascendancy(Ascendancy::Titan) => StrFourb_Warrior1,
         2, AscendancyOrClass::Ascendancy(Ascendancy::Warbringer) => StrFourb_Warrior2,
         2, AscendancyOrClass::Ascendancy(Ascendancy::WitchHunter) => StrDexFourb_Mercenary2,
-        2, AscendancyOrClass::Ascendancy(Ascendancy::GemlingLegionaire) => StrDexFourb_Mercenary3,
+        2, AscendancyOrClass::Ascendancy(Ascendancy::GemlingLegionnaire) => StrDexFourb_Mercenary3,
         2, AscendancyOrClass::Ascendancy(Ascendancy::Invoker) => DexIntFourb_Monk2,
         2, AscendancyOrClass::Ascendancy(Ascendancy::AcolyteOfChayula) => DexIntFourb_Monk3,
         2, AscendancyOrClass::Ascendancy(Ascendancy::Stormweaver) => IntFourb_Sorceress1,
