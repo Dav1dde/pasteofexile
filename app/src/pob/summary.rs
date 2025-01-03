@@ -322,15 +322,17 @@ pub fn config(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
 pub fn choices(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     let mut elements = Vec::with_capacity(2);
 
-    let bandit = pob
-        .bandit()
-        .map(|bandit| bandit.name())
-        .unwrap_or("Kill All");
+    if pob.game_version().is_poe1() {
+        let bandit = pob
+            .bandit()
+            .map(|bandit| bandit.name())
+            .unwrap_or("Kill All");
 
-    Element::new("Bandit")
-        .color(AMBER_50)
-        .stat_str(Some(bandit))
-        .add_to(&mut elements);
+        Element::new("Bandit")
+            .color(AMBER_50)
+            .stat_str(Some(bandit))
+            .add_to(&mut elements);
+    }
 
     let pantheons = [
         pob.pantheon_major_god().map(|god| god.name()),
