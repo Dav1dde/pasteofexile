@@ -216,10 +216,6 @@ fn render<G: Html>(cx: Scope, elements: Vec<Element>) -> View<G> {
 }
 
 fn has_displayable_tree(pob: &impl PathOfBuilding) -> bool {
-    if pob.game_version().is_poe2() {
-        return false;
-    }
-
     let specs = pob.tree_specs();
 
     specs.len() > 1

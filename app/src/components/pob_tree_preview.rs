@@ -152,6 +152,9 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let nodes = create_memo(cx, move || render_nodes(cx, gv, &current_tree.get()));
     let tree_level = create_memo(cx, move || {
+        if gv.is_poe2() {
+            return View::empty();
+        }
         let current_tree = current_tree.get();
         let (nodes, level) = resolve_level(build, &current_tree.spec);
         let desc = format!("Level {level} ({nodes} passives)");
@@ -289,6 +292,14 @@ fn extract_overrides<'a>(overrides: &[pob::Override<'a>]) -> Vec<Override<'a>> {
 
 fn render_nodes<G: GenericNode + Html>(cx: Scope, gv: GameVersion, tree: &Tree<'_>) -> View<G> {
     let nodes = tree.nodes;
+
+    if gv.is_poe2() {
+        return view! { cx,
+            div(class="text-stone-200 hidden lg:block text-center") {
+                "No Keystones and Mastery data for PoE 2 yet"
+            }
+        };
+    }
 
     if nodes.is_empty() {
         return view! { cx,
