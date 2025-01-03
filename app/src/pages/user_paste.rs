@@ -1,7 +1,7 @@
 use std::{borrow::Cow, convert::TryInto};
 
-use ::pob::PathOfBuildingExt;
-use shared::{Id, User, UserPasteId};
+use ::pob::{PathOfBuilding as _, PathOfBuildingExt as _};
+use shared::{GameVersion, Id, User, UserPasteId};
 use sycamore::prelude::*;
 
 use crate::{
@@ -76,9 +76,10 @@ impl RoutedComponent for UserPastePage {
             .as_ref()
             .map(|x| x.into())
             .unwrap_or_else(|| pob::title_with_config(pob, &config).into());
-        let title = match pob.max_tree_version() {
-            Some(version) => format!("{title} [{version}] by {}", self.id.user),
-            None => format!("{title} by {}", self.id.user),
+        let title = match (pob.game_version(), pob.max_tree_version()) {
+            (GameVersion::Two, _) => format!("{title} [PoE 2] by {}", self.id.user),
+            (_, Some(version)) => format!("{title} [{version}] by {}", self.id.user),
+            _ => format!("{title} by {}", self.id.user),
         }
         .into();
 

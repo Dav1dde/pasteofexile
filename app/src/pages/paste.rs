@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use ::pob::PathOfBuildingExt;
+use ::pob::{PathOfBuilding, PathOfBuildingExt};
 use shared::{Id, PasteId};
 use sycamore::prelude::*;
 
@@ -76,7 +76,10 @@ impl RoutedComponent for PastePage {
             .map(|x| x.to_owned())
             .unwrap_or_else(|| pob::title_with_config(pob, &config))
             .into();
-        if let Some(version) = pob.max_tree_version() {
+
+        if pob.game_version().is_poe2() {
+            title = format!("{title} [PoE 2]").into();
+        } else if let Some(version) = pob.max_tree_version() {
             title = format!("{title} [{version}]").into();
         }
 
