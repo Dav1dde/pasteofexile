@@ -9,7 +9,9 @@ mod serde;
 mod stats;
 mod utils;
 
-use shared::{Ascendancy, AscendancyOrClass, Bandit, Class, PantheonMajorGod, PantheonMinorGod};
+use shared::{
+    Ascendancy, AscendancyOrClass, Bandit, Class, GameVersion, PantheonMajorGod, PantheonMinorGod,
+};
 
 pub use self::config::{Config, ConfigValue};
 pub use self::error::{Error, Result};
@@ -20,6 +22,8 @@ pub use self::stats::Stat;
 pub use self::utils::decompress;
 
 pub trait PathOfBuilding {
+    fn game_version(&self) -> GameVersion;
+
     fn level(&self) -> u8;
 
     fn class(&self) -> Class;
@@ -131,6 +135,9 @@ pub struct Gear<'a> {
     pub flask3: Option<&'a str>,
     pub flask4: Option<&'a str>,
     pub flask5: Option<&'a str>,
+    pub charm1: Option<&'a str>,
+    pub charm2: Option<&'a str>,
+    pub charm3: Option<&'a str>,
     pub sockets: Vec<&'a str>,
 }
 

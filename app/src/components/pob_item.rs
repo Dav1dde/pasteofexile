@@ -1,12 +1,21 @@
 use std::{borrow::Cow, fmt::Display};
 
 use itertools::Itertools;
+use shared::GameVersion;
 use sycamore::prelude::*;
 
 use crate::utils::{view_cond, IteratorExt};
 
+#[derive(Prop)]
+pub struct PobItemProps<'a> {
+    game_version: GameVersion,
+    item: pob::Item<'a>,
+}
+
 #[component]
-pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
+pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: PobItemProps<'a>) -> View<G> {
+    let PobItemProps { game_version, item } = item;
+
     let render_mod = |m: pob::Mod<'a>| {
         let line: String = m.line.to_owned();
 
@@ -80,7 +89,7 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: pob::Item<'a>) -> View<G> {
     let magic_or_normal = matches!(item.rarity, pob::Rarity::Normal | pob::Rarity::Magic);
     let base = view_cond!(cx, !magic_or_normal, { div() { (base) } });
 
-    let header_style = header_style(item.rarity);
+    let header_style = header_style(game_version, item.rarity);
     let data_rarity = rarity_str(item.rarity);
 
     view! { cx,
@@ -137,7 +146,7 @@ fn rarity_str(rarity: pob::Rarity) -> &'static str {
     }
 }
 
-fn header_style(rarity: pob::Rarity) -> String {
+fn header_style(gv: GameVersion, rarity: pob::Rarity) -> String {
     let name = rarity_str(rarity);
     let color = match rarity {
         pob::Rarity::Normal => "#c8c8c8",
@@ -147,13 +156,16 @@ fn header_style(rarity: pob::Rarity) -> String {
         pob::Rarity::Relic => "#60c060",
     };
 
-    const BASE: &str = "https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsHeader";
+    let base = match gv {
+        GameVersion::One => "https://assets.pobb.in/1/Art/2DArt/UIImages/InGame/ItemsHeader",
+        GameVersion::Two => "https://assets.pobb.in/2/Art/2DArt/UIImages/InGame/ItemsHeader",
+    };
 
     format!(
         "color: {color}; background: \
-        url({BASE}{name}Left.webp) top left / contain no-repeat, \
-        url({BASE}{name}Right.webp) top right / contain no-repeat, \
-        url({BASE}{name}Middle.webp) top left / contain repeat-x"
+        url({base}{name}Left.webp) top left / contain no-repeat, \
+        url({base}{name}Right.webp) top right / contain no-repeat, \
+        url({base}{name}Middle.webp) top left / contain repeat-x"
     )
 }
 

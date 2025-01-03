@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use pob::{PathOfBuilding, Skill};
-use shared::{model::data, Color};
+use shared::{model::data, Color, GameVersion};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -10,11 +10,12 @@ use crate::{
     consts,
     pob::formatting::strip_colors,
     svg,
-    utils::{click_has_ctrl, open_wiki_page, IteratorExt},
+    utils::{click_has_ctrl, open_wiki_page, view_cond, IteratorExt},
 };
 
 #[component]
 pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
+    let gv = build.pob().game_version();
     let skill_sets = build.skill_sets();
 
     if skill_sets.is_empty() {
@@ -56,7 +57,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         let gem_data = gem.as_ref().and_then(|gem| build.data().gems.get(&gem.id));
 
         if let (Some(gem), Some(gem_data)) = (gem, gem_data) {
-            popup.set(render_popup(cx, gem, gem_data));
+            popup.set(render_popup(cx, gv, gem, gem_data));
             attach.set(target);
         } else {
             attach.set(None);
@@ -117,12 +118,13 @@ impl PopupGem {
 
 fn render_popup<'a, G: GenericNode + Html>(
     cx: Scope<'a>,
+    gv: GameVersion,
     gem: PopupGem,
     data: &'a data::Gem,
 ) -> View<G> {
-    let gem_src = crate::assets::item_image_url(&gem.id);
+    let gem_src = crate::assets::item_image_url(gv, &gem.id);
 
-    let vendors = data
+    let vendors: View<G> = data
         .vendors
         .iter()
         .map(|vendor| {
@@ -133,6 +135,15 @@ fn render_popup<'a, G: GenericNode + Html>(
             }
         })
         .collect_view();
+
+    let quest = view_cond!(cx, gv.is_poe1(), {
+        div(class="grid grid-cols-[min-content_auto_auto] gap-x-6 md:gap-x-10 gap-y-1 md:mt-1 empty:hidden") {
+            (vendors)
+        }
+        div(class="text-right text-xs italic hidden has-mouse:block", style="color: #7f7f7f") {
+            "Wiki: Ctrl+Click"
+        }
+    });
 
     view! { cx,
         div(class="bg-black/[0.8] font-['FontinSmallCaps'] py-2 px-4 flex flex-col gap-3") {
@@ -147,13 +158,7 @@ fn render_popup<'a, G: GenericNode + Html>(
                 div(class=gem_color(data.color)) { (gem.level) "/" (gem.quality) }
             }
 
-            div(class="grid grid-cols-[min-content_auto_auto] gap-x-6 md:gap-x-10 gap-y-1 md:mt-1 empty:hidden") {
-                (vendors)
-            }
-
-            div(class="text-right text-xs italic hidden has-mouse:block", style="color: #7f7f7f") {
-                "Wiki: Ctrl+Click"
-            }
+            (quest)
         }
     }
 }

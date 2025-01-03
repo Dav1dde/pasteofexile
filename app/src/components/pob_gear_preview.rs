@@ -8,12 +8,13 @@ use crate::build::Build;
 
 #[component]
 pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
+    let gv = build.game_version();
     let attach = create_signal(cx, None);
     let current_item = create_signal(cx, None);
 
     let popup = create_memo(cx, move || {
         if let Some(item) = &*current_item.get() {
-            view! { cx, PobItem(*item) }
+            view! { cx, PobItem(game_version=gv, item=*item) }
         } else {
             view! { cx, }
         }

@@ -2,7 +2,7 @@ use std::num::NonZeroU8;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{AscendancyOrClass, PasteId, UrlSafe};
+use crate::{AscendancyOrClass, GameVersion, PasteId, UrlSafe};
 
 #[derive(Debug)]
 pub struct ListPaste {
@@ -24,6 +24,8 @@ pub struct Paste {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PasteMetadata {
     pub title: String,
+    #[serde(default, skip_serializing_if = "is_v1")]
+    pub game_version: GameVersion,
     pub ascendancy_or_class: AscendancyOrClass,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
@@ -39,6 +41,8 @@ pub struct PasteMetadata {
 pub struct PasteSummary {
     pub id: PasteId,
     pub title: String,
+    #[serde(default, skip_serializing_if = "is_v1")]
+    pub game_version: GameVersion,
     pub ascendancy_or_class: AscendancyOrClass,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
@@ -59,6 +63,10 @@ impl PasteSummary {
 
 fn is_false(v: &bool) -> bool {
     !v
+}
+
+fn is_v1(v: &GameVersion) -> bool {
+    *v == GameVersion::One
 }
 
 /// Additional data supplied together with the build.

@@ -23,11 +23,17 @@ pub mod gems {
         pub classes: ClassSet,
     }
 
-    pub fn by_id(id: &str) -> Option<&'static Gem> {
-        data::GEMS.get(id)
+    pub fn by_id_poe1(id: &str) -> Option<&'static Gem> {
+        data_poe1::GEMS.get(id)
+    }
+    mod data_poe1 {
+        include!(concat!(env!("OUT_DIR"), "/gems.rs"));
     }
 
-    mod data {
-        include!(concat!(env!("OUT_DIR"), "/gems.rs"));
+    pub fn by_id_poe2(id: &str) -> Option<&'static Gem> {
+        data_poe2::GEMS.get(id)
+    }
+    mod data_poe2 {
+        include!(concat!(env!("OUT_DIR"), "/gems2.rs"));
     }
 }

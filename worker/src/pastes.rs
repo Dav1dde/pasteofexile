@@ -6,7 +6,7 @@ use shared::{
         data::{self, NodeStat},
         Paste, PasteSummary,
     },
-    PasteId, User, UserPasteId,
+    GameVersion, PasteId, User, UserPasteId,
 };
 
 use crate::request_context::{Env, FromEnv, Session};
@@ -78,6 +78,7 @@ impl Pastes {
                     }
                     .into(),
                     title: metadata.title,
+                    game_version: metadata.game_version,
                     ascendancy_or_class: metadata.ascendancy_or_class,
                     version: metadata.version,
                     main_skill_name: metadata.main_skill_name,
@@ -183,6 +184,11 @@ fn extract_gem_info(pob: &impl PathOfBuilding) -> HashMap<String, data::Gem> {
         .flat_map(|ss| ss.skills)
         .flat_map(|skill| skill.gems);
 
+    let gem_fn = match pob.game_version() {
+        GameVersion::One => poe_data::gems::by_id_poe1,
+        GameVersion::Two => poe_data::gems::by_id_poe2,
+    };
+
     let mut result = HashMap::new();
     for gem in gems {
         let Some(gem_id) = gem.gem_id else {
@@ -193,7 +199,7 @@ fn extract_gem_info(pob: &impl PathOfBuilding) -> HashMap<String, data::Gem> {
             continue;
         }
 
-        let Some(gem_data) = poe_data::gems::by_id(gem_id) else {
+        let Some(gem_data) = gem_fn(gem_id) else {
             tracing::info!("no gem data {gem:?}");
             continue;
         };

@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use pob::PathOfBuilding;
+use shared::GameVersion;
 use sycamore::prelude::*;
 
 use crate::{
@@ -16,18 +17,20 @@ pub fn PobItemSet<'a, 'b, G: Html>(
     current_item: &'a Signal<Option<pob::Item<'a>>>,
 ) -> View<G> {
     let build = build_;
+    let gv = build.pob().game_version();
+
     let gear = item_set
         .map(|set| &set.gear)
         .unwrap_or_else(|| create_ref(cx, pob::Gear::default()));
 
     let slots = slots(gear)
         .into_iter()
-        .map(move |(name, item)| render_item_str(cx, name, item, current_item))
+        .map(move |(name, item)| render_item_str(cx, gv, name, item, current_item))
         .collect_view();
 
-    let flasks = flasks(gear)
+    let flasks = flasks(gv, gear)
         .into_iter()
-        .map(move |(name, item)| render_item_str(cx, name, item, current_item))
+        .map(move |(name, item)| render_item_str(cx, gv, name, item, current_item))
         .collect_view();
 
     let sockets = create_memo(cx, move || {
@@ -59,7 +62,7 @@ pub fn PobItemSet<'a, 'b, G: Html>(
             .into_iter()
             .filter_map(|item| pob::Item::parse(item).ok())
             .chain(tree_sockets)
-            .map(move |item| render_item(cx, "socket", Some(item), current_item))
+            .map(move |item| render_item(cx, gv, "socket", Some(item), current_item))
             .collect_view()
     });
 
@@ -75,12 +78,14 @@ pub fn PobItemSet<'a, 'b, G: Html>(
 
 fn render_item_str<'a, G: Html>(
     cx: Scope<'a>,
+    gv: GameVersion,
     name: &'static str,
     item: Option<&'a str>,
     current_item: &'a Signal<Option<pob::Item<'a>>>,
 ) -> View<G> {
     render_item(
         cx,
+        gv,
         name,
         item.and_then(|item| pob::Item::parse(item).ok()),
         current_item,
@@ -89,6 +94,7 @@ fn render_item_str<'a, G: Html>(
 
 fn render_item<'a, G: Html>(
     cx: Scope<'a>,
+    gv: GameVersion,
     name: &'static str,
     item: Option<pob::Item<'a>>,
     current_item: &'a Signal<Option<pob::Item<'a>>>,
@@ -104,7 +110,7 @@ fn render_item<'a, G: Html>(
         return view! { cx, div(class=class) {} };
     };
 
-    let src = crate::assets::item_image_url(image_name);
+    let src = crate::assets::item_image_url(gv, image_name);
 
     let mouseover = move |_: web_sys::Event| current_item.set(item);
     let open_wiki = move |event: web_sys::Event| {
@@ -174,12 +180,21 @@ fn slots<'a>(gear: &pob::Gear<'a>) -> [(&'static str, Option<&'a str>); 10] {
     ]
 }
 
-fn flasks<'a>(gear: &pob::Gear<'a>) -> [(&'static str, Option<&'a str>); 5] {
-    [
-        ("flask1", gear.flask1),
-        ("flask2", gear.flask2),
-        ("flask3", gear.flask3),
-        ("flask4", gear.flask4),
-        ("flask5", gear.flask5),
-    ]
+fn flasks<'a>(gv: GameVersion, gear: &pob::Gear<'a>) -> [(&'static str, Option<&'a str>); 5] {
+    match gv {
+        GameVersion::One => [
+            ("flask1", gear.flask1),
+            ("flask2", gear.flask2),
+            ("flask3", gear.flask3),
+            ("flask4", gear.flask4),
+            ("flask5", gear.flask5),
+        ],
+        GameVersion::Two => [
+            ("flask1", gear.flask1),
+            ("flask2", gear.charm1),
+            ("flask3", gear.charm2),
+            ("flask4", gear.charm3),
+            ("flask5", gear.flask2),
+        ],
+    }
 }

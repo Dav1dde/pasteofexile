@@ -1,5 +1,6 @@
 use std::fmt::Write;
-use std::{fs::File, path::Path};
+use std::fs::File;
+use std::path::PathBuf;
 
 use serde::Deserialize;
 use shared::ClassSet;
@@ -22,15 +23,15 @@ struct Vendor {
     npc: String,
 }
 
-pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
-    let path = Path::new("data").join("gems.json");
-
+pub fn generate(path: PathBuf, output: &mut dyn std::io::Write) -> anyhow::Result<()> {
     let data = File::open(path)?;
     let data: Vec<Gem> = serde_json::from_reader(data)?;
 
     let mut map = phf_codegen::Map::new();
 
+    writeln!(output, "#[allow(unused)]")?;
     writeln!(output, "use super::{{Gem, Vendor}};")?;
+    writeln!(output, "#[allow(unused)]")?;
     writeln!(output, "use shared::{{Color, ClassSet}};")?;
 
     for mut gem in data {
@@ -54,7 +55,7 @@ pub fn generate(output: &mut dyn std::io::Write) -> anyhow::Result<()> {
                     .collect::<Result<ClassSet, _>>()?,
                 None => ClassSet::all(),
             };
-            let classes = format!("ClassSet::from_u8({})", classes.as_u8());
+            let classes = format!("ClassSet::from_u16({})", classes.as_u16());
 
             write!(
                 vendors,

@@ -425,6 +425,9 @@ pub(crate) struct Gear {
     pub flask3: Option<u16>,
     pub flask4: Option<u16>,
     pub flask5: Option<u16>,
+    pub charm1: Option<u16>,
+    pub charm2: Option<u16>,
+    pub charm3: Option<u16>,
     pub sockets: Vec<u16>,
 }
 
@@ -483,6 +486,9 @@ impl<'de> de::Deserialize<'de> for Gear {
                         "Flask 3" => result.flask3 = Some(slot.item_id),
                         "Flask 4" => result.flask4 = Some(slot.item_id),
                         "Flask 5" => result.flask5 = Some(slot.item_id),
+                        "Charm 1" => result.charm1 = Some(slot.item_id),
+                        "Charm 2" => result.charm2 = Some(slot.item_id),
+                        "Charm 3" => result.charm3 = Some(slot.item_id),
                         _ => result.sockets.push(slot.item_id),
                     }
                 }

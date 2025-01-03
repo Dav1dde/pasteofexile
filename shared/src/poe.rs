@@ -21,6 +21,26 @@ pub enum Color {
     White,
 }
 
+/// The major Path of Exile game version.
+#[derive(Default, Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum GameVersion {
+    /// Path of Exile 1
+    #[default]
+    One,
+    /// Path of Exile 2
+    Two,
+}
+
+impl GameVersion {
+    pub fn is_poe1(self) -> bool {
+        self == Self::One
+    }
+
+    pub fn is_poe2(self) -> bool {
+        self == Self::Two
+    }
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Class {
     Duelist,
@@ -30,8 +50,35 @@ pub enum Class {
     Shadow,
     Templar,
     Witch,
+
+    // PoE 2
+    Warrior,
+    Mercenary,
+    Huntress,
+    Monk,
+    Sorceress,
+    Druid,
 }
+
 impl Class {
+    pub fn all() -> [Self; 13] {
+        [
+            Self::Duelist,
+            Self::Marauder,
+            Self::Ranger,
+            Self::Scion,
+            Self::Shadow,
+            Self::Templar,
+            Self::Witch,
+            Self::Warrior,
+            Self::Mercenary,
+            Self::Huntress,
+            Self::Monk,
+            Self::Sorceress,
+            Self::Druid,
+        ]
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Duelist => "Duelist",
@@ -41,6 +88,13 @@ impl Class {
             Self::Shadow => "Shadow",
             Self::Templar => "Templar",
             Self::Witch => "Witch",
+
+            Self::Warrior => "Warrior",
+            Self::Mercenary => "Mercenary",
+            Self::Huntress => "Huntress",
+            Self::Monk => "Monk",
+            Self::Sorceress => "Sorceress",
+            Self::Druid => "Druid",
         }
     }
 }
@@ -66,6 +120,13 @@ impl FromStr for Class {
             "Templar" => Self::Templar,
             "Witch" => Self::Witch,
 
+            "Warrior" => Self::Warrior,
+            "Mercenary" => Self::Mercenary,
+            "Huntress" => Self::Huntress,
+            "Monk" => Self::Monk,
+            "Sorceress" => Self::Sorceress,
+            "Druid" => Self::Druid,
+
             _ => return Err(Invalid("Class")),
         })
     }
@@ -80,7 +141,7 @@ impl std::ops::BitOr for Class {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ClassSet(u8);
+pub struct ClassSet(u16);
 
 impl ClassSet {
     pub const fn new() -> Self {
@@ -88,14 +149,14 @@ impl ClassSet {
     }
 
     pub const fn all() -> Self {
-        Self::from_u8(!0)
+        Self::from_u16(!0)
     }
 
-    pub const fn from_u8(val: u8) -> Self {
-        Self(val & 0b1111111)
+    pub const fn from_u16(val: u16) -> Self {
+        Self(val & 0b1111111111111)
     }
 
-    pub fn as_u8(&self) -> u8 {
+    pub fn as_u16(&self) -> u16 {
         self.0
     }
 
@@ -114,9 +175,8 @@ impl std::fmt::Debug for ClassSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ClassSet(")?;
 
-        use Class::*;
         let mut first = true;
-        for class in [Duelist, Marauder, Ranger, Scion, Shadow, Templar, Witch] {
+        for class in Class::all() {
             if self.contains(class) {
                 if !first {
                     write!(f, " | ")?;
@@ -188,6 +248,18 @@ pub enum Ascendancy {
     Saboteur,
     Slayer,
     Trickster,
+
+    // PoE 2
+    BloodMage,
+    Infernalist,
+    Titan,
+    Warbringer,
+    WitchHunter,
+    GemlingLegionaire,
+    Invoker,
+    AcolyteOfChayula,
+    Stormweaver,
+    Chronomancer,
 }
 
 impl Ascendancy {
@@ -213,6 +285,16 @@ impl Ascendancy {
             Self::Saboteur => Class::Shadow,
             Self::Slayer => Class::Duelist,
             Self::Trickster => Class::Shadow,
+            Self::BloodMage => Class::Witch,
+            Self::Infernalist => Class::Witch,
+            Self::Titan => Class::Warrior,
+            Self::Warbringer => Class::Warrior,
+            Self::WitchHunter => Class::Mercenary,
+            Self::GemlingLegionaire => Class::Mercenary,
+            Self::Invoker => Class::Monk,
+            Self::AcolyteOfChayula => Class::Monk,
+            Self::Stormweaver => Class::Sorceress,
+            Self::Chronomancer => Class::Sorceress,
         }
     }
 
@@ -238,6 +320,16 @@ impl Ascendancy {
             Self::Saboteur => "Saboteur",
             Self::Slayer => "Slayer",
             Self::Trickster => "Trickster",
+            Self::BloodMage => "Blood Mage",
+            Self::Infernalist => "Infernalist",
+            Self::Titan => "Titan",
+            Self::Warbringer => "Warbringer",
+            Self::WitchHunter => "Witchhunter",
+            Self::GemlingLegionaire => "Gemling Legionaire",
+            Self::Invoker => "Invoker",
+            Self::AcolyteOfChayula => "Acolyte of Chayula",
+            Self::Stormweaver => "Stormweaver",
+            Self::Chronomancer => "Chronomancer",
         }
     }
 }
@@ -267,6 +359,17 @@ impl FromStr for Ascendancy {
             "Saboteur" => Self::Saboteur,
             "Slayer" => Self::Slayer,
             "Trickster" => Self::Trickster,
+
+            "Blood Mage" => Self::BloodMage,
+            "Infernalist" => Self::Infernalist,
+            "Titan" => Self::Titan,
+            "Warbringer" => Self::Warbringer,
+            "Witchhunter" => Self::WitchHunter,
+            "Gemling Legionaire" => Self::GemlingLegionaire,
+            "Invoker" => Self::Invoker,
+            "Acolyte of Chayula" => Self::AcolyteOfChayula,
+            "Stormweaver" => Self::Stormweaver,
+            "Chronomancer" => Self::Chronomancer,
 
             _ => return Err(Invalid("Ascendancy")),
         })
@@ -436,16 +539,19 @@ mod tests {
 
     #[test]
     fn test_class_set() {
-        assert_eq!(0b1000001, (Class::Duelist | Class::Witch).as_u8());
-        assert!(ClassSet::from_u8(0b1000001).contains(Class::Duelist));
-        assert!(ClassSet::from_u8(0b1000001).contains(Class::Witch));
-        assert!(!ClassSet::from_u8(0b1000001).contains(Class::Ranger));
+        assert_eq!(0b1000001, (Class::Duelist | Class::Witch).as_u16());
+        assert!(ClassSet::from_u16(0b1000001).contains(Class::Duelist));
+        assert!(ClassSet::from_u16(0b1000001).contains(Class::Witch));
+        assert!(!ClassSet::from_u16(0b1000001).contains(Class::Ranger));
         assert_eq!(
             (Class::Duelist | Class::Witch),
             ClassSet::from([Class::Duelist, Class::Witch])
         );
-        // Top most bit is unused, make sure it is discarded
-        assert_eq!(ClassSet::from_u8(0b11000001), ClassSet::from_u8(0b01000001));
-        assert_eq!(ClassSet::all(), ClassSet::from_u8(0b01111111));
+        // Top most 3 bits are unused, make sure it is discarded
+        assert_eq!(
+            ClassSet::from_u16(0b1111000001000001),
+            ClassSet::from_u16(0b0001000001000001)
+        );
+        assert_eq!(ClassSet::all(), ClassSet::from_u16(0b01111111111111));
     }
 }

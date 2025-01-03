@@ -28,7 +28,7 @@ impl RoutedComponent for UserEditPastePage {
             id: UserPasteId { user, id },
             content: paste.content,
             rank: paste.metadata.as_ref().and_then(|m| m.rank),
-            private: paste.metadata.as_ref().map_or(false, |m| m.private),
+            private: paste.metadata.as_ref().is_some_and(|m| m.private),
             title: paste.metadata.map(|m| m.title),
         })
     }
@@ -56,7 +56,7 @@ impl RoutedComponent for UserEditPastePage {
                 id: id.unwrap_user(),
                 content: paste.content,
                 rank: paste.metadata.as_ref().and_then(|m| m.rank),
-                private: paste.metadata.as_ref().map_or(false, |m| m.private),
+                private: paste.metadata.as_ref().is_some_and(|m| m.private),
                 title: paste.metadata.map(|x| x.title),
             })
         })

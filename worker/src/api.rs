@@ -364,6 +364,7 @@ fn validate_pob(is_logged_in: bool, data: &[u8]) -> Result<SerdePathOfBuilding> 
 fn to_metadata(pob: &SerdePathOfBuilding) -> PasteMetadata {
     PasteMetadata {
         title: app::pob::title(pob),
+        game_version: pob.game_version(),
         ascendancy_or_class: pob.ascendancy_or_class().to_owned(),
         version: pob.max_tree_version(),
         main_skill_name: pob.main_skill_name().map(|x| x.to_owned()),

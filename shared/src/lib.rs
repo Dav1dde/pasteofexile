@@ -8,7 +8,7 @@ pub mod validation;
 
 pub use self::id::{Id, InvalidId, InvalidPasteId, PasteId, UserPasteId};
 pub use self::poe::{
-    Ascendancy, AscendancyOrClass, Bandit, Class, ClassSet, Color, PantheonMajorGod,
+    Ascendancy, AscendancyOrClass, Bandit, Class, ClassSet, Color, GameVersion, PantheonMajorGod,
     PantheonMinorGod,
 };
 pub use self::url::UrlSafe;

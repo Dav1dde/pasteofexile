@@ -1,4 +1,4 @@
-use shared::{Ascendancy, Bandit, Class, PantheonMajorGod, PantheonMinorGod};
+use shared::{Ascendancy, Bandit, Class, GameVersion, PantheonMajorGod, PantheonMinorGod};
 
 use crate::serde::model::*;
 use crate::{Config, ConfigValue, Error, Keystone, Result, Stat};
@@ -91,6 +91,22 @@ impl SerdePathOfBuilding {
 }
 
 impl crate::PathOfBuilding for SerdePathOfBuilding {
+    fn game_version(&self) -> GameVersion {
+        // Until pob adds a discriminator we can only guess based on the tree version.
+        let v = self
+            .pob
+            .tree
+            .specs
+            .first()
+            .and_then(|spec| spec.version.as_ref());
+
+        if v.is_some_and(|v| v.starts_with("4")) {
+            GameVersion::Two
+        } else {
+            GameVersion::One
+        }
+    }
+
     fn level(&self) -> u8 {
         self.pob.build.level
     }
@@ -257,6 +273,9 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                     flask3: gear.flask3.and_then(item),
                     flask4: gear.flask4.and_then(item),
                     flask5: gear.flask5.and_then(item),
+                    charm1: gear.charm1.and_then(item),
+                    charm2: gear.charm2.and_then(item),
+                    charm3: gear.charm3.and_then(item),
                     sockets: gear.sockets.iter().filter_map(|&id| item(id)).collect(),
                 };
 

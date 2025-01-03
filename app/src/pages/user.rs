@@ -126,7 +126,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     let version = summary.version.clone().unwrap_or_default();
     let main_skill_name = summary.main_skill_name.clone().unwrap_or_default();
 
-    let main_skill_image = crate::assets::item_image_url(&main_skill_name);
+    let main_skill_image = crate::assets::item_image_url(summary.game_version, &main_skill_name);
     let main_skill_alt = main_skill_name.clone();
 
     let pinned = summary.rank.is_some();

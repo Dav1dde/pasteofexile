@@ -17,7 +17,7 @@ authors = ["David Herberth <github@dav1d.de>"]
 edition = "2021"
 
 [workspace.lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(pobbin_develop)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(pobbin_develop)', 'cfg(wasm_bindgen_unstable_test_coverage)'] }
 
 [profile.release]
 panic = 'abort'

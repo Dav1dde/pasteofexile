@@ -92,12 +92,12 @@ pub(crate) fn get_paste_summary(pob: &impl PathOfBuilding) -> Vec<String> {
 
 pub(crate) fn get_color(aoc: AscendancyOrClass) -> &'static str {
     match aoc.class() {
-        Class::Duelist => "#96afc8",
-        Class::Marauder => "#af5a32",
-        Class::Ranger => "#7cb376",
+        Class::Duelist | Class::Mercenary => "#96afc8",
+        Class::Marauder | Class::Warrior => "#af5a32",
+        Class::Ranger | Class::Huntress => "#7cb376",
         Class::Scion => "#cccccc",
-        Class::Shadow => "#72818d",
-        Class::Templar => "#cfbd8a",
-        Class::Witch => "#9ac3c9",
+        Class::Shadow | Class::Monk => "#72818d",
+        Class::Templar | Class::Druid => "#cfbd8a",
+        Class::Witch | Class::Sorceress => "#9ac3c9",
     }
 }

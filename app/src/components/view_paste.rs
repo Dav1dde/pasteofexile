@@ -51,6 +51,7 @@ pub fn ViewPaste<'a, G: Html>(
         build,
     }: ViewPasteProps<'a>,
 ) -> View<G> {
+    let gv = build.game_version();
     let title = title.unwrap_or_else(|| pob::title(build.pob()));
 
     push_paste_to_history::<G>(cx, &id, &title, last_modified, build);
@@ -61,6 +62,15 @@ pub fn ViewPaste<'a, G: Html>(
 
     let open_in_pob_url = id.to_pob_open_url();
     let pob_cool_url = format!("https://pob.cool/#build={SELF_URL}{}", id.to_url());
+
+    let logo = view_cond!(cx, gv.is_poe2(), {
+        div(class="flex flex-col items-center") {
+            img(
+                class="h-[100px] mb-[-30px] mt-[-20px]",
+                src="https://assets.pobb.in/2/logo.webp"
+            )
+        }
+    });
 
     let notes = view_cond!(cx, !build.notes().is_empty(), {
         div(class="flex-auto") {
@@ -132,6 +142,7 @@ pub fn ViewPaste<'a, G: Html>(
     let src = crate::assets::ascendancy_image(build.ascendancy_or_class());
 
     view! { cx,
+        (logo)
         div(class="text-right text-sm text-slate-500", title=date, data-last-modified=last_modified) { (since) }
         div(class="flex flex-col md:flex-row gap-y-5 md:gap-x-3 mb-24") {
             div(class="flex-auto flex flex-col gap-y-2 -mt-[3px]") {
@@ -205,6 +216,10 @@ fn render<G: Html>(cx: Scope, elements: Vec<Element>) -> View<G> {
 }
 
 fn has_displayable_tree(pob: &impl PathOfBuilding) -> bool {
+    if pob.game_version().is_poe2() {
+        return false;
+    }
+
     let specs = pob.tree_specs();
 
     specs.len() > 1
@@ -229,6 +244,7 @@ fn push_paste_to_history<G: Html>(
             id: id.clone(),
             title: title.to_owned(),
             ascendancy_or_class: build.ascendancy_or_class(),
+            game_version: build.pob().game_version(),
             version: build.max_tree_version(),
             main_skill_name: build.main_skill_name().map(|s| s.to_owned()),
             last_modified,

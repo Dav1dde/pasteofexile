@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use pob::{PathOfBuilding, Socket, TreeSpec};
-use shared::model::data;
+use shared::{model::data, GameVersion};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlElement};
@@ -51,6 +51,7 @@ struct Override<'build> {
 
 #[component]
 pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
+    let gv = build.game_version();
     let trees = build
         .trees()
         .filter_map(|(nodes, spec)| {
@@ -105,7 +106,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             .and_then(|item| pob::Item::parse(item).ok());
 
         let content = if let Some(item) = item {
-            view! { cx, PobItem(item) }
+            view! { cx, PobItem(game_version=gv, item=item) }
         } else {
             let dataset = target.dataset();
 
@@ -149,7 +150,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         build.active_tree().set(index);
     });
 
-    let nodes = create_memo(cx, move || render_nodes(cx, &current_tree.get()));
+    let nodes = create_memo(cx, move || render_nodes(cx, gv, &current_tree.get()));
     let tree_level = create_memo(cx, move || {
         let current_tree = current_tree.get();
         let (nodes, level) = resolve_level(build, &current_tree.spec);
@@ -286,7 +287,7 @@ fn extract_overrides<'a>(overrides: &[pob::Override<'a>]) -> Vec<Override<'a>> {
         .collect()
 }
 
-fn render_nodes<G: GenericNode + Html>(cx: Scope, tree: &Tree<'_>) -> View<G> {
+fn render_nodes<G: GenericNode + Html>(cx: Scope, gv: GameVersion, tree: &Tree<'_>) -> View<G> {
     let nodes = tree.nodes;
 
     if nodes.is_empty() {
@@ -306,13 +307,13 @@ fn render_nodes<G: GenericNode + Html>(cx: Scope, tree: &Tree<'_>) -> View<G> {
     let keystones = nodes
         .keystones
         .iter()
-        .map(|node| render_keystone(cx, node))
+        .map(|node| render_keystone(cx, gv, node))
         .collect_view();
 
     let masteries = nodes
         .masteries
         .iter()
-        .map(|node| render_mastery(cx, node))
+        .map(|node| render_mastery(cx, gv, node))
         .collect_view();
 
     view! { cx,
@@ -346,7 +347,11 @@ fn render_override<G: GenericNode + Html>(cx: Scope, r#override: &Override) -> V
     }
 }
 
-fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G> {
+fn render_keystone<G: GenericNode + Html>(
+    cx: Scope,
+    gv: GameVersion,
+    node: &data::Node,
+) -> View<G> {
     let name = node.name.to_owned();
     let alt = name.clone();
     let stats = node.stats.iter().map(|s| &s.text).join("\n");
@@ -354,7 +359,7 @@ fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<
     let src = node
         .icon
         .as_deref()
-        .map(crate::assets::item_image_url)
+        .map(|s| crate::assets::item_image_url(gv, s))
         .unwrap_or_default();
 
     let node_ids = node_ids(&node.stats);
@@ -378,7 +383,7 @@ fn render_keystone<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<
     }
 }
 
-fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G> {
+fn render_mastery<G: GenericNode + Html>(cx: Scope, gv: GameVersion, node: &data::Node) -> View<G> {
     let name = node.name.to_owned();
     let alt = name.clone();
     let stats = node
@@ -393,7 +398,7 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, node: &data::Node) -> View<G
     let src = node
         .icon
         .as_deref()
-        .map(crate::assets::item_image_url)
+        .map(|s| crate::assets::item_image_url(gv, s))
         .unwrap_or_default();
 
     let node_ids = node_ids(&node.stats);
