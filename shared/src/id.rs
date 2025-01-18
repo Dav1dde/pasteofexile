@@ -2,7 +2,7 @@ use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
-use crate::UrlSafe;
+use crate::{GameVersion, UrlSafe};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Id(String);
@@ -138,9 +138,13 @@ impl UserPasteId {
             .join(&*self.id)
     }
 
-    pub fn to_pob_open_url(&self) -> UrlSafe<'static> {
-        UrlSafe::from_static("pob://pobbin/")
-            .join(UrlSafe::new(&self.user).push(":").push(&*self.id))
+    pub fn to_pob_open_url(&self, gv: GameVersion) -> UrlSafe<'static> {
+        let id = UrlSafe::new(&self.user).push(":").push(&*self.id);
+
+        match gv {
+            GameVersion::One => UrlSafe::from_static("pob://pobbin/").join(id),
+            GameVersion::Two => UrlSafe::from_static("pob2://pobbin/").join(id),
+        }
     }
 }
 
@@ -199,10 +203,13 @@ impl PasteId {
         }
     }
 
-    pub fn to_pob_open_url(&self) -> UrlSafe<'static> {
+    pub fn to_pob_open_url(&self, gv: GameVersion) -> UrlSafe<'static> {
         match self {
-            Self::Paste(id) => UrlSafe::from_static("pob://pobbin/").join(id.as_str()),
-            Self::UserPaste(up) => up.to_pob_open_url(),
+            Self::Paste(id) => match gv {
+                GameVersion::One => UrlSafe::from_static("pob://pobbin/").join(id.as_str()),
+                GameVersion::Two => UrlSafe::from_static("pob2://pobbin/").join(id.as_str()),
+            },
+            Self::UserPaste(up) => up.to_pob_open_url(gv),
         }
     }
 

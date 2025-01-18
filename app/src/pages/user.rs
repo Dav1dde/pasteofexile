@@ -120,7 +120,7 @@ fn summary_to_view<'a, G: GenericNode + Html>(
     let color = crate::meta::get_color(summary.ascendancy_or_class);
 
     let id = summary.id.clone().unwrap_user();
-    let open_in_pob_url = id.to_pob_open_url();
+    let open_in_pob_url = id.to_pob_open_url(summary.game_version);
 
     // TODO: this sucks and is annoying
     let version = summary.version.clone().unwrap_or_default();

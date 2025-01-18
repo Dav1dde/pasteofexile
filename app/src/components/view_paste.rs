@@ -60,7 +60,7 @@ pub fn ViewPaste<'a, G: Html>(
     let since = crate::utils::pretty_date_ts(last_modified);
     let date = js_sys::Date::new(&JsValue::from_f64(last_modified as f64)).to_string();
 
-    let open_in_pob_url = id.to_pob_open_url();
+    let open_in_pob_url = id.to_pob_open_url(gv);
     let pob_cool_url = format!("https://pob.cool/#build={SELF_URL}{}", id.to_url());
 
     let logo = view_cond!(cx, gv.is_poe2(), {
