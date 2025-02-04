@@ -6,6 +6,7 @@ use crate::{Config, ConfigValue, Error, Keystone, Result, Stat};
 #[derive(Debug)]
 pub struct SerdePathOfBuilding {
     pob: PathOfBuilding,
+    game_version: GameVersion,
     // TODO: quick access list (indices) for active items (?)
 }
 
@@ -14,8 +15,9 @@ impl SerdePathOfBuilding {
         let mut xd = quick_xml::de::Deserializer::from_reader(s.as_bytes());
 
         #[cfg(any(feature = "better-errors", test))]
-        let pob = match serde_path_to_error::deserialize(&mut xd) {
-            Ok(pob) => pob,
+        let (game_version, pob) = match serde_path_to_error::deserialize(&mut xd) {
+            Ok(PathOfBuildingVersion::PathOfExileOne(pob)) => (GameVersion::One, pob),
+            Ok(PathOfBuildingVersion::PathOfExileTwo(pob)) => (GameVersion::Two, pob),
             Err(err) => {
                 let path = err.path().to_string();
                 return Err(Error::ParseXml(path, err.into_inner()));
@@ -23,10 +25,14 @@ impl SerdePathOfBuilding {
         };
 
         #[cfg(not(any(feature = "better-errors", test)))]
-        let pob = serde::Deserialize::deserialize(&mut xd)
+        let (game_version, pob) = serde::Deserialize::deserialize(&mut xd)
+            .map(|p| match p {
+                PathOfBuildingVersion::PathOfExileOne(pob) => (GameVersion::One, pob),
+                PathOfBuildingVersion::PathOfExileTwo(pob) => (GameVersion::Two, pob),
+            })
             .map_err(|e| Error::ParseXml("Unknown".to_owned(), e))?;
 
-        Ok(Self { pob })
+        Ok(Self { pob, game_version })
     }
 
     pub fn from_export(data: &str) -> Result<Self> {
@@ -92,19 +98,7 @@ impl SerdePathOfBuilding {
 
 impl crate::PathOfBuilding for SerdePathOfBuilding {
     fn game_version(&self) -> GameVersion {
-        // Until pob adds a discriminator we can only guess based on the tree version.
-        let v = self
-            .pob
-            .tree
-            .specs
-            .first()
-            .and_then(|spec| spec.version.as_ref());
-
-        if v.is_some_and(|v| v.starts_with("4")) {
-            GameVersion::Two
-        } else {
-            GameVersion::One
-        }
+        self.game_version
     }
 
     fn level(&self) -> u8 {

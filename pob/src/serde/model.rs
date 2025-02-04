@@ -6,6 +6,14 @@ use shared::{Ascendancy, Bandit, Class, PantheonMajorGod, PantheonMinorGod};
 use crate::serde::utils;
 
 #[derive(Debug, Deserialize)]
+pub(crate) enum PathOfBuildingVersion {
+    #[serde(rename = "PathOfBuilding")]
+    PathOfExileOne(PathOfBuilding),
+    #[serde(rename = "PathOfBuilding2")]
+    PathOfExileTwo(PathOfBuilding),
+}
+
+#[derive(Debug, Deserialize)]
 pub(crate) struct PathOfBuilding {
     #[serde(rename = "Build")]
     pub build: Build,

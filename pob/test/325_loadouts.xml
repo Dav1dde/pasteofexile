@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<PathOfBuilding>
+<PathOfBuilding2>
 	<Build level="1" targetVersion="3_0" pantheonMajorGod="None" bandit="None" className="Scion" ascendClassName="None" characterLevelAutoMode="true" mainSocketGroup="1" viewMode="IMPORT" pantheonMinorGod="None">
 		<PlayerStat stat="AverageDamage" value="2.9054347826087"/>
 		<PlayerStat stat="AverageBurstDamage" value="2.9054347826087"/>
@@ -344,4 +344,4 @@
 			<Placeholder name="enemyCritDamage" number="30"/>
 		</ConfigSet>
 	</Config>
-</PathOfBuilding>
+</PathOfBuilding2>
