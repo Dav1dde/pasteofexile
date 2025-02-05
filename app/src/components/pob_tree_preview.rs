@@ -56,7 +56,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         .trees()
         .filter_map(|(nodes, spec)| {
             let tree_url = get_tree_url(&spec)?;
-            let svg_url = SvgTree::url(&spec);
+            let svg_url = SvgTree::url(gv, &spec);
             let overrides = extract_overrides(&spec.overrides);
             Some(Tree {
                 name: spec.title.unwrap_or("<Default>").to_owned(),
