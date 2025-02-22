@@ -7,6 +7,8 @@ pub fn ascendancy_image(ascendancy_or_class: AscendancyOrClass) -> &'static str 
                 $($name => concat!(
                     "https://assets.pobb.in/", $v, "/Art/2DArt/UIImages/Common/Icon", stringify!($file), ".webp"
                 ),)+
+
+                AscendancyOrClass::Ascendancy(a) => ascendancy_image(AscendancyOrClass::Class(a.class())),
             }
         };
     }
