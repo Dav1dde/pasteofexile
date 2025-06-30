@@ -46,7 +46,7 @@ impl Build {
         })
     }
 
-    pub fn trees(&self) -> impl Iterator<Item = (&data::Nodes, TreeSpec)> {
+    pub fn trees(&self) -> impl Iterator<Item = (&data::Nodes, TreeSpec<'_>)> {
         static DEFAULT_NODES: data::Nodes = data::Nodes {
             keystones: Vec::new(),
             masteries: Vec::new(),

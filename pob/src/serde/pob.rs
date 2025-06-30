@@ -149,7 +149,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .map(|stat| stat.value.as_str())
     }
 
-    fn config(&self, config: Config) -> ConfigValue {
+    fn config(&self, config: Config) -> ConfigValue<'_> {
         let input = self
             .pob
             .config
@@ -236,7 +236,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .map(|item| item.content.content.as_str())
     }
 
-    fn item_sets(&self) -> Vec<crate::ItemSet> {
+    fn item_sets(&self) -> Vec<crate::ItemSet<'_>> {
         let item = |id| {
             self.pob
                 .items
@@ -283,7 +283,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .collect()
     }
 
-    fn tree_specs(&self) -> Vec<crate::TreeSpec> {
+    fn tree_specs(&self) -> Vec<crate::TreeSpec<'_>> {
         self.pob
             .tree
             .specs
@@ -364,7 +364,7 @@ fn active_skill_names(gems: &[Gem]) -> impl Iterator<Item = &str> {
     })
 }
 
-fn to_skills(skills: &[Skill], main_socket_group: usize) -> Vec<crate::Skill> {
+fn to_skills(skills: &[Skill], main_socket_group: usize) -> Vec<crate::Skill<'_>> {
     skills
         .iter()
         .enumerate()
@@ -375,7 +375,7 @@ fn to_skills(skills: &[Skill], main_socket_group: usize) -> Vec<crate::Skill> {
         .collect()
 }
 
-fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill {
+fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill<'_> {
     let mut actives = 0;
     let gems = skill
         .gems

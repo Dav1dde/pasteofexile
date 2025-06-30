@@ -145,11 +145,7 @@ impl Sentry {
             .and_then(|url| url.host_str())
             .map(|s| s.to_owned().into());
 
-        event.transaction = self
-            .transaction
-            .as_ref()
-            .and_then(|t| t.0.name.to_owned())
-            .map(Into::into);
+        event.transaction = self.transaction.as_ref().and_then(|t| t.0.name.to_owned());
         event.breadcrumbs.clone_from(&self.breadcrumbs);
         event.release = Some(git_version!().into());
         event.server_name = server_name;

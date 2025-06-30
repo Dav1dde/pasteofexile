@@ -454,7 +454,7 @@ fn fixup_item_name(mut name: &str) -> &str {
     // Brutal Restraint [...] -> Brutal Restraint
     //
     // Some content creators use `(` now to add comments/annotations to the item.
-    let end = name.find(|c| matches!(c, '[' | '(')).unwrap_or(name.len());
+    let end = name.find(['[', '(']).unwrap_or(name.len());
     name[..end].trim()
 }
 

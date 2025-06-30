@@ -74,9 +74,9 @@ impl MetricValue {
 impl fmt::Display for MetricValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MetricValue::Counter(value) => write!(f, "{}", value),
-            MetricValue::Distribution(value) => write!(f, "{}", value),
-            MetricValue::Set(value) => write!(f, "{}", value),
+            MetricValue::Counter(value) => write!(f, "{value}"),
+            MetricValue::Distribution(value) => write!(f, "{value}"),
+            MetricValue::Set(value) => write!(f, "{value}"),
         }
     }
 }

@@ -35,16 +35,16 @@ pub trait PathOfBuilding {
 
     fn stat(&self, stat: Stat) -> Option<&str>;
     fn minion_stat(&self, stat: Stat) -> Option<&str>;
-    fn config(&self, config: Config) -> ConfigValue;
+    fn config(&self, config: Config) -> ConfigValue<'_>;
     fn main_skill_name(&self) -> Option<&str>;
     fn main_skill_supported_by(&self, skill: &str) -> bool;
 
-    fn skill_sets(&self) -> Vec<SkillSet>;
+    fn skill_sets(&self) -> Vec<SkillSet<'_>>;
 
     fn item_by_id(&self, id: u16) -> Option<&str>;
-    fn item_sets(&self) -> Vec<ItemSet>;
+    fn item_sets(&self) -> Vec<ItemSet<'_>>;
 
-    fn tree_specs(&self) -> Vec<TreeSpec>;
+    fn tree_specs(&self) -> Vec<TreeSpec<'_>>;
     fn has_tree_node(&self, node: u32) -> bool;
     fn has_keystone(&self, keystone: Keystone) -> bool;
 }
