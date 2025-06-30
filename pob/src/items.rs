@@ -451,8 +451,10 @@ fn fixup_item_name(mut name: &str) -> &str {
     // Items: like `Pig-Faced Bascinet` exist.
     name = name.rsplit_once("- ").map(|(_, name)| name).unwrap_or(name);
     // PoB generates Legion Jewels with `[Seed]` at the end:
-    // Burtal Restraint [...] -> Brutal Restraint
-    let end = name.find('[').unwrap_or(name.len());
+    // Brutal Restraint [...] -> Brutal Restraint
+    //
+    // Some content creators use `(` now to add comments/annotations to the item.
+    let end = name.find(|c| matches!(c, '[' | '(')).unwrap_or(name.len());
     name[..end].trim()
 }
 
