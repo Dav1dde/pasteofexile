@@ -47,3 +47,7 @@ tracing-subscriber.workspace = true
 
 [build-dependencies]
 regex = "1"
+
+# Workaround for wasm-pack issue: https://github.com/rustwasm/wasm-pack/issues/1501
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
