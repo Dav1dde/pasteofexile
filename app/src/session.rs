@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 use sycamore::{prelude::*, reactive::provide_context};
 
@@ -63,12 +65,15 @@ impl Session {
                 .map_err(|_| "Invalid timestamp")?,
         );
         let now = js_sys::Date::new_0().get_time() as u64;
-        if ts > now || (now - ts) as u128 > MAX_SESSION_DURATION.as_millis() {
+
+        if now < ts {
+            tracing::warn!("Token timestamp in the past. Token: {ts}. Now: {now}. You may have to clear your cookies.");
+        }
+        if Duration::from_millis(now.saturating_sub(ts)) > MAX_SESSION_DURATION {
             return Err("Token Expired".into());
         }
 
         let user = serde_json::from_str(session)?;
-
         Ok(Session::LoggedIn(user))
     }
 }
