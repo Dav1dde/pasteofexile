@@ -119,6 +119,7 @@ pub fn get_node(version: Version, id: u32) -> Option<&'static Node> {
 }
 
 gen! {
+    (V3_26, "/tree3_26.rs", tree3_26, "tree-3_26", "3_26" | "3.26"),
     (V3_25, "/tree3_25.rs", tree3_25, "tree-3_25", "3_25" | "3.25"),
     (V3_24, "/tree3_24.rs", tree3_24, "tree-3_24", "3_24" | "3.24"),
     (V3_23, "/tree3_23.rs", tree3_23, "tree-3_23", "3_23" | "3.23"),
