@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
 use shared::{
     model::{ListPaste, PasteMetadata},
     PasteId, User,
@@ -15,16 +14,6 @@ use crate::{
     utils::{b64_decode, b64_encode},
     Result,
 };
-
-#[derive(Default, Serialize, Deserialize)]
-struct KvMetadata {
-    #[serde(default)]
-    last_modified: u64,
-    #[serde(default)]
-    entity_id: Option<String>,
-    #[serde(flatten)]
-    metadata: Option<PasteMetadata>,
-}
 
 pub struct R2Storage {
     bucket: Bucket,
