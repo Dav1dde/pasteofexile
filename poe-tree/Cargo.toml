@@ -22,6 +22,7 @@ default = [
     "tree-3_24",
     "tree-3_25",
     "tree-3_26",
+    "tree-3_27",
 ]
 tree-3_15 = []
 tree-3_16 = []
@@ -35,6 +36,7 @@ tree-3_23 = []
 tree-3_24 = []
 tree-3_25 = []
 tree-3_26 = []
+tree-3_27 = []
 
 [dependencies]
 phf.workspace = true
