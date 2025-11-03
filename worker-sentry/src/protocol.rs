@@ -4,7 +4,7 @@ use std::fmt;
 use std::io::Write;
 use std::rc::Rc;
 
-use serde::Serialize;
+use serde::{ser::SerializeMap, Serialize};
 pub use serde_json::Value;
 
 use super::utils::{ts_rfc3339, ts_rfc3339_opt};
@@ -19,7 +19,7 @@ pub enum EnvelopeItem<'a> {
     Event(Event<'a>),
     Transaction(Transaction<'a>),
     Attachment(&'a Attachment),
-    Statsd(Vec<u8>),
+    TraceMetrics(Vec<TraceMetric<'a>>),
 }
 
 #[derive(Default, Debug)]
@@ -40,14 +40,6 @@ impl<'a> Envelope<'a> {
         self.items.push(item);
     }
 
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     pub fn to_writer<W>(&self, mut writer: W) -> std::io::Result<()>
     where
         W: Write,
@@ -61,9 +53,10 @@ impl<'a> Envelope<'a> {
             _ => writeln!(writer, "{{}}")?,
         }
 
-        // write each item:
         for item in &self.items {
             // we write them to a temporary buffer first, since we need their length
+            let mut item_count = None;
+            let mut content_type = None;
             match item {
                 EnvelopeItem::Event(event) => serde_json::to_writer(&mut item_buf, event)?,
                 EnvelopeItem::Transaction(transaction) => {
@@ -74,20 +67,26 @@ impl<'a> Envelope<'a> {
                     writeln!(writer)?;
                     continue;
                 }
-                EnvelopeItem::Statsd(statsd) => item_buf.write_all(statsd)?,
+                EnvelopeItem::TraceMetrics(metrics) => {
+                    item_count = Some(metrics.len());
+                    content_type = Some("application/vnd.sentry.items.trace-metric+json");
+                    serde_json::to_writer(&mut item_buf, &ItemContainer { items: metrics })?
+                }
             }
 
             let item_type = match item {
                 EnvelopeItem::Event(_) => "event",
                 EnvelopeItem::Transaction(_) => "transaction",
                 EnvelopeItem::Attachment(_) => unreachable!(),
-                EnvelopeItem::Statsd(_) => "statsd",
+                EnvelopeItem::TraceMetrics(_) => "trace_metric",
             };
             writeln!(
                 writer,
-                r#"{{"type":"{}","length":{}}}"#,
+                r#"{{"type":"{}","length":{},"item_count":{},"content_type":"{}"}}"#,
                 item_type,
-                item_buf.len()
+                item_buf.len(),
+                item_count.unwrap_or(1),
+                content_type.unwrap_or("application/octet-stream"),
             )?;
             writer.write_all(&item_buf)?;
             writeln!(writer)?;
@@ -628,15 +627,10 @@ pub struct TraceContext {
 }
 
 /// The different types an attachment can have.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub enum AttachmentType {
+    #[default]
     Attachment,
-}
-
-impl Default for AttachmentType {
-    fn default() -> Self {
-        Self::Attachment
-    }
 }
 
 impl AttachmentType {
@@ -687,4 +681,51 @@ impl fmt::Debug for Attachment {
             .field("type", &self.ty)
             .finish()
     }
+}
+
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct TraceMetric<'a> {
+    /// Timestamp when the metric was created.
+    pub timestamp: Timestamp,
+    /// The ID of the trace the metric belongs to.
+    pub trace_id: TraceId,
+    /// The Span this metric belongs to.
+    pub span_id: Option<SpanId>,
+    /// The metric name.
+    pub name: Cow<'a, str>,
+    /// The metric unit.
+    pub unit: Option<MetricUnit>,
+    /// The metric value.
+    #[serde(flatten)]
+    pub value: MetricValue,
+    /// Arbitrary attributes on a metric.
+    pub attributes: Map<&'a str, Attribute<'a>>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Attribute<'a> {
+    String(Cow<'a, str>),
+}
+
+impl<'a> serde::Serialize for Attribute<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_map(Some(2))?;
+
+        match self {
+            Attribute::String(v) => {
+                s.serialize_entry("type", "string")?;
+                s.serialize_entry("value", v)?;
+            }
+        }
+
+        s.end()
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct ItemContainer<'a, T> {
+    pub items: &'a [T],
 }

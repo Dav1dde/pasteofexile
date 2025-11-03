@@ -1,7 +1,7 @@
 use git_version::git_version;
 
 use crate::{
-    protocol::{self, Envelope, EnvelopeItem, Metric},
+    protocol::{self, Envelope, EnvelopeItem, TraceMetric},
     Result,
 };
 
@@ -16,7 +16,7 @@ pub struct Sentry {
     breadcrumbs: Vec<protocol::Breadcrumb>,
     attachments: Vec<protocol::Attachment>,
     trace_context: Vec<protocol::TraceContext>,
-    metrics: Vec<protocol::Metric>,
+    metrics: Vec<protocol::TraceMetric<'static>>,
     pub(crate) trace_id: protocol::TraceId,
     user: Option<protocol::User>,
     request: Option<protocol::Request>,
@@ -84,7 +84,8 @@ impl Sentry {
         self.attachments.push(attachment);
     }
 
-    pub(crate) fn add_metric(&mut self, metric: Metric) {
+    pub(crate) fn add_metric(&mut self, mut metric: TraceMetric<'static>) {
+        metric.trace_id = self.trace_id;
         self.metrics.push(metric);
     }
 
@@ -129,10 +130,10 @@ impl Sentry {
 
     pub fn flush(&mut self) {
         let mut envelope = Envelope::default();
-        for metric in self.metrics.drain(..) {
-            envelope.add_item(EnvelopeItem::Statsd(metric.to_statsd()));
-        }
-        if !envelope.is_empty() {
+        let metrics = std::mem::take(&mut self.metrics);
+
+        if !metrics.is_empty() {
+            envelope.add_item(EnvelopeItem::TraceMetrics(metrics));
             let _ = self.send_envelope(envelope);
         }
     }

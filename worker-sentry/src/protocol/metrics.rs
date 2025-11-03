@@ -1,40 +1,8 @@
 use core::fmt;
-use std::{borrow::Cow, collections::BTreeMap, io::Write};
 
-use super::Timestamp;
+use serde::ser::SerializeMap;
 
-#[derive(Debug, Clone)]
-pub struct Metric {
-    pub name: &'static str,
-    pub unit: MetricUnit,
-    pub tags: BTreeMap<&'static str, Cow<'static, str>>,
-    pub value: MetricValue,
-    pub timestamp: Option<Timestamp>,
-}
-
-impl Metric {
-    pub(crate) fn to_statsd(&self) -> Vec<u8> {
-        let mut result = Vec::with_capacity(50);
-        let _ = write!(&mut result, "{}", self.name);
-        if !matches!(self.unit, MetricUnit::None) {
-            let _ = write!(&mut result, "@{}", self.unit.as_str());
-        }
-        let _ = write!(&mut result, ":{}|{}", self.value, self.value.as_type());
-        for (i, (name, value)) in self.tags.iter().enumerate() {
-            let _ = match i {
-                0 => write!(&mut result, "|#{name}:{value}"),
-                _ => write!(&mut result, ",{name}:{value}"),
-            };
-        }
-        if let Some(timestamp) = self.timestamp {
-            let _ = write!(&mut result, "|T{}", timestamp.as_secs());
-        }
-
-        result
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub enum MetricUnit {
     // There are a bunch more here .. https://getsentry.github.io/relay/relay_metrics/enum.MetricUnit.html
     MilliSecond,
@@ -58,16 +26,25 @@ impl MetricUnit {
 pub enum MetricValue {
     Counter(i64),
     Distribution(f64),
-    Set(u32),
 }
 
-impl MetricValue {
-    pub fn as_type(&self) -> &'static str {
+impl serde::Serialize for MetricValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_map(Some(2))?;
         match self {
-            MetricValue::Counter(_) => "c",
-            MetricValue::Distribution(_) => "d",
-            MetricValue::Set(_) => "s",
+            MetricValue::Counter(value) => {
+                s.serialize_entry("type", "counter")?;
+                s.serialize_entry("value", value)?;
+            }
+            MetricValue::Distribution(value) => {
+                s.serialize_entry("type", "distribution")?;
+                s.serialize_entry("value", value)?;
+            }
         }
+        s.end()
     }
 }
 
@@ -76,7 +53,6 @@ impl fmt::Display for MetricValue {
         match self {
             MetricValue::Counter(value) => write!(f, "{value}"),
             MetricValue::Distribution(value) => write!(f, "{value}"),
-            MetricValue::Set(value) => write!(f, "{value}"),
         }
     }
 }

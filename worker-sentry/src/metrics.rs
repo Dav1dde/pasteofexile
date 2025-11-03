@@ -1,6 +1,7 @@
 use std::{borrow::Cow, collections::BTreeMap};
 
-use super::protocol::{Metric, MetricUnit, MetricValue, Timestamp};
+use super::protocol::{MetricUnit, MetricValue, Timestamp};
+use crate::protocol::{Attribute, TraceMetric};
 
 pub trait MetricName {
     fn name(&self) -> &'static str;
@@ -58,7 +59,7 @@ macro_rules! metric {
             name: &'static str,
             unit: MetricUnit,
             value: $value,
-            tags: BTreeMap<&'static str, Cow<'static, str>>,
+            tags: BTreeMap<&'static str, Attribute<'static>>,
             timestamp: Option<Timestamp>,
         }
 
@@ -69,7 +70,7 @@ macro_rules! metric {
             }
 
             pub fn tag(mut self, name: &'static str, value: impl MetricTagValue) -> Self {
-                self.tags.insert(name, value.to_value());
+                self.tags.insert(name, Attribute::String(value.to_value()));
                 self
             }
 
@@ -79,7 +80,7 @@ macro_rules! metric {
                 value: Option<impl MetricTagValue>,
             ) -> Self {
                 if let Some(value) = value {
-                    self.tags.insert(name, value.to_value());
+                    self.tags.insert(name, Attribute::String(value.to_value()));
                 }
                 self
             }
@@ -101,12 +102,14 @@ impl Drop for Counter {
             return;
         }
 
-        let metric = Metric {
-            name: self.name,
-            unit: self.unit,
-            tags: std::mem::take(&mut self.tags),
+        let metric = TraceMetric {
+            timestamp: self.timestamp.unwrap_or_default(),
+            trace_id: Default::default(),
+            span_id: None,
+            name: self.name.into(),
+            unit: Some(self.unit),
             value: MetricValue::Counter(self.value),
-            timestamp: self.timestamp,
+            attributes: std::mem::take(&mut self.tags),
         };
 
         super::with_sentry_mut(move |sentry| {
@@ -129,12 +132,14 @@ metric!(Distribution, f64);
 
 impl Drop for Distribution {
     fn drop(&mut self) {
-        let metric = Metric {
-            name: self.name,
-            unit: self.unit,
-            tags: std::mem::take(&mut self.tags),
+        let metric = TraceMetric {
+            timestamp: self.timestamp.unwrap_or_default(),
+            trace_id: Default::default(),
+            span_id: None,
+            name: self.name.into(),
+            unit: Some(self.unit),
             value: MetricValue::Distribution(self.value),
-            timestamp: self.timestamp,
+            attributes: std::mem::take(&mut self.tags),
         };
 
         super::with_sentry_mut(move |sentry| {
@@ -145,34 +150,6 @@ impl Drop for Distribution {
 
 pub fn distribution(metric: impl MetricName, value: impl Into<f64>) -> Distribution {
     Distribution {
-        name: metric.name(),
-        unit: MetricUnit::None,
-        value: value.into(),
-        tags: BTreeMap::new(),
-        timestamp: None,
-    }
-}
-
-metric!(Set, u32);
-
-impl Drop for Set {
-    fn drop(&mut self) {
-        let metric = Metric {
-            name: self.name,
-            unit: self.unit,
-            tags: std::mem::take(&mut self.tags),
-            value: MetricValue::Set(self.value),
-            timestamp: self.timestamp,
-        };
-
-        super::with_sentry_mut(move |sentry| {
-            sentry.add_metric(metric);
-        });
-    }
-}
-
-pub fn set(metric: impl MetricName, value: impl Into<u32>) -> Set {
-    Set {
         name: metric.name(),
         unit: MetricUnit::None,
         value: value.into(),

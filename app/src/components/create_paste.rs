@@ -7,7 +7,9 @@ use wasm_bindgen::JsCast;
 
 use crate::{session::SessionValue, svg::SPINNER, utils::memo_cond};
 
+#[derive(Default)]
 pub enum CreatePasteProps {
+    #[default]
     None,
     Update {
         id: UserPasteId,
@@ -58,12 +60,6 @@ impl CreatePasteProps {
             Self::Update { id, .. } => Some(id),
             _ => None,
         }
-    }
-}
-
-impl Default for CreatePasteProps {
-    fn default() -> Self {
-        Self::None
     }
 }
 
