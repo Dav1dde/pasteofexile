@@ -22,6 +22,7 @@ Required dependencies:
 * Node 16.7+
 * Yarn
 * Latest Rust (including wasm toolchain: `rustup target add wasm32-unknown-unknown`)
+* Perl (on Windows you can use [Strawberry Perl](https://strawberryperl.com/))
 * wrangler: `cargo install wrangler`
 * TrunkRS: `cargo install trunk`
 * worker-build: `cargo install worker-build`
