@@ -248,6 +248,7 @@ pub enum Ascendancy {
     Saboteur,
     Slayer,
     Trickster,
+    Reliquarian,
 
     // PoE 2
     BloodMage,
@@ -315,6 +316,7 @@ impl Ascendancy {
             Self::Saboteur => Class::Shadow,
             Self::Slayer => Class::Duelist,
             Self::Trickster => Class::Shadow,
+            Self::Reliquarian => Class::Scion,
             Self::BloodMage => Class::Witch,
             Self::Infernalist => Class::Witch,
             Self::Lich => Class::Witch,
@@ -378,6 +380,7 @@ impl Ascendancy {
             Self::Saboteur => "Saboteur",
             Self::Slayer => "Slayer",
             Self::Trickster => "Trickster",
+            Self::Reliquarian => "Reliquarian",
             Self::BloodMage => "Blood Mage",
             Self::Infernalist => "Infernalist",
             Self::Lich => "Lich",
@@ -445,6 +448,7 @@ impl FromStr for Ascendancy {
             "Saboteur" => Self::Saboteur,
             "Slayer" => Self::Slayer,
             "Trickster" => Self::Trickster,
+            "Reliquarian" => Self::Reliquarian,
 
             "Blood Mage" => Self::BloodMage,
             "Infernalist" => Self::Infernalist,
