@@ -289,7 +289,7 @@ svg {
 <line x1="2273" y1="4083" x2="2801" y2="4936" id="c5408-56589"  />
 <line x1="2273" y1="4083" x2="3306" y2="3671" id="c5408-63139"  />
 <line x1="6665" y1="-7700" x2="6537" y2="-7532" id="c5415-36017" class="ascendancy Necromancer" />
-<line x1="7000" y1="-7862" x2="7168" y2="-7990" id="c5452-12860" class="ascendancy Necromantic" />
+<line x1="-7000" y1="-7862" x2="-6832" y2="-7990" id="c5452-12860" class="ascendancy Necromantic" />
 <path d="M -3586 -7257 A 162 162 0 0 0 -3829 -7117" id="c5462-7364"  />
 <path d="M -3586 -7257 A 162 162 0 0 1 -3505 -7117" id="c5462-26585"  />
 <path d="M -480 -604 A 335 335 0 0 0 -602 -727" id="c5560-51291"  />
@@ -415,9 +415,9 @@ svg {
 <path d="M 6791 -867 A 162 162 0 0 0 7012 -1088" id="c8001-38995"  />
 <line x1="6872" y1="-1169" x2="6406" y2="-1604" id="c8012-13885"  />
 <path d="M 7635 -4559 A 162 162 0 0 1 7797 -4721" id="c8027-35334"  />
-<line x1="7000" y1="-7700" x2="7000" y2="-7862" id="c5452-8133" class="ascendancy Necromantic" />
-<line x1="7000" y1="-7700" x2="6838" y2="-7700" id="c8133-38740" class="ascendancy Necromantic" />
-<line x1="7000" y1="-7700" x2="7162" y2="-7700" id="c8133-60686" class="ascendancy Necromantic" />
+<line x1="-7000" y1="-7700" x2="-7000" y2="-7862" id="c5452-8133" class="ascendancy Necromantic" />
+<line x1="-7000" y1="-7700" x2="-7162" y2="-7700" id="c8133-38740" class="ascendancy Necromantic" />
+<line x1="-7000" y1="-7700" x2="-6838" y2="-7700" id="c8133-60686" class="ascendancy Necromantic" />
 <path d="M -4 -4339 A 162 162 0 0 1 -144 -4420" id="c8135-11128"  />
 <line x1="6558" y1="-7697" x2="6665" y2="-7700" id="c8138-58438" class="ascendancy Olroth" />
 <path d="M -2171 -162 A 162 162 0 0 0 -2171 -324" id="c8139-19958"  />
@@ -1751,7 +1751,7 @@ svg {
 <path d="M -2775 7016 A 162 162 0 0 1 -2716 6794" id="c38664-56460"  />
 <path d="M 7229 -7406 A 162 162 0 0 0 7369 -7325" id="c38689-49532" class="ascendancy Ascendant" />
 <path d="M -3676 -5414 A 162 162 0 0 0 -3676 -5252" id="c18767-38701"  />
-<line x1="6838" y1="-7700" x2="6635" y2="-7817" id="c8066-38740" class="ascendancy Necromantic" />
+<line x1="-7162" y1="-7700" x2="-7365" y2="-7817" id="c8066-38740" class="ascendancy Necromantic" />
 <path d="M 1045 7226 A 162 162 0 0 1 986 7004" id="c32053-38772"  />
 <path d="M -5027 1795 A 335 335 0 0 1 -5072 1962" id="c10282-38777"  />
 <line x1="-5027" y1="1795" x2="-4435" y2="1795" id="c38777-58449"  />
@@ -2610,7 +2610,7 @@ svg {
 <path d="M 7407 -1563 A 162 162 0 0 1 7267 -1644" id="c35851-60592"  />
 <path d="M -2451 -4399 A 162 162 0 0 0 -2289 -4399" id="c42981-60648"  />
 <line x1="-2451" y1="-4399" x2="-2451" y2="-4127" id="c60398-60648"  />
-<line x1="7162" y1="-7700" x2="7335" y2="-7700" id="c43660-60686" class="ascendancy Necromantic" />
+<line x1="-6838" y1="-7700" x2="-6665" y2="-7700" id="c43660-60686" class="ascendancy Necromantic" />
 <line x1="5351" y1="-1604" x2="5513" y2="-1604" id="c42623-60737"  />
 <path d="M -8133 -1597 A 162 162 0 0 0 -8274 -1516" id="c37639-60740"  />
 <line x1="7335" y1="-7700" x2="7493" y2="-7700" id="c40059-60769" class="ascendancy Inquisitor" />
@@ -3059,7 +3059,7 @@ svg {
 <circle cx="6665" cy="-7700" id="n5415" r="45" class="ascendancy Necromancer" data-name="Minion Damage, Aura Effect" data-stats="Minions deal 10% increased Damage;;5% increased effect of Non-Curse Auras from your Skills" data-kind="Ascendancy" />
 <circle cx="-5322" cy="406" id="n5430" r="50" data-name="Magmatic Strikes" data-stats="Every 10 seconds, gain 30% of Physical Damage&#010;as Extra Fire Damage for 4 seconds" data-kind="Notable" />
 <circle cx="6833" cy="-7410" id="n5443" r="65" class="ascendancy Deadeye" data-name="Focal Point" data-stats="75% increased Effect of your Marks;;25% less Damage taken from other Enemies near your Marked Enemy;;Your Mark Transfers to another Enemy when Marked Enemy dies" data-kind="Ascendancy" />
-<circle cx="7000" cy="-7862" id="n5452" r="45" class="ascendancy Necromantic" data-name="Maximum Life" data-stats="8% increased maximum Life" data-kind="Ascendancy" />
+<circle cx="-7000" cy="-7862" id="n5452" r="45" class="ascendancy Necromantic" data-name="Maximum Life" data-stats="8% increased maximum Life" data-kind="Ascendancy" />
 <circle cx="-3429" cy="-6158" id="n5456" r="50" data-name="Might" data-stats="+30 to Strength" data-kind="Notable" />
 <circle cx="-3586" cy="-7257" id="n5462" r="50" data-name="Staff Area of Effect" data-stats="12% increased Area of Effect while wielding a Staff" data-kind="Normal" />
 <circle cx="-480" cy="-604" id="n5560" r="50" data-name="Area of Effect" data-stats="12% increased Area of Effect" data-kind="Normal" />
@@ -3189,9 +3189,9 @@ svg {
 <circle cx="6791" cy="-867" id="n8001" r="50" data-name="Clever Thief" data-stats="1% of Attack Damage Leeched as Life;;1% of Attack Damage Leeched as Mana" data-kind="Notable" />
 <circle cx="6872" cy="-1169" id="n8012" r="50" data-name="Life and Mana on Hit" data-stats="Gain 4 Life per Enemy Hit with Attacks;;Gain 2 Mana per Enemy Hit with Attacks" data-kind="Normal" />
 <circle cx="7635" cy="-4559" id="n8027" r="50" data-name="Mine Critical Strike Chance and Multiplier" data-stats="20% increased Critical Strike Chance with Mines;;+10% to Critical Strike Multiplier with Mines" data-kind="Normal" />
-<circle cx="6635" cy="-7817" id="n8066" r="65" class="ascendancy Necromantic" data-name="Bitter Lash" data-stats="Skills from Equipped Main Hand Weapon are supported by level 1 Cruelty" data-kind="Ascendancy" />
+<circle cx="-7365" cy="-7817" id="n8066" r="65" class="ascendancy Necromantic" data-name="Bitter Lash" data-stats="Skills from Equipped Main Hand Weapon are supported by level 1 Cruelty" data-kind="Ascendancy" />
 <circle cx="6885" cy="-8193" id="n8081" r="45" class="ascendancy Reliquarian" data-name="Replica Heartbreaker" data-stats="60% chance to Impale on Spell Hit" data-kind="Ascendancy" />
-<circle cx="7000" cy="-7700" id="n8133"  data-name="Necromantic" data-stats="" data-kind="Ascendancy" />
+<circle cx="-7000" cy="-7700" id="n8133"  data-name="Necromantic" data-stats="" data-kind="Ascendancy" />
 <circle cx="-4" cy="-4339" id="n8135" r="50" data-name="Practical Application" data-stats="+10% to all Elemental Resistances;;25% chance to Ignore Stuns while Casting;;+20 to Strength and Dexterity" data-kind="Notable" />
 <circle cx="6558" cy="-7697" id="n8138" r="45" class="ascendancy Olroth" data-name="Boon of the Mountain" data-stats="50% less Damage Taken from Damage over Time while you have Unbroken Ward" data-kind="Ascendancy" />
 <circle cx="-2171" cy="-162" id="n8139" r="50" data-name="Link Cast Speed" data-stats="Link Skills have 10% increased Cast Speed" data-kind="Normal" />
@@ -3412,7 +3412,7 @@ svg {
 <circle cx="3298" cy="-7322" id="n12831" r="50" data-name="Freeze Chance" data-stats="15% chance to Freeze" data-kind="Normal" />
 <circle cx="6919" cy="-7560" id="n12850" r="45" class="ascendancy Assassin" data-name="Critical Strike Chance, Power Charge Duration" data-stats="15% increased Power Charge Duration;;15% increased Critical Strike Chance" data-kind="Ascendancy" />
 <circle cx="-1072" cy="-5696" id="n12852" r="50" data-name="Elemental Damage" data-stats="10% increased Elemental Damage" data-kind="Normal" />
-<circle cx="7168" cy="-7990" id="n12860" r="65" class="ascendancy Necromantic" data-name="Bound Flesh" data-stats="Gain 20 Baryatic Tension per 20 Life Spent on Upfront Costs of Spells;;Maximum Baryatic Tension is equal to 30% of maximum Life;;When you take a Savage Hit, lose Baryatic Tension to recover that much Life, up to maximum" data-kind="Ascendancy" />
+<circle cx="-6832" cy="-7990" id="n12860" r="65" class="ascendancy Necromantic" data-name="Bound Flesh" data-stats="Gain 20 Baryatic Tension per 20 Life Spent on Upfront Costs of Spells;;Maximum Baryatic Tension is equal to 30% of maximum Life;;When you take a Savage Hit, lose Baryatic Tension to recover that much Life, up to maximum" data-kind="Ascendancy" />
 <circle cx="3581" cy="-3994" id="n12873" r="50" class="mastery" data-name="Protection Mastery" data-stats="" data-kind="Mastery" />
 <circle cx="-325" cy="8005" id="n12878" r="50" data-name="Retaliation" data-stats="Attack Skills deal 20% increased Damage while holding a Shield;;8% increased Attack Speed while holding a Shield;;60% increased Defences from Equipped Shield" data-kind="Notable" />
 <circle cx="-1291" cy="-7786" id="n12888" r="50" data-name="Mana Regeneration per Power Charge" data-stats="8% increased Mana Regeneration Rate per Power Charge" data-kind="Normal" />
@@ -4518,7 +4518,7 @@ svg {
 <circle cx="7229" cy="-7406" id="n38689" r="45" class="ascendancy Ascendant" data-name="Passive Point" data-stats="Grants 1 Passive Skill Point" data-kind="Ascendancy" />
 <circle cx="-3676" cy="-5414" id="n38701" r="50" data-name="Energy Shield and Mana" data-stats="5% increased maximum Energy Shield;;6% increased maximum Mana" data-kind="Normal" />
 <circle cx="-3822" cy="2423" id="n38706" r="50" data-name="Way of the Warrior" data-stats="16% increased Melee Damage;;16% increased Armour;;+16 to maximum Life;;+30 to Strength" data-kind="Notable" />
-<circle cx="6838" cy="-7700" id="n38740" r="45" class="ascendancy Necromantic" data-name="Damage Over Time Multiplier" data-stats="+8% to Damage over Time Multiplier" data-kind="Ascendancy" />
+<circle cx="-7162" cy="-7700" id="n38740" r="45" class="ascendancy Necromantic" data-name="Damage Over Time Multiplier" data-stats="+8% to Damage over Time Multiplier" data-kind="Ascendancy" />
 <circle cx="1045" cy="7226" id="n38772" r="50" data-name="Melee Damage and Strike Range" data-stats="10% increased Melee Damage;;+0.1 metres to Melee Strike Range" data-kind="Normal" />
 <circle cx="-5027" cy="1795" id="n38777" r="50" data-name="Melee Damage" data-stats="Attacks with Melee Weapons deal 12% increased Damage with Ailments;;12% increased Melee Physical Damage" data-kind="Normal" />
 <circle cx="-580" cy="-8082" id="n38789" r="50" data-name="Ignite Chance and Duration" data-stats="15% increased Ignite Duration on Enemies;;15% chance to Ignite" data-kind="Normal" />
@@ -4738,7 +4738,7 @@ svg {
 <circle cx="-7345" cy="2011" id="n43601" r="50" class="mastery" data-name="Bleeding Mastery" data-stats="" data-kind="Mastery" />
 <circle cx="4948" cy="6127" id="n43608" r="50" data-name="Dexterity" data-stats="+15 to Dexterity" data-kind="Normal" />
 <circle cx="-7953" cy="-3869" id="n43647" r="50" class="mastery" data-name="Minion Offence Mastery" data-stats="" data-kind="Mastery" />
-<circle cx="7335" cy="-7700" id="n43660" r="65" class="ascendancy Necromantic" data-name="Afarud Ritual" data-stats="Damageable Minions deal 30% increased Damage for each second they have been alive,&#010;up to a maximum of 150%;;Damageable Minions take 5% increased Damage for each second they have been alive,&#010;up to a maximum of 50%" data-kind="Ascendancy" />
+<circle cx="-6665" cy="-7700" id="n43660" r="65" class="ascendancy Necromantic" data-name="Afarud Ritual" data-stats="Damageable Minions deal 30% increased Damage for each second they have been alive,&#010;up to a maximum of 150%;;Damageable Minions take 5% increased Damage for each second they have been alive,&#010;up to a maximum of 50%" data-kind="Ascendancy" />
 <circle cx="-7427" cy="-7453" id="n43670" r="45" class="ascendancy Primalist" data-name="Charm Socket" data-stats="" data-kind="Ascendancy" />
 <circle cx="490" cy="7075" id="n43684" r="50" data-name="Faster Ailments" data-stats="Damaging Ailments deal damage 5% faster" data-kind="Normal" />
 <circle cx="-4805" cy="-3945" id="n43689" r="50" data-name="Spiritual Command" data-stats="Minions have 8% increased Attack Speed;;Minions have 8% increased Cast Speed;;Increases and Reductions to Minion Attack Speed also affect you" data-kind="Notable" />
@@ -5457,7 +5457,7 @@ svg {
 <circle cx="7407" cy="-1563" id="n60592" r="50" data-name="Accuracy and Critical Strike Chance" data-stats="10% increased Global Accuracy Rating;;15% increased Critical Strike Chance" data-kind="Normal" />
 <circle cx="-7526" cy="-5447" id="n60619" r="50" data-name="Galvanic Hammer" data-stats="10% increased Accuracy Rating with Maces or Sceptres;;30% increased Elemental Damage with Maces or Sceptres;;Damage with Weapons Penetrates 5% Elemental Resistances" data-kind="Notable" />
 <circle cx="-2451" cy="-4399" id="n60648" r="50" data-name="Mana Flasks" data-stats="10% increased Mana Recovery from Flasks;;5% increased Flask Charges gained" data-kind="Normal" />
-<circle cx="7162" cy="-7700" id="n60686" r="45" class="ascendancy Necromantic" data-name="Minion Damage" data-stats="Minions deal 25% increased Damage" data-kind="Ascendancy" />
+<circle cx="-6838" cy="-7700" id="n60686" r="45" class="ascendancy Necromantic" data-name="Minion Damage" data-stats="Minions deal 25% increased Damage" data-kind="Ascendancy" />
 <circle cx="6834" cy="1968" id="n60735" r="50" data-name="Basic Jewel Socket" data-stats="" data-kind="Jewel" />
 <circle cx="5351" cy="-1604" id="n60737" r="50" data-name="Sleight of Hand" data-stats="Attacks with One Handed Weapons deal 30% increased Damage with Ailments;;8% increased Attack Speed with One Handed Weapons;;20% increased Damage with One Handed Weapons" data-kind="Notable" />
 <circle cx="-8133" cy="-1597" id="n60740" r="50" data-name="Staff Damage and Stun Duration" data-stats="Staff Attacks deal 16% increased Damage with Hits and Ailments;;10% increased Stun Duration with Staves on Enemies" data-kind="Normal" />
@@ -5721,7 +5721,6 @@ if (classId === 0 && ascendancyId === 0) { return "Lycia" }
 if (classId === 0 && ascendancyId === 0) { return "Olroth" }
 if (classId === 0 && ascendancyId === 0) { return "Oshabi" }
 if (classId === 0 && ascendancyId === 0) { return "Trialmaster" }
-if (classId === 0 && ascendancyId === 0) { return "Necromantic" }
 if (classId === 0 && ascendancyId === 2) { return "Reliquarian" }
 }
 window._alternate_ascendancy_name = function(classId, ascendancyId) {
@@ -5746,6 +5745,13 @@ if (classId === 3 && ascendancyId === 3) { return "Primalist" }
 if (classId === 4 && ascendancyId === 3) { return "Primalist" }
 if (classId === 5 && ascendancyId === 3) { return "Primalist" }
 if (classId === 6 && ascendancyId === 3) { return "Primalist" }
+if (classId === 0 && ascendancyId === 14) { return "Necromantic" }
+if (classId === 1 && ascendancyId === 14) { return "Necromantic" }
+if (classId === 2 && ascendancyId === 14) { return "Necromantic" }
+if (classId === 3 && ascendancyId === 14) { return "Necromantic" }
+if (classId === 4 && ascendancyId === 14) { return "Necromantic" }
+if (classId === 5 && ascendancyId === 14) { return "Necromantic" }
+if (classId === 6 && ascendancyId === 14) { return "Necromantic" }
 }
 })()]]></script>
 <script><![CDATA[(function() { const root = document.getElementsByTagName('svg')[0];
