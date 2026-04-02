@@ -195,6 +195,9 @@ async fn handle_download_xml(rctx: &RequestContext, id: PasteId) -> Result<Respo
 
 #[tracing::instrument(skip(rctx))]
 async fn handle_delete_paste(rctx: &RequestContext, id: PasteId) -> Result<Response> {
+    let session = rctx.session().ok_or(Error::AccessDenied)?;
+    validate_access!(Some(session.name.as_str()) == id.user().map(|user| user.as_str()));
+
     let storage = rctx.inject::<crate::storage::Storage>();
     storage.delete(&id).await?;
     crate::cache::on_paste_change(rctx, id);
