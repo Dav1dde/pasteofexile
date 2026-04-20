@@ -71,6 +71,9 @@ pub fn PobItem<'a, G: Html>(cx: Scope<'a>, item: PobItemProps<'a>) -> View<G> {
     if item.energy_shield > 0 {
         stats.push(render_property(cx, "Energy Shield:", item.energy_shield))
     }
+    if item.ward > 0 {
+        stats.push(render_property(cx, "Ward:", item.ward))
+    }
 
     let mut unmet = Vec::new();
     if item.split {

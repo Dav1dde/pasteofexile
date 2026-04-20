@@ -151,6 +151,8 @@ pub(crate) struct Skill {
     #[serde(default)]
     pub enabled: bool,
     #[serde(default)]
+    pub imbued_support: Option<String>,
+    #[serde(default)]
     pub label: Option<String>,
     #[serde(default)]
     pub slot: Option<String>,
@@ -161,6 +163,12 @@ pub(crate) struct Skill {
 impl Skill {
     pub fn support_gems(&self) -> impl Iterator<Item = &Gem> {
         self.gems.iter().filter(|gem| gem.is_support())
+    }
+
+    pub fn imbued_support(&self) -> Option<&str> {
+        self.imbued_support
+            .as_deref()
+            .filter(|support| !support.is_empty())
     }
 }
 
