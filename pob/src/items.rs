@@ -76,6 +76,7 @@ pub struct Item<'a> {
     pub armour: u16,
     pub evasion: u16,
     pub energy_shield: u16,
+    pub ward: u16,
 
     pub influence1: Option<Influence>,
     pub influence2: Option<Influence>,
@@ -124,6 +125,7 @@ impl<'a> Item<'a> {
         let mut armour = 0;
         let mut evasion = 0;
         let mut energy_shield = 0;
+        let mut ward = 0;
 
         let mut influence1 = None;
         let mut influence2 = None;
@@ -137,6 +139,10 @@ impl<'a> Item<'a> {
             };
 
             if let Some((cmd, arg)) = line.split_once(": ") {
+                if cmd.ends_with("grant") {
+                    break;
+                }
+
                 let _ = lines.next();
 
                 macro_rules! p {
@@ -154,6 +160,7 @@ impl<'a> Item<'a> {
                     "Armour" => p!(armour),
                     "Evasion" => p!(evasion),
                     "Energy Shield" => p!(energy_shield),
+                    "Ward" => p!(ward),
                     "Implicits" => {
                         let num = arg.parse().unwrap_or(0);
                         implicits = unsafe { get_n_lines(item, &mut lines, num) };
@@ -165,7 +172,9 @@ impl<'a> Item<'a> {
                             quality = q;
                         }
                     }
-                };
+                }
+
+                continue;
             } else if let Some(influence) = Influence::parse(line) {
                 let _ = lines.next();
 
@@ -233,6 +242,7 @@ impl<'a> Item<'a> {
             armour,
             evasion,
             energy_shield,
+            ward,
             influence1,
             influence2,
             corrupted,
@@ -767,6 +777,79 @@ Implicits: 1
         assert_eq!(item.alt_quality, Some("Speed Modifiers"));
         assert_eq!(item.influence1, None);
         assert_eq!(item.influence2, None);
+    }
+
+    #[test]
+    fn ward_item() {
+        let item = Item::parse(
+            r#"Rarity: RARE
+New Item
+Runic Sabatons
+Ward: 140
+WardBasePercentile: 1
+Crafted: true
+Prefix: {range:1}IncreasedLife8
+Prefix: None
+Prefix: None
+Suffix: {range:1}FasterStartOfWardRecharge5
+Suffix: None
+Suffix: None
+CatalystQuality: 20
+Quality: 20
+LevelReq: 69
+Implicits: 0
+58% faster Restoration of Ward
++129 to maximum Life"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.ward, 140);
+        assert_eq!(item.explicits().count(), 2);
+    }
+
+    #[test]
+    fn cluster_jewel_explicit_mods_with_colons() {
+        let item = Item::parse(
+            r#"Rarity: RARE
+New Item
+Medium Cluster Jewel
+Crafted: true
+Prefix: {range:1}AfflictionNotableLowTolerance
+Prefix: {range:1}AfflictionNotableWastingAffliction
+Suffix: {range:1}AfflictionJewelSmallPassivesGrantAttributes3
+Suffix: None
+Cluster Jewel Skill: affliction_chaos_damage_over_time_multiplier
+Cluster Jewel Node Count: 4
+LevelReq: 67
+Implicits: 3
+{crafted}Adds 4 Passive Skills
+{crafted}1 Added Passive Skill is a Jewel Socket
+{crafted}Added Small Passive Skills grant: 12% increased Chaos Damage over Time
+Added Small Passive Skills also grant: +4 to All Attributes
+1 Added Passive Skill is Low Tolerance
+1 Added Passive Skill is Wasting Affliction"#,
+        )
+        .unwrap();
+
+        let enchants = item.enchants().map(|m| m.line).collect::<Vec<_>>();
+        let explicits = item.explicits().map(|m| m.line).collect::<Vec<_>>();
+
+        assert_eq!(
+            enchants,
+            vec![
+                "Adds 4 Passive Skills",
+                "1 Added Passive Skill is a Jewel Socket",
+                "Added Small Passive Skills grant: 12% increased Chaos Damage over Time",
+            ]
+        );
+        assert_eq!(
+            explicits,
+            vec![
+                "Added Small Passive Skills also grant: +4 to All Attributes",
+                "1 Added Passive Skill is Low Tolerance",
+                "1 Added Passive Skill is Wasting Affliction",
+            ]
+        );
     }
 
     #[test]

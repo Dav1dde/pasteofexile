@@ -190,10 +190,10 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
     }
 
     fn main_skill_supported_by(&self, skill: &str) -> bool {
-        self.main_skill()
-            .iter()
-            .flat_map(|x| x.support_gems())
-            .any(|gem| gem.name == skill)
+        self.main_skill().is_some_and(|main_skill| {
+            main_skill.support_gems().any(|gem| gem.name == skill)
+                || main_skill.imbued_support() == Some(skill)
+        })
     }
 
     fn skill_sets(&self) -> Vec<crate::SkillSet<'_>> {
@@ -377,7 +377,7 @@ fn to_skills(skills: &[Skill], main_socket_group: usize) -> Vec<crate::Skill<'_>
 
 fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill<'_> {
     let mut actives = 0;
-    let gems = skill
+    let mut gems = skill
         .gems
         .iter()
         .map(|g| {
@@ -400,7 +400,22 @@ fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill<'_> {
                 is_selected,
             }
         })
-        .collect();
+        .collect::<Vec<_>>();
+
+    if let Some(imbued_support) = skill.imbued_support() {
+        gems.push(crate::Gem {
+            name: imbued_support,
+            skill_id: None,
+            gem_id: None,
+            quality_id: None,
+            level: 0,
+            quality: 0,
+            is_enabled: true,
+            is_active: false,
+            is_support: true,
+            is_selected: false,
+        });
+    }
 
     crate::Skill {
         gems,
