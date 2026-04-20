@@ -131,11 +131,7 @@ impl<'a> Item<'a> {
         let mut selected_variant = "";
         let mut implicits = "";
 
-        loop {
-            let Some(line) = lines.peek() else {
-                break;
-            };
-
+        while let Some(line) = lines.peek() {
             if let Some((cmd, arg)) = line.split_once(": ") {
                 let _ = lines.next();
 
