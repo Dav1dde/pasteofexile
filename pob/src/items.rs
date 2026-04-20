@@ -86,6 +86,7 @@ pub struct Item<'a> {
     pub corrupted: bool,
 
     selected_variant: &'a str,
+    selected_alt_variant: &'a str,
     implicits: &'a str,
     explicits: &'a str,
 }
@@ -131,6 +132,7 @@ impl<'a> Item<'a> {
         let mut influence2 = None;
 
         let mut selected_variant = "";
+        let mut selected_alt_variant = "";
         let mut implicits = "";
 
         while let Some(line) = lines.peek() {
@@ -162,6 +164,7 @@ impl<'a> Item<'a> {
                         implicits = unsafe { get_n_lines(item, &mut lines, num) };
                     }
                     "Selected Variant" => selected_variant = arg,
+                    "Selected Alt Variant" => selected_alt_variant = arg,
                     _ => {
                         if let Some((a, q)) = parse_alt_quality(cmd, arg) {
                             alt_quality = Some(a);
@@ -245,6 +248,7 @@ impl<'a> Item<'a> {
             mirrored,
             split,
             selected_variant,
+            selected_alt_variant,
             implicits,
             explicits,
         })
@@ -261,21 +265,21 @@ impl<'a> Item<'a> {
     pub fn enchants(&self) -> impl Iterator<Item = Mod<'a>> {
         ModLines::new(self.implicits)
             .map(Mod::parse)
-            .filter(|m| m.has_variant(self.selected_variant))
+            .filter(|m| m.has_variant(self.selected_variant, self.selected_alt_variant))
             .take_while(|m| m.crafted)
     }
 
     pub fn implicits(&self) -> impl Iterator<Item = Mod<'a>> {
         ModLines::new(self.implicits)
             .map(Mod::parse)
-            .filter(|m| m.has_variant(self.selected_variant))
+            .filter(|m| m.has_variant(self.selected_variant, self.selected_alt_variant))
             .skip_while(|m| m.crafted)
     }
 
     pub fn explicits(&self) -> impl Iterator<Item = Mod<'a>> {
         ModLines::new(self.explicits)
             .map(Mod::parse)
-            .filter(|m| m.has_variant(self.selected_variant))
+            .filter(|m| m.has_variant(self.selected_variant, self.selected_alt_variant))
     }
 
     pub fn is_cluster_jewel(&self) -> bool {
@@ -322,14 +326,16 @@ impl<'a> Mod<'a> {
         }
     }
 
-    fn has_variant(&self, target: &str) -> bool {
-        if target.is_empty() {
+    fn has_variant(&self, primary_variant: &str, alt_variant: &str) -> bool {
+        if primary_variant.is_empty() && alt_variant.is_empty() {
             return true;
         }
         let Some(variant) = self.variant else {
             return true;
         };
-        variant.split(',').any(|variant| variant == target)
+        variant
+            .split(',')
+            .any(|v| v == primary_variant || v == alt_variant)
     }
 }
 
@@ -1031,5 +1037,46 @@ Implicits: 0
 
         let lines = ModLines::new("first you've").collect::<Vec<_>>();
         assert_eq!(lines, vec!["first you've"]);
+    }
+
+    #[test]
+    fn unique_dual_variant() {
+        let item = Item::parse(
+            r#"Rarity: UNIQUE
+Paradoxica
+Vaal Rapier
+Selected Variant: 4
+Selected Alt Variant: 16
+Quality: 20
+LevelReq: 66
+Implicits: 3
+{crafted}Quality does not increase Physical Damage
+{crafted}1% increased Attack Speed per 8% Quality
++25% to Global Critical Strike Multiplier
+{variant:1}(60-69)% increased Chaos Damage
+{variant:4}Attacks with this Weapon Penetrate (14-16)% Elemental Resistances
+{variant:5}(70-79)% increased Fire Damage
+{variant:14}+(25-28) to Strength and Dexterity
+{variant:16}+(25-28) to Dexterity and Intelligence
+{variant:16}(18-22)% increased Attack Speed
+{variant:17}(12-15)% increased Attack Speed while a Rare or Unique Enemy is Nearby
+Attacks with this Weapon deal Double Damage"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.name, Some("Paradoxica"));
+        assert_eq!(item.base, "Vaal Rapier");
+
+        let explicits = item.explicits().map(|m| m.line).collect::<Vec<_>>();
+
+        assert_eq!(
+            explicits,
+            vec![
+                "Attacks with this Weapon Penetrate (14-16)% Elemental Resistances",
+                "+(25-28) to Dexterity and Intelligence",
+                "(18-22)% increased Attack Speed",
+                "Attacks with this Weapon deal Double Damage",
+            ]
+        );
     }
 }
