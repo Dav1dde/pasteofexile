@@ -75,6 +75,12 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let trees = create_ref(cx, trees);
     let current_tree = create_signal(cx, trees.iter().find_or_first(|t| t.spec.active).unwrap());
+    create_effect(cx, move || {
+        let index = *build.active_tree().get();
+        if let Some(tree) = trees.get(index).or_else(|| trees.first()) {
+            current_tree.set(tree);
+        }
+    });
     let tree_loaded = create_signal(cx, false);
     let node_ref = create_node_ref(cx);
 
@@ -143,11 +149,16 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         });
     });
 
-    // TODO: this updates the currently active tree, but it doesn't read from it
-    // the select would need to be updated as well if the tree changes, kinda tricky...
-    let select = render_select(cx, trees, move |index, tree| {
-        current_tree.set(tree);
-        build.active_tree().set(index);
+    let select = create_memo(cx, move || {
+        render_select(
+            cx,
+            trees,
+            Some(*build.active_tree().get()),
+            move |index, tree| {
+                current_tree.set(tree);
+                build.active_tree().set(index);
+            },
+        )
     });
 
     let nodes = create_memo(cx, move || render_nodes(cx, gv, &current_tree.get()));
@@ -190,7 +201,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     view! { cx,
         Popup(attach=attach, parent=Some(node_ref)) { (&*popup.get()) }
         div(class="flex flex-wrap align-center") {
-            div(class="h-9 max-w-full") { (select) }
+            div(class="h-9 max-w-full") { (&*select.get()) }
             div(class="flex-1 text-right sm:mr-3 whitespace-nowrap") { (&*tree_level.get()) }
         }
         div(class="grid grid-cols-10 gap-3") {
@@ -429,6 +440,7 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, gv: GameVersion, node: &data
 fn render_select<'a, G: GenericNode + Html, F>(
     cx: Scope<'a>,
     trees: &'a [Tree],
+    selected: Option<usize>,
     on_change: F,
 ) -> View<G>
 where
@@ -439,7 +451,6 @@ where
     }
 
     let options = trees.iter().map(|t| t.name.clone()).collect();
-    let selected = trees.iter().position(|t| t.spec.active);
     let on_change = move |index| {
         if let Some(index) = index {
             on_change(index, &trees[index])

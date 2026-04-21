@@ -7,7 +7,7 @@ use web_sys::HtmlTextAreaElement;
 use super::PobGearPreview;
 use crate::{
     build::Build,
-    components::{PobColoredText, PobGems, PobTreePreview},
+    components::{PobColoredSelect, PobColoredText, PobGems, PobTreePreview},
     consts::{IMG_ONERROR_HIDDEN, SELF_URL},
     pob::{self, Element},
     storage::Storage,
@@ -86,6 +86,42 @@ pub fn ViewPaste<'a, G: Html>(
             PobTreePreview(build)
         }
     });
+
+    let loadout_select = if build.loadouts().len() > 1 {
+        let loadout_options = create_ref(
+            cx,
+            build
+                .loadouts()
+                .iter()
+                .map(|loadout| loadout.name.clone())
+                .collect::<Vec<_>>(),
+        );
+        let on_change = move |index: Option<usize>| {
+            let Some(index) = index.and_then(|index| index.checked_sub(1)) else {
+                return;
+            };
+            build.select_loadout(index);
+        };
+        let select = create_memo(cx, move || {
+            let mut options = Vec::with_capacity(loadout_options.len() + 1);
+            options.push("Custom".to_owned());
+            options.extend_from_slice(loadout_options);
+
+            let selected = build.selected_loadout_index().map(|index| index + 1);
+            view! { cx,
+                PobColoredSelect(options=options, selected=selected, label="Select loadout", on_change=on_change)
+            }
+        });
+
+        view! { cx,
+            div(class="mb-8") {
+                h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Loadout" }
+                (&*select.get())
+            }
+        }
+    } else {
+        View::empty()
+    };
 
     let select_all = |event: web_sys::Event| {
         let s: HtmlTextAreaElement = event.target().unwrap().unchecked_into();
@@ -192,6 +228,7 @@ pub fn ViewPaste<'a, G: Html>(
                 }
             }
         }
+        (loadout_select)
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
             div(class="flex-auto w-60") {
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gear" }

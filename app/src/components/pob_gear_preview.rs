@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use pob::PathOfBuilding;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
@@ -22,31 +21,38 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let item_sets = create_ref(cx, build.item_sets());
 
-    let item_set = item_sets.iter().find_or_first(|set| set.is_selected);
-    let item_set = create_signal(cx, item_set);
+    let options = create_ref(
+        cx,
+        item_sets
+            .iter()
+            .map(|item_set| {
+                item_set
+                    .title
+                    .map(|s| s.to_owned())
+                    .unwrap_or_else(|| item_set.id.to_string())
+            })
+            .collect::<Vec<_>>(),
+    );
 
-    let options = item_sets
-        .iter()
-        .map(|item_set| {
-            item_set
-                .title
-                .map(|s| s.to_owned())
-                .unwrap_or_else(|| item_set.id.to_string())
-        })
-        .collect();
-
-    let selected = item_sets.iter().position(|set| set.is_selected);
     let on_change = move |index| {
         let Some(index) = index else { return };
-        item_set.set(item_sets.get(index));
+        build.active_item_set().set(index);
     };
 
+    let select = create_memo(cx, move || {
+        let selected = Some(*build.active_item_set().get());
+        view! { cx,
+            PobColoredSelect(options=(*options).clone(), selected=selected, label="Select gear set", on_change=on_change)
+        }
+    });
+
     let items = create_memo(cx, move || {
-        let item_set = item_set.get();
+        let index = *build.active_item_set().get();
+        let item_set = item_sets.get(index);
         view! { cx,
             PobItemSet(
                 build_=build,
-                item_set=*item_set,
+                item_set=item_set,
                 current_item=current_item,
             )
         }
@@ -71,7 +77,7 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     view! { cx,
         Popup(attach=attach, parent=None) { (&*popup.get()) }
         div(class=select_classes) {
-            PobColoredSelect(options=options, selected=selected, label="Select gear set", on_change=on_change)
+            (&*select.get())
         }
         div(class="flex flex-col justify-center mt-5 sm:px-3",
             on:mouseover=mouseover,

@@ -25,25 +25,45 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
 
     let content = create_signal(cx, view! { cx, });
 
-    let options = skill_sets
-        .iter()
-        .map(|ss| {
-            ss.title
-                .map(|s| s.to_owned())
-                .unwrap_or_else(|| ss.id.to_string())
-        })
-        .collect();
-    let selected = skill_sets.iter().position(|ss| ss.is_selected);
+    let options = create_ref(
+        cx,
+        skill_sets
+            .iter()
+            .map(|ss| {
+                ss.title
+                    .map(|s| s.to_owned())
+                    .unwrap_or_else(|| ss.id.to_string())
+            })
+            .collect::<Vec<_>>(),
+    );
     let on_change = move |index| {
         let Some(index) = index else { return };
-        if let Some(ss) = build.skill_sets().into_iter().nth(index) {
-            content.set(render_skills::<G>(cx, ss.skills, build.data()));
-        }
+        build.active_skill_set().set(index);
     };
 
-    if let Some(ss) = skill_sets.into_iter().find(|ss| ss.is_selected) {
-        content.set(render_skills(cx, ss.skills, build.data()));
-    }
+    create_effect(cx, move || {
+        let index = *build.active_skill_set().get();
+        let selected = build
+            .skill_sets()
+            .into_iter()
+            .nth(index)
+            .or_else(|| build.skill_sets().into_iter().next());
+
+        if let Some(ss) = selected {
+            content.set(render_skills(cx, ss.skills, build.data()));
+        } else {
+            content.set(view! { cx, });
+        }
+    });
+
+    let select = create_memo(cx, move || {
+        let selected = Some(*build.active_skill_set().get());
+        view! { cx,
+            div(class="-mb-5") {
+                PobColoredSelect(options=(*options).clone(), selected=selected, label="Select skill set", on_change=on_change)
+            }
+        }
+    });
 
     let attach = create_signal(cx, None);
     let popup = create_signal(cx, View::default());
@@ -66,13 +86,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let mouseout = |_: web_sys::Event| attach.set(None);
 
     let select = match show_select {
-        true => {
-            view! { cx,
-                div(class="-mb-5") {
-                    PobColoredSelect(options=options, selected=selected, label="Select skill set", on_change=on_change)
-                }
-            }
-        }
+        true => view! { cx, (&*select.get()) },
         false => View::default(),
     };
 

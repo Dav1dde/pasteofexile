@@ -11,6 +11,9 @@ pub struct Build {
     data: data::Data,
 
     active_tree: RcSignal<usize>,
+    active_item_set: RcSignal<usize>,
+    active_skill_set: RcSignal<usize>,
+    loadouts: Vec<pob::Loadout>,
 }
 
 impl Build {
@@ -25,6 +28,40 @@ impl Build {
     pub fn active_tree(&self) -> &RcSignal<usize> {
         &self.active_tree
     }
+
+    pub fn active_item_set(&self) -> &RcSignal<usize> {
+        &self.active_item_set
+    }
+
+    pub fn active_skill_set(&self) -> &RcSignal<usize> {
+        &self.active_skill_set
+    }
+
+    pub fn loadouts(&self) -> &[pob::Loadout] {
+        &self.loadouts
+    }
+
+    pub fn selected_loadout_index(&self) -> Option<usize> {
+        let tree = *self.active_tree.get();
+        let item_set = *self.active_item_set.get();
+        let skill_set = *self.active_skill_set.get();
+
+        self.loadouts.iter().position(|loadout| {
+            loadout.tree_index == tree
+                && loadout.item_set_index == item_set
+                && loadout.skill_set_index == skill_set
+        })
+    }
+
+    pub fn select_loadout(&self, index: usize) {
+        let Some(loadout) = self.loadouts.get(index) else {
+            return;
+        };
+
+        self.active_tree.set(loadout.tree_index);
+        self.active_item_set.set(loadout.item_set_index);
+        self.active_skill_set.set(loadout.skill_set_index);
+    }
 }
 
 impl Build {
@@ -37,12 +74,26 @@ impl Build {
             .iter()
             .position(|spec| spec.active)
             .unwrap_or(0);
+        let active_item_set = pob
+            .item_sets()
+            .iter()
+            .position(|set| set.is_selected)
+            .unwrap_or(0);
+        let active_skill_set = pob
+            .skill_sets()
+            .iter()
+            .position(|set| set.is_selected)
+            .unwrap_or(0);
+        let loadouts = pob.loadouts();
 
         Ok(Self {
             content,
             pob,
             data,
             active_tree: create_rc_signal(active_tree),
+            active_item_set: create_rc_signal(active_item_set),
+            active_skill_set: create_rc_signal(active_skill_set),
+            loadouts,
         })
     }
 
