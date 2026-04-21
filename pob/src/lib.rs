@@ -87,6 +87,14 @@ pub struct SkillSet<'a> {
     pub is_selected: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Loadout {
+    pub name: String,
+    pub tree_index: usize,
+    pub item_set_index: usize,
+    pub skill_set_index: usize,
+}
+
 #[derive(Debug)]
 pub struct Skill<'a> {
     pub is_selected: bool,

@@ -40,6 +40,141 @@ impl SerdePathOfBuilding {
         Self::from_xml(&data)
     }
 
+    pub fn loadouts(&self) -> Vec<crate::Loadout> {
+        use std::collections::HashMap;
+
+        let trees = &self.pob.tree.specs;
+        let item_sets = &self.pob.items.item_sets;
+        let skill_sets = &self.pob.skills.skill_sets;
+
+        if trees.is_empty() || item_sets.is_empty() || skill_sets.is_empty() {
+            return Vec::new();
+        }
+
+        #[derive(Debug)]
+        struct TreeLink {
+            tree_index: usize,
+            title: String,
+            link_id: String,
+        }
+
+        fn default_title(title: Option<&str>) -> &str {
+            title.unwrap_or("Default")
+        }
+
+        fn parse_loadout_link(title: &str) -> Option<Vec<&str>> {
+            let mut search = 0;
+            while let Some(rel_start) = title[search..].find('{') {
+                let start = search + rel_start;
+                let Some(rel_end) = title[start + 1..].find('}') else {
+                    break;
+                };
+                let end = start + 1 + rel_end;
+                let link_ids = &title[start + 1..end];
+                if link_ids.is_empty()
+                    || !link_ids
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b',')
+                {
+                    search = start + 1;
+                    continue;
+                }
+
+                return Some(link_ids.split(',').filter(|id| !id.is_empty()).collect());
+            }
+
+            None
+        }
+
+        fn identify_links<'a, T, F>(
+            sets: &'a [T],
+            title: F,
+        ) -> (HashMap<String, usize>, HashMap<String, usize>)
+        where
+            F: Fn(&'a T) -> Option<&'a str>,
+        {
+            let mut exact = HashMap::new();
+            let mut special = HashMap::new();
+
+            for (index, set) in sets.iter().enumerate() {
+                let title = default_title(title(set));
+                if let Some(link_ids) = parse_loadout_link(title) {
+                    for link_id in link_ids {
+                        special.insert(link_id.to_owned(), index);
+                    }
+                } else {
+                    exact.entry(title.to_owned()).or_insert(index);
+                }
+            }
+
+            (exact, special)
+        }
+
+        // Returns index 0 when there is only one set, otherwise looks up the key.
+        let resolve = |one: bool, map: &HashMap<String, usize>, key: &str| -> usize {
+            if one {
+                0
+            } else {
+                *map.get(key).unwrap()
+            }
+        };
+
+        let one_item = item_sets.len() <= 1;
+        let one_skill = skill_sets.len() <= 1;
+
+        let mut tree_list = Vec::new();
+        let mut tree_links = Vec::new();
+
+        for (index, spec) in trees.iter().enumerate() {
+            let title = default_title(spec.title.as_deref());
+            if let Some(link_ids) = parse_loadout_link(title) {
+                for link_id in link_ids {
+                    tree_links.push(TreeLink {
+                        tree_index: index,
+                        title: title.to_owned(),
+                        link_id: link_id.to_owned(),
+                    });
+                }
+            } else {
+                tree_list.push((title.to_owned(), index));
+            }
+        }
+
+        let (item_exact, item_special) = identify_links(item_sets, |set| set.title.as_deref());
+        let (skill_exact, skill_special) = identify_links(skill_sets, |set| set.title.as_deref());
+
+        let mut loadouts = Vec::new();
+
+        for (tree_name, tree_index) in tree_list {
+            if (one_item || item_exact.contains_key(&tree_name))
+                && (one_skill || skill_exact.contains_key(&tree_name))
+            {
+                loadouts.push(crate::Loadout {
+                    name: tree_name.clone(),
+                    tree_index,
+                    item_set_index: resolve(one_item, &item_exact, &tree_name),
+                    skill_set_index: resolve(one_skill, &skill_exact, &tree_name),
+                });
+            }
+        }
+
+        for tree_link in tree_links {
+            let id = &tree_link.link_id;
+            if (one_item || item_special.contains_key(id))
+                && (one_skill || skill_special.contains_key(id))
+            {
+                loadouts.push(crate::Loadout {
+                    name: tree_link.title,
+                    tree_index: tree_link.tree_index,
+                    item_set_index: resolve(one_item, &item_special, id),
+                    skill_set_index: resolve(one_skill, &skill_special, id),
+                });
+            }
+        }
+
+        loadouts
+    }
+
     fn main_skill(&self) -> Option<&Skill> {
         let mut index = self.pob.build.main_socket_group as usize;
         if index < 1 {
@@ -573,5 +708,66 @@ mod tests {
     fn parse_v325_loadouts() {
         let pob = SerdePathOfBuilding::from_xml(V325_LOADOUTS).unwrap();
         assert!(pob.config(Config::PowerCharges).is_true());
+
+        let loadouts = pob.loadouts();
+        assert_eq!(2, loadouts.len());
+        assert_eq!("Default", loadouts[0].name);
+        assert_eq!("test", loadouts[1].name);
+        assert_eq!(1, loadouts[1].tree_index);
+        assert_eq!(1, loadouts[1].item_set_index);
+        assert_eq!(1, loadouts[1].skill_set_index);
+    }
+
+    #[test]
+    fn parse_grouped_loadouts() {
+        static XML: &str = r#"
+<PathOfBuilding>
+    <Build level="1" targetVersion="3_0" className="Scion" ascendClassName="None" mainSocketGroup="1">
+        <PlayerStat stat="AverageDamage" value="1"/>
+    </Build>
+    <Tree activeSpec="1">
+        <Spec title="Leveling {lv}" treeVersion="3_25" classId="0" ascendClassId="0" secondaryAscendClassId="nil" nodes="58833">
+            <URL>https://www.pathofexile.com/passive-skill-tree/AAAABgAAAAAA</URL>
+            <Sockets/>
+            <Overrides/>
+        </Spec>
+        <Spec title="Maps {map}" treeVersion="3_25" classId="0" ascendClassId="0" secondaryAscendClassId="nil" nodes="58833">
+            <URL>https://www.pathofexile.com/passive-skill-tree/AAAABgAAAAAA</URL>
+            <Sockets/>
+            <Overrides/>
+        </Spec>
+    </Tree>
+    <Notes/>
+    <Skills activeSkillSet="1">
+        <SkillSet id="1" title="Main Skills">
+            <Skill enabled="true" mainActiveSkill="1">
+                <Gem nameSpec="Arc" skillId="Arc" gemId="Metadata/Items/Gems/SkillGemArc" level="1" quality="0"/>
+            </Skill>
+        </SkillSet>
+    </Skills>
+    <Items activeItemSet="1">
+        <ItemSet id="1" title="Gear {lv}"/>
+        <ItemSet id="2" title="Gear {map}"/>
+    </Items>
+    <Config activeConfigSet="2">
+        <ConfigSet id="1" title="Config {lv}"/>
+        <ConfigSet id="2" title="Config {map}"/>
+    </Config>
+</PathOfBuilding>
+        "#;
+
+        let pob = SerdePathOfBuilding::from_xml(XML).unwrap();
+        let loadouts = pob.loadouts();
+        assert_eq!(
+            vec!["Leveling {lv}".to_owned(), "Maps {map}".to_owned()],
+            loadouts
+                .iter()
+                .map(|loadout| loadout.name.clone())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(0, loadouts[0].item_set_index);
+        assert_eq!(0, loadouts[0].skill_set_index);
+        assert_eq!(1, loadouts[1].item_set_index);
+        assert_eq!(0, loadouts[1].skill_set_index);
     }
 }
