@@ -102,6 +102,10 @@ impl Build {
         self.active_loadout.item_set.set(Some(id));
     }
 
+    pub fn current_item_set_id(&self) -> Option<ItemSetId> {
+        *self.active_loadout.item_set.get()
+    }
+
     pub fn current_item_set<'a>(&'a self) -> Option<ItemSet<'a>> {
         let id = (*self.active_loadout.item_set.get())?;
         self.pob.item_sets().into_iter().find(|s| s.id == id)
@@ -109,6 +113,10 @@ impl Build {
 
     pub fn set_current_skill_set(&self, id: SkillSetId) {
         self.active_loadout.skill_set.set(Some(id));
+    }
+
+    pub fn current_skill_set_id(&self) -> Option<SkillSetId> {
+        *self.active_loadout.skill_set.get()
     }
 
     pub fn current_skill_set<'a>(&'a self) -> Option<SkillSet<'a>> {

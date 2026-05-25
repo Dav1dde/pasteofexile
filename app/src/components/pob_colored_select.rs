@@ -1,37 +1,46 @@
+use pob::{ItemSet, ItemSetId, SkillSet, SkillSetId, TreeSpec, TreeSpecId};
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlSelectElement;
 
 use super::pob_colored_text::{color_to_style, Style};
-use crate::{
-    consts::SELECT_ONCHANGE_COLOR_FROM_OPTION,
-    pob::formatting::{only_first_color, Color},
-};
+use crate::{consts::SELECT_ONCHANGE_COLOR_FROM_OPTION, pob::formatting::only_first_color};
+
+pub trait SelectItem {
+    type Id: Copy + PartialEq + 'static;
+
+    fn id(&self) -> Self::Id;
+    fn render(&self) -> String;
+}
 
 #[derive(Prop)]
-pub struct PobColoredSelectProps<F> {
-    pub options: Vec<String>, // TODO: this could be Vec<(Color, String)> which would be one less
-    // string clone, or with sycamore-0.8 &str
-    pub selected: Option<usize>,
+pub struct PobColoredSelectProps<T: SelectItem, F> {
+    pub options: Vec<T>,
+    pub selected: Option<T::Id>,
     pub label: &'static str,
     pub on_change: F,
 }
 
 #[component]
-pub fn PobColoredSelect<'a, G: Html, F>(cx: Scope<'a>, props: PobColoredSelectProps<F>) -> View<G>
+pub fn PobColoredSelect<'a, G: Html, T, F>(
+    cx: Scope<'a>,
+    props: PobColoredSelectProps<T, F>,
+) -> View<G>
 where
-    F: Fn(Option<usize>) + 'a,
+    T: SelectItem + 'a,
+    F: Fn(Option<T::Id>) + 'a,
 {
-    let selected_index = props.selected.unwrap_or(0);
+    let raw_options = create_ref(cx, props.options);
 
-    let mut start_color = Color::None;
+    let mut start_style = Style::None;
     let mut options = Vec::new();
-    for (i, content) in props.options.iter().enumerate() {
-        let (color, content) = only_first_color(content);
-        let selected = i == selected_index;
+    for item in raw_options.iter() {
+        let content = item.render();
+        let (color, content) = only_first_color(&content);
+        let selected = Some(item.id()) == props.selected;
 
         if selected {
-            start_color = color;
+            start_style = color_to_style(color);
         }
 
         let v = match color_to_style(color) {
@@ -59,16 +68,14 @@ where
             .unwrap()
             .unchecked_into::<HtmlSelectElement>();
 
-        let index = element.selected_index();
-        let index = if index < 0 {
-            None
-        } else {
-            Some(index as usize)
-        };
-        (props.on_change)(index);
+        let index = element.selected_index().try_into().ok();
+        let id = index
+            .and_then(|index: usize| raw_options.get(index))
+            .map(|item| item.id());
+        (props.on_change)(id);
     };
 
-    let (class, style) = match color_to_style(start_color) {
+    let (class, style) = match start_style {
         Style::Class(class) => (class, String::new()),
         Style::Style(style) => ("", style),
         Style::None => ("", String::new()),
@@ -83,5 +90,45 @@ where
             on:input=on_input,
             onchange=SELECT_ONCHANGE_COLOR_FROM_OPTION
         ) { (options) }
+    }
+}
+
+impl SelectItem for SkillSet<'_> {
+    type Id = SkillSetId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+
+    fn render(&self) -> String {
+        self.title
+            .map(|s| s.to_owned())
+            .unwrap_or_else(|| self.id.0.to_string())
+    }
+}
+
+impl SelectItem for ItemSet<'_> {
+    type Id = ItemSetId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+
+    fn render(&self) -> String {
+        self.title
+            .map(|s| s.to_owned())
+            .unwrap_or_else(|| self.id.0.to_string())
+    }
+}
+
+impl SelectItem for TreeSpec<'_> {
+    type Id = TreeSpecId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+
+    fn render(&self) -> String {
+        self.title.unwrap_or("<Default>").to_owned()
     }
 }

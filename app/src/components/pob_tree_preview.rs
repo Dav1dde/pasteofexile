@@ -441,32 +441,20 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, gv: GameVersion, node: &data
 }
 
 fn render_select<'a, G: GenericNode + Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
-    let trees = create_ref(cx, build.pob().tree_specs());
+    let trees = build.pob().tree_specs();
 
     if trees.len() <= 1 {
         return view! { cx, };
     }
 
-    let options = trees
-        .iter()
-        .map(|t| t.title.unwrap_or("<Default>").to_owned())
-        .collect();
-
-    let selected = create_memo(cx, || {
-        let active = build.active_tree_id();
-        trees.iter().position(|t| Some(t.id) == active)
-    });
-
-    // let selected = trees.iter().position(|t| t.spec.active);
-    let on_change = move |index: Option<usize>| {
-        let tree = index.and_then(|index| trees.get(index));
-        if let Some(tree) = tree {
-            build.set_active_tree(tree.id);
+    let on_change = move |id| {
+        if let Some(id) = id {
+            build.set_active_tree(id);
         }
     };
 
     view! { cx,
-        PobColoredSelect(options=options, selected=*selected.get(), label="Select tree", on_change=on_change)
+        PobColoredSelect(options=trees, selected=build.active_tree_id(), label="Select tree", on_change=on_change)
     }
 }
 

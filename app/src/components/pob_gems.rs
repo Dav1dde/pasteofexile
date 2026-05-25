@@ -23,19 +23,9 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
     let show_select = skill_sets.len() > 1;
 
-    let options = skill_sets
-        .iter()
-        .map(|ss| {
-            ss.title
-                .map(|s| s.to_owned())
-                .unwrap_or_else(|| ss.id.0.to_string())
-        })
-        .collect();
-    let selected = skill_sets.iter().position(|ss| ss.is_selected);
-    let on_change = move |index| {
-        let Some(index) = index else { return };
-        if let Some(ss) = build.skill_sets().into_iter().nth(index) {
-            build.set_current_skill_set(ss.id);
+    let on_change = move |id| {
+        if let Some(id) = id {
+            build.set_current_skill_set(id);
         }
     };
 
@@ -70,7 +60,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         true => {
             view! { cx,
                 div(class="-mb-5") {
-                    PobColoredSelect(options=options, selected=selected, label="Select skill set", on_change=on_change)
+                    PobColoredSelect(options=skill_sets, selected=build.current_skill_set_id(), label="Select skill set", on_change=on_change)
                 }
             }
         }
