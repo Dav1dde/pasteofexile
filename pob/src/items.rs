@@ -467,7 +467,7 @@ fn fixup_item_name(mut name: &str) -> &str {
     //
     // Some content creators use `(` now to add comments/annotations to the item.
     let end = name.find(['[', '(']).unwrap_or(name.len());
-    name[..end].trim()
+    name[..end].trim().trim_start_matches("Foulborn ")
 }
 
 fn extract_magic_base(base: &str, num_mods: usize) -> &str {
