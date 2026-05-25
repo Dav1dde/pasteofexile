@@ -23,8 +23,6 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
     let show_select = skill_sets.len() > 1;
 
-    let content = create_signal(cx, view! { cx, });
-
     let options = skill_sets
         .iter()
         .map(|ss| {
@@ -37,13 +35,16 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let on_change = move |index| {
         let Some(index) = index else { return };
         if let Some(ss) = build.skill_sets().into_iter().nth(index) {
-            content.set(render_skills::<G>(cx, ss.skills, build.data()));
+            build.set_current_skill_set(ss.id);
         }
     };
 
-    if let Some(ss) = skill_sets.into_iter().find(|ss| ss.is_selected) {
-        content.set(render_skills(cx, ss.skills, build.data()));
-    }
+    let content = create_memo(cx, move || {
+        build
+            .current_skill_set()
+            .map(|ss| render_skills(cx, ss.skills, build.data()))
+            .unwrap_or_default()
+    });
 
     let attach = create_signal(cx, None);
     let popup = create_signal(cx, View::default());

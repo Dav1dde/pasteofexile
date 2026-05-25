@@ -1,7 +1,10 @@
 use std::convert::TryFrom;
 
 use itertools::Itertools as _;
-use pob::{ItemSet, ItemSetId, PathOfBuilding, SerdePathOfBuilding, TreeSpec, TreeSpecId};
+use pob::{
+    ItemSet, ItemSetId, PathOfBuilding, SerdePathOfBuilding, SkillSet, SkillSetId, TreeSpec,
+    TreeSpecId,
+};
 use shared::model::data;
 use sycamore::reactive::{create_rc_signal, RcSignal};
 
@@ -43,8 +46,14 @@ impl Build {
             .find_or_first(|s| s.active)
             .map(|s| s.id);
 
-        let active_items = pob
+        let active_item_set = pob
             .item_sets()
+            .into_iter()
+            .find_or_first(|s| s.is_selected)
+            .map(|s| s.id);
+
+        let active_skill_set = pob
+            .skill_sets()
             .into_iter()
             .find_or_first(|s| s.is_selected)
             .map(|s| s.id);
@@ -55,8 +64,8 @@ impl Build {
             data,
             active_loadout: Loadout {
                 tree: create_rc_signal(active_tree),
-                item_set: create_rc_signal(active_items),
-                // skills: create_rc_signal(active_tree),
+                item_set: create_rc_signal(active_item_set),
+                skill_set: create_rc_signal(active_skill_set),
             },
         })
     }
@@ -88,9 +97,7 @@ impl Build {
                 nodes: self.data.nodes.get(index).unwrap_or(&DEFAULT_NODES),
             })
     }
-}
 
-impl Build {
     pub fn set_current_item_set(&self, id: ItemSetId) {
         self.active_loadout.item_set.set(Some(id));
     }
@@ -98,6 +105,15 @@ impl Build {
     pub fn current_item_set<'a>(&'a self) -> Option<ItemSet<'a>> {
         let id = (*self.active_loadout.item_set.get())?;
         self.pob.item_sets().into_iter().find(|s| s.id == id)
+    }
+
+    pub fn set_current_skill_set(&self, id: SkillSetId) {
+        self.active_loadout.skill_set.set(Some(id));
+    }
+
+    pub fn current_skill_set<'a>(&'a self) -> Option<SkillSet<'a>> {
+        let id = (*self.active_loadout.skill_set.get())?;
+        self.pob.skill_sets().into_iter().find(|s| s.id == id)
     }
 }
 
@@ -132,6 +148,7 @@ impl TryFrom<shared::model::Paste> for Build {
 struct Loadout {
     tree: RcSignal<Option<TreeSpecId>>,
     item_set: RcSignal<Option<ItemSetId>>,
+    skill_set: RcSignal<Option<SkillSetId>>,
 }
 
 #[derive(Debug)]
