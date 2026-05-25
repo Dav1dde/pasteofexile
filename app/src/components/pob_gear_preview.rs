@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use pob::PathOfBuilding;
 use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
@@ -21,10 +20,6 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     });
 
     let item_sets = create_ref(cx, build.item_sets());
-
-    let item_set = item_sets.iter().find_or_first(|set| set.is_selected);
-    let item_set = create_signal(cx, item_set);
-
     let options = item_sets
         .iter()
         .map(|item_set| {
@@ -36,17 +31,19 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         .collect();
 
     let selected = item_sets.iter().position(|set| set.is_selected);
-    let on_change = move |index| {
-        let Some(index) = index else { return };
-        item_set.set(item_sets.get(index));
+    let on_change = move |index: Option<usize>| {
+        let id = index.and_then(|index| item_sets.get(index)).map(|s| s.id);
+        if let Some(id) = id {
+            build.set_current_item_set(id);
+        }
     };
 
     let items = create_memo(cx, move || {
-        let item_set = item_set.get();
+        let item_set = build.current_item_set().map(|s| create_ref(cx, s));
         view! { cx,
             PobItemSet(
                 build_=build,
-                item_set=*item_set,
+                item_set=item_set,
                 current_item=current_item,
             )
         }

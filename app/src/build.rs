@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 
-use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec, TreeSpecId};
+use itertools::Itertools as _;
+use pob::{ItemSet, ItemSetId, PathOfBuilding, SerdePathOfBuilding, TreeSpec, TreeSpecId};
 use shared::model::data;
 use sycamore::reactive::{create_rc_signal, RcSignal};
 
@@ -36,14 +37,17 @@ impl Build {
     pub fn new(content: String, data: data::Data) -> crate::Result<Self> {
         let pob = SerdePathOfBuilding::from_export(&content)?;
 
-        let active_tree = {
-            let specs = pob.tree_specs();
-            specs
-                .iter()
-                .find(|s| s.active)
-                .or(specs.first())
-                .map(|s| s.id)
-        };
+        let active_tree = pob
+            .tree_specs()
+            .into_iter()
+            .find_or_first(|s| s.active)
+            .map(|s| s.id);
+
+        let active_items = pob
+            .item_sets()
+            .into_iter()
+            .find_or_first(|s| s.is_selected)
+            .map(|s| s.id);
 
         Ok(Self {
             content,
@@ -51,6 +55,8 @@ impl Build {
             data,
             active_loadout: Loadout {
                 tree: create_rc_signal(active_tree),
+                item_set: create_rc_signal(active_items),
+                // skills: create_rc_signal(active_tree),
             },
         })
     }
@@ -84,6 +90,17 @@ impl Build {
     }
 }
 
+impl Build {
+    pub fn set_current_item_set(&self, id: ItemSetId) {
+        self.active_loadout.item_set.set(Some(id));
+    }
+
+    pub fn current_item_set<'a>(&'a self) -> Option<ItemSet<'a>> {
+        let id = (*self.active_loadout.item_set.get())?;
+        self.pob.item_sets().into_iter().find(|s| s.id == id)
+    }
+}
+
 impl std::ops::Deref for Build {
     type Target = SerdePathOfBuilding;
 
@@ -114,6 +131,7 @@ impl TryFrom<shared::model::Paste> for Build {
 #[derive(Debug)]
 struct Loadout {
     tree: RcSignal<Option<TreeSpecId>>,
+    item_set: RcSignal<Option<ItemSetId>>,
 }
 
 #[derive(Debug)]

@@ -4,10 +4,9 @@ use sycamore::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::HtmlTextAreaElement;
 
-use super::PobGearPreview;
 use crate::{
     build::Build,
-    components::{PobColoredText, PobGems, PobTreePreview},
+    components::{PobColoredText, PobGearPreview, PobGems, PobTreePreview},
     consts::{IMG_ONERROR_HIDDEN, SELF_URL},
     pob::{self, Element},
     utils::{self, view_cond, IteratorExt},
