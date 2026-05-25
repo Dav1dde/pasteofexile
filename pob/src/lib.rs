@@ -49,8 +49,12 @@ pub trait PathOfBuilding {
     fn has_keystone(&self, keystone: Keystone) -> bool;
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TreeSpecId(pub u16);
+
 #[derive(Debug)]
 pub struct TreeSpec<'a> {
+    pub id: TreeSpecId,
     pub title: Option<&'a str>,
     pub url: Option<&'a str>,
     pub version: Option<&'a str>,
@@ -79,9 +83,12 @@ pub struct Override<'a> {
     pub effect: &'a str,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SkillSetId(pub u16);
+
 #[derive(Debug)]
 pub struct SkillSet<'a> {
-    pub id: u16,
+    pub id: SkillSetId,
     pub title: Option<&'a str>,
     pub skills: Vec<Skill<'a>>,
     pub is_selected: bool,
@@ -110,9 +117,12 @@ pub struct Gem<'a> {
     pub is_selected: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ItemSetId(pub u16);
+
+#[derive(Debug)]
 pub struct ItemSet<'a> {
-    pub id: u16,
+    pub id: ItemSetId,
     pub title: Option<&'a str>,
     pub gear: Gear<'a>,
     pub is_selected: bool,

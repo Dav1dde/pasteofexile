@@ -34,13 +34,12 @@ pub fn PobItemSet<'a, 'b, G: Html>(
         .collect_view();
 
     let sockets = create_memo(cx, move || {
-        let index = build.active_tree().get();
         // TODO: maybe this should be displayed next to the tree preview?
-        let mut tree_sockets = if let Some(tree) = build.tree_specs().get(*index) {
-            tree.sockets
+        let mut tree_sockets = if let Some(tree) = build.active_tree() {
+            tree.spec.sockets
                 .iter()
                 // There are items included which are socketed in non activated sockets
-                .filter(|socket| tree.nodes.contains(&socket.node_id))
+                .filter(|socket| tree.spec.nodes.contains(&socket.node_id))
                 .filter_map(|socket| build.item_by_id(socket.item_id))
                 .filter_map(|item| pob::Item::parse(item).ok())
                 .collect_vec()

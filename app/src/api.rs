@@ -2,7 +2,7 @@ use reqwasm::http::{Request, Response};
 use serde::{Deserialize, Serialize};
 use shared::{
     model::{Paste, PasteSummary},
-    PasteId, User, UserPasteId,
+    PasteId, User,
 };
 
 use crate::{Error, Result};
@@ -61,7 +61,8 @@ pub async fn get_paste(id: &PasteId) -> Result<Paste> {
     Ok(resp.json().await?)
 }
 
-pub async fn delete_paste(id: &UserPasteId) -> Result<()> {
+#[cfg(feature = "browser")]
+pub async fn delete_paste(id: &shared::UserPasteId) -> Result<()> {
     let _in_flight = crate::progress::start_request();
     let resp = Request::delete(&id.to_paste_api_url().into_cow())
         .send()

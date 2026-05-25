@@ -1,16 +1,24 @@
 use std::convert::TryFrom;
 
-use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec};
+use pob::{PathOfBuilding, SerdePathOfBuilding, TreeSpec, TreeSpecId};
 use shared::model::data;
 use sycamore::reactive::{create_rc_signal, RcSignal};
 
+/// A purely read-only view into a [`PathOfBuilding`] build.
+#[derive(Debug)]
 pub struct Build {
     // required because access through method does break sycamore
     pub content: String,
     pob: SerdePathOfBuilding,
     data: data::Data,
 
-    active_tree: RcSignal<usize>,
+    /// Currently actively displayed loadout.
+    ///
+    /// Note: this does not represent an actually existing loadout in the build files,
+    /// it is simply the combination of tree, items and skills currently actively being displayed.
+    ///
+    /// This set of data being displayed may happen to match a build defined loadout.
+    active_loadout: Loadout,
 }
 
 impl Build {
@@ -21,10 +29,6 @@ impl Build {
     pub fn data(&self) -> &data::Data {
         &self.data
     }
-
-    pub fn active_tree(&self) -> &RcSignal<usize> {
-        &self.active_tree
-    }
 }
 
 impl Build {
@@ -32,34 +36,51 @@ impl Build {
     pub fn new(content: String, data: data::Data) -> crate::Result<Self> {
         let pob = SerdePathOfBuilding::from_export(&content)?;
 
-        let active_tree = pob
-            .tree_specs()
-            .iter()
-            .position(|spec| spec.active)
-            .unwrap_or(0);
+        let active_tree = {
+            let specs = pob.tree_specs();
+            specs
+                .iter()
+                .find(|s| s.active)
+                .or(specs.first())
+                .map(|s| s.id)
+        };
 
         Ok(Self {
             content,
             pob,
             data,
-            active_tree: create_rc_signal(active_tree),
+            active_loadout: Loadout {
+                tree: create_rc_signal(active_tree),
+            },
         })
     }
+}
 
-    pub fn trees(&self) -> impl Iterator<Item = (&data::Nodes, TreeSpec<'_>)> {
+impl Build {
+    pub fn set_active_tree(&self, id: TreeSpecId) {
+        self.active_loadout.tree.set(Some(id));
+    }
+
+    pub fn active_tree_id(&self) -> Option<TreeSpecId> {
+        *self.active_loadout.tree.get()
+    }
+
+    pub fn active_tree<'a>(&'a self) -> Option<TreeSpecWithNodes<'a>> {
         static DEFAULT_NODES: data::Nodes = data::Nodes {
             keystones: Vec::new(),
             masteries: Vec::new(),
         };
 
-        let nodes = self
-            .data
-            .nodes
-            .iter()
-            .chain(std::iter::repeat(&DEFAULT_NODES));
-        let specs = self.pob.tree_specs().into_iter();
-
-        std::iter::zip(nodes, specs)
+        let id = (*self.active_loadout.tree.get())?;
+        self.pob
+            .tree_specs()
+            .into_iter()
+            .enumerate()
+            .find(|(_, t)| t.id == id)
+            .map(|(index, spec)| TreeSpecWithNodes {
+                spec,
+                nodes: self.data.nodes.get(index).unwrap_or(&DEFAULT_NODES),
+            })
     }
 }
 
@@ -85,4 +106,18 @@ impl TryFrom<shared::model::Paste> for Build {
     fn try_from(paste: shared::model::Paste) -> Result<Self, Self::Error> {
         Self::new(paste.content, paste.data)
     }
+}
+
+/// An arbitrary combination of a Tree, Items and Skills.
+///
+/// A loadout can be show in the UI and loaded from an existing set from the build file.
+#[derive(Debug)]
+struct Loadout {
+    tree: RcSignal<Option<TreeSpecId>>,
+}
+
+#[derive(Debug)]
+pub struct TreeSpecWithNodes<'a> {
+    pub spec: TreeSpec<'a>,
+    pub nodes: &'a data::Nodes,
 }

@@ -15,7 +15,6 @@ use crate::{
 
 #[derive(Debug)]
 struct Tree<'build> {
-    name: String,
     tree_url: String,
     svg_url: &'static str,
     spec: TreeSpec<'build>,
@@ -52,35 +51,33 @@ struct Override<'build> {
 #[component]
 pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     let gv = build.game_version();
-    let trees = build
-        .trees()
-        .filter_map(|(nodes, spec)| {
-            let tree_url = get_tree_url(&spec)?;
-            let svg_url = SvgTree::url(gv, &spec);
-            let overrides = extract_overrides(&spec.overrides);
+
+    let current_tree = create_memo(cx, move || {
+        build.active_tree().and_then(|t| {
+            let tree_url = get_tree_url(&t.spec)?;
+            let svg_url = SvgTree::url(gv, &t.spec);
+            let overrides = extract_overrides(&t.spec.overrides);
+
             Some(Tree {
-                name: spec.title.unwrap_or("<Default>").to_owned(),
                 tree_url,
                 svg_url,
-                spec,
-                nodes,
+                spec: t.spec,
+                nodes: t.nodes,
                 overrides,
             })
         })
-        .collect::<Vec<_>>();
+    });
 
-    if trees.is_empty() {
-        return view! { cx, };
-    }
-
-    let trees = create_ref(cx, trees);
-    let current_tree = create_signal(cx, trees.iter().find_or_first(|t| t.spec.active).unwrap());
     let tree_loaded = create_signal(cx, false);
     let node_ref = create_node_ref(cx);
 
-    let current_svg = create_signal(cx, current_tree.get().svg_url);
+    let current_svg = create_signal(cx, "");
     create_effect(cx, || {
-        let new_svg = current_tree.get().svg_url;
+        let new_svg = (*current_tree.get())
+            .as_ref()
+            .map(|t| t.svg_url)
+            .unwrap_or("");
+
         // Debounce the svg and reset loading state when it changed.
         if new_svg != *current_svg.get() {
             tree_loaded.set(false);
@@ -99,8 +96,12 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             return;
         };
 
+        let current_tree = current_tree.get();
+        let Some(current_tree) = current_tree.as_ref() else {
+            return;
+        };
+
         let item = current_tree
-            .get()
             .socket(id)
             .and_then(|socket| build.item_by_id(socket.item_id))
             .and_then(|item| pob::Item::parse(item).ok());
@@ -113,7 +114,7 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             let kind = dataset.get("kind");
             let name = dataset.get("name").unwrap_or_default();
 
-            let stats = if let Some(mastery) = current_tree.get().mastery(id) {
+            let stats = if let Some(mastery) = current_tree.mastery(id) {
                 vec![mastery.to_owned()]
             } else {
                 dataset
@@ -130,36 +131,41 @@ pub fn PobTreePreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     };
 
     create_effect(cx, move || {
-        let tree = current_tree.get();
+        let current_tree = current_tree.get();
+        let Some(current_tree) = current_tree.as_ref() else {
+            return;
+        };
+
         if !*tree_loaded.get() {
             return;
         }
 
         let s = SvgTree::from_ref(node_ref).unwrap();
-        s.load(&tree.spec);
+        s.load(&current_tree.spec);
 
         events.call_once(|| {
             scoped_event_passive(cx, s.element(), "mouseover", on_mouseover_tree);
         });
     });
 
-    // TODO: this updates the currently active tree, but it doesn't read from it
-    // the select would need to be updated as well if the tree changes, kinda tricky...
-    let select = render_select(cx, trees, move |index, tree| {
-        current_tree.set(tree);
-        build.active_tree().set(index);
-    });
+    let select = render_select(cx, build);
 
-    let nodes = create_memo(cx, move || render_nodes(cx, gv, &current_tree.get()));
+    let nodes = create_memo(cx, move || {
+        render_nodes(cx, gv, (*current_tree.get()).as_ref())
+    });
     let tree_level = create_memo(cx, move || {
         if gv.is_poe2() {
             return View::empty();
         }
         let current_tree = current_tree.get();
+        let Some(current_tree) = current_tree.as_ref() else {
+            return View::empty();
+        };
         let (nodes, level) = resolve_level(build, &current_tree.spec);
+        let tree_url = current_tree.tree_url.clone();
         let desc = format!("Level {level} ({nodes} passives)");
         view! { cx,
-            a(href=current_tree.tree_url, rel="external", target="_blank",
+            a(href=tree_url, rel="external", target="_blank",
             class="text-sky-500 dark:text-sky-400 hover:underline") {
                 (desc)
             }
@@ -290,7 +296,15 @@ fn extract_overrides<'a>(overrides: &[pob::Override<'a>]) -> Vec<Override<'a>> {
         .collect()
 }
 
-fn render_nodes<G: GenericNode + Html>(cx: Scope, gv: GameVersion, tree: &Tree<'_>) -> View<G> {
+fn render_nodes<G: GenericNode + Html>(
+    cx: Scope,
+    gv: GameVersion,
+    tree: Option<&Tree<'_>>,
+) -> View<G> {
+    let Some(tree) = tree else {
+        return View::empty();
+    };
+
     let nodes = tree.nodes;
 
     if gv.is_poe2() {
@@ -426,28 +440,33 @@ fn render_mastery<G: GenericNode + Html>(cx: Scope, gv: GameVersion, node: &data
     }
 }
 
-fn render_select<'a, G: GenericNode + Html, F>(
-    cx: Scope<'a>,
-    trees: &'a [Tree],
-    on_change: F,
-) -> View<G>
-where
-    F: Fn(usize, &'a Tree) + 'a,
-{
+fn render_select<'a, G: GenericNode + Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
+    let trees = create_ref(cx, build.pob().tree_specs());
+
     if trees.len() <= 1 {
         return view! { cx, };
     }
 
-    let options = trees.iter().map(|t| t.name.clone()).collect();
-    let selected = trees.iter().position(|t| t.spec.active);
-    let on_change = move |index| {
-        if let Some(index) = index {
-            on_change(index, &trees[index])
+    let options = trees
+        .iter()
+        .map(|t| t.title.unwrap_or("<Default>").to_owned())
+        .collect();
+
+    let selected = create_memo(cx, || {
+        let active = build.active_tree_id();
+        trees.iter().position(|t| Some(t.id) == active)
+    });
+
+    // let selected = trees.iter().position(|t| t.spec.active);
+    let on_change = move |index: Option<usize>| {
+        let tree = index.and_then(|index| trees.get(index));
+        if let Some(tree) = tree {
+            build.set_active_tree(tree.id);
         }
     };
 
     view! { cx,
-        PobColoredSelect(options=options, selected=selected, label="Select tree", on_change=on_change)
+        PobColoredSelect(options=options, selected=*selected.get(), label="Select tree", on_change=on_change)
     }
 }
 

@@ -30,7 +30,7 @@ pub fn PobGems<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
         .map(|ss| {
             ss.title
                 .map(|s| s.to_owned())
-                .unwrap_or_else(|| ss.id.to_string())
+                .unwrap_or_else(|| ss.id.0.to_string())
         })
         .collect();
     let selected = skill_sets.iter().position(|ss| ss.is_selected);

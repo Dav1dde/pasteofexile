@@ -36,6 +36,7 @@ pub fn PasteToolbox<'a, G: Html>(
             }
         },
         {
+            let _ = on_delete;
             // TODO: show paste identifier/title
             let message = "Are you sure you want to delete this build?".to_owned();
             web_sys::window()

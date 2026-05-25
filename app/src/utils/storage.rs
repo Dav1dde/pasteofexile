@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use wasm_bindgen::UnwrapThrowExt;
 
 /// A tiny abstraction over [`web_sys::Storage`], which resets data on error.
@@ -26,9 +26,10 @@ impl LocalStorage {
         serde_json::from_str(&item).ok()
     }
 
+    #[cfg(feature = "browser")]
     pub fn set<T>(&self, key: &str, value: &T)
     where
-        T: Serialize,
+        T: serde::Serialize,
     {
         let value = serde_json::to_string(value).unwrap_throw();
         let _ = self.0.set_item(key, &value);

@@ -31,7 +31,7 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
             item_set
                 .title
                 .map(|s| s.to_owned())
-                .unwrap_or_else(|| item_set.id.to_string())
+                .unwrap_or_else(|| item_set.id.0.to_string())
         })
         .collect();
 

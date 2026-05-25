@@ -106,7 +106,7 @@ impl RoutedComponent for UserPastePage {
 
 #[component]
 fn UserPastePageComponent<G: Html>(
-    cx: Scope,
+    cx: Scope<'_>,
     UserPastePage {
         id,
         title,

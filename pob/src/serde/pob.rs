@@ -1,7 +1,9 @@
 use shared::{Ascendancy, Bandit, Class, GameVersion, PantheonMajorGod, PantheonMinorGod};
 
 use crate::serde::model::*;
-use crate::{Config, ConfigValue, Error, Keystone, Result, Stat};
+use crate::{
+    Config, ConfigValue, Error, ItemSetId, Keystone, Result, SkillSetId, Stat, TreeSpecId,
+};
 
 #[derive(Debug)]
 pub struct SerdePathOfBuilding {
@@ -207,7 +209,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             }
 
             return vec![crate::SkillSet {
-                id: 1,
+                id: SkillSetId(1),
                 title: None,
                 skills,
                 is_selected: true,
@@ -219,7 +221,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .skill_sets
             .iter()
             .map(|ss| crate::SkillSet {
-                id: ss.id,
+                id: SkillSetId(ss.id),
                 title: ss.title.as_deref(),
                 skills: to_skills(&ss.skills, main_socket_group),
                 is_selected: self.pob.skills.active_skill_set == Some(ss.id),
@@ -274,7 +276,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
                 };
 
                 crate::ItemSet {
-                    id: set.id,
+                    id: ItemSetId(set.id),
                     title: set.title.as_deref(),
                     gear,
                     is_selected: Some(set.id) == self.pob.items.active_item_set,
@@ -290,6 +292,7 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .iter()
             .enumerate()
             .map(|(i, spec)| crate::TreeSpec {
+                id: TreeSpecId(i as u16),
                 title: spec.title.as_deref(),
                 url: spec.url.as_deref(),
                 version: spec.version.as_deref(),

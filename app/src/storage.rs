@@ -19,6 +19,7 @@ impl Storage {
         PasteList {
             key: "visited",
             storage: &self.0,
+            #[cfg(feature = "browser")]
             max_size: Some(30),
         }
     }
@@ -28,10 +29,12 @@ impl Storage {
 pub struct PasteList<'a> {
     key: &'a str,
     storage: &'a LocalStorage,
+    #[cfg(feature = "browser")]
     max_size: Option<usize>,
 }
 
 impl PasteList<'_> {
+    #[cfg(feature = "browser")]
     pub fn add(&self, summary: PasteSummary) {
         let mut entries = self.get_all();
 

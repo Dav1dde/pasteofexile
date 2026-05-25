@@ -10,7 +10,6 @@ use crate::{
     components::{PobColoredText, PobGems, PobTreePreview},
     consts::{IMG_ONERROR_HIDDEN, SELF_URL},
     pob::{self, Element},
-    storage::Storage,
     utils::{self, view_cond, IteratorExt},
 };
 
@@ -234,7 +233,7 @@ fn push_paste_to_history<G: Html>(
 ) {
     #[cfg(feature = "browser")]
     if G::IS_BROWSER {
-        let storage = use_context::<Storage>(cx);
+        let storage = use_context::<crate::storage::Storage>(cx);
 
         let s = shared::model::PasteSummary {
             id: id.clone(),
@@ -252,5 +251,10 @@ fn push_paste_to_history<G: Html>(
             gloo_timers::future::sleep(std::time::Duration::from_millis(500)).await;
             storage.visited().add(s);
         });
+    }
+
+    #[cfg(not(feature = "browser"))]
+    {
+        let _ = (cx, id, title, last_modified, build);
     }
 }
