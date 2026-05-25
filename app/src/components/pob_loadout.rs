@@ -12,7 +12,7 @@ pub fn PobLoadout<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }];
 
     loadouts.extend(build.pob().loadouts().into_iter().map(|loadout| Loadout {
-        name: get_name(build, loadout),
+        name: get_name(build.pob(), loadout),
         loadout: Some(loadout),
     }));
 
@@ -46,8 +46,17 @@ pub fn PobLoadout<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     }
 }
 
-fn get_name(build: &Build, loadout: pob::Loadout) -> String {
+fn get_name(build: &impl PathOfBuilding, loadout: pob::Loadout) -> String {
     if let Some(title) = build.tree_spec_by_id(loadout.tree).and_then(|t| t.title) {
+        return title.to_owned();
+    }
+    if let Some(title) = build
+        .skill_set_by_id(loadout.skill_set)
+        .and_then(|t| t.title)
+    {
+        return title.to_owned();
+    }
+    if let Some(title) = build.item_set_by_id(loadout.item_set).and_then(|t| t.title) {
         return title.to_owned();
     }
 

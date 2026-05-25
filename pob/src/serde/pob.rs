@@ -198,6 +198,18 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
         })
     }
 
+    fn skill_set_by_id(&self, id: SkillSetId) -> Option<crate::SkillSet<'_>> {
+        let ss = self.pob.skills.skill_sets.iter().find(|ss| ss.id == id.0)?;
+        let main_socket_group = self.pob.build.main_socket_group as usize; // starts at 1
+
+        Some(crate::SkillSet {
+            id: SkillSetId(ss.id),
+            title: ss.title.as_deref(),
+            skills: to_skills(&ss.skills, main_socket_group),
+            is_selected: self.pob.skills.active_skill_set == Some(ss.id),
+        })
+    }
+
     fn skill_sets(&self) -> Vec<crate::SkillSet<'_>> {
         let main_socket_group = self.pob.build.main_socket_group as usize; // starts at 1
 
@@ -236,6 +248,48 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .items
             .get(&id)
             .map(|item| item.content.content.as_str())
+    }
+
+    fn item_set_by_id(&self, id: ItemSetId) -> Option<crate::ItemSet<'_>> {
+        let item = |id| {
+            self.pob
+                .items
+                .items
+                .get(&id)
+                .map(|item| item.content.content.as_str())
+        };
+
+        let set = self.pob.items.item_sets.iter().find(|set| set.id == id.0)?;
+
+        let gear = &set.gear;
+        let gear = crate::Gear {
+            weapon1: gear.weapon1.and_then(item),
+            weapon2: gear.weapon2.and_then(item),
+            helmet: gear.helmet.and_then(item),
+            body_armour: gear.body_armour.and_then(item),
+            gloves: gear.gloves.and_then(item),
+            boots: gear.boots.and_then(item),
+            amulet: gear.amulet.and_then(item),
+            ring1: gear.ring1.and_then(item),
+            ring2: gear.ring2.and_then(item),
+            belt: gear.belt.and_then(item),
+            flask1: gear.flask1.and_then(item),
+            flask2: gear.flask2.and_then(item),
+            flask3: gear.flask3.and_then(item),
+            flask4: gear.flask4.and_then(item),
+            flask5: gear.flask5.and_then(item),
+            charm1: gear.charm1.and_then(item),
+            charm2: gear.charm2.and_then(item),
+            charm3: gear.charm3.and_then(item),
+            sockets: gear.sockets.iter().filter_map(|&id| item(id)).collect(),
+        };
+
+        Some(crate::ItemSet {
+            id: ItemSetId(set.id),
+            title: set.title.as_deref(),
+            gear,
+            is_selected: Some(set.id) == self.pob.items.active_item_set,
+        })
     }
 
     fn item_sets(&self) -> Vec<crate::ItemSet<'_>> {

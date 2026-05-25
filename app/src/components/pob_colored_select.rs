@@ -94,6 +94,11 @@ where
         if let Some(idx) = idx {
             if let Some(select) = utils::try_from_ref::<web_sys::HtmlSelectElement>(select) {
                 select.set_value(&idx.to_string());
+                // Hacky way to get the select to update colors, by calling the function which is
+                // already bound to `onchange`.
+                if let Some(func) = select.onchange() {
+                    let _ = func.call0(&select);
+                }
             }
         }
     });

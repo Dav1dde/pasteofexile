@@ -40,9 +40,11 @@ pub trait PathOfBuilding {
     fn main_skill_supported_by(&self, skill: &str) -> bool;
 
     fn skill_sets(&self) -> Vec<SkillSet<'_>>;
+    fn skill_set_by_id(&self, id: SkillSetId) -> Option<SkillSet<'_>>;
 
     fn item_by_id(&self, id: u16) -> Option<&str>;
     fn item_sets(&self) -> Vec<ItemSet<'_>>;
+    fn item_set_by_id(&self, id: ItemSetId) -> Option<ItemSet<'_>>;
 
     fn tree_specs(&self) -> Vec<TreeSpec<'_>>;
     fn tree_spec_by_id(&self, id: TreeSpecId) -> Option<TreeSpec<'_>>;
