@@ -20,6 +20,7 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     });
 
     let item_sets = build.item_sets();
+    let selected = create_selector(cx, || build.current_item_set_id());
     let on_change = move |id| {
         if let Some(id) = id {
             build.set_current_item_set(id);
@@ -56,7 +57,7 @@ pub fn PobGearPreview<'a, G: Html>(cx: Scope<'a>, build: &'a Build) -> View<G> {
     view! { cx,
         Popup(attach=attach, parent=None) { (&*popup.get()) }
         div(class=select_classes) {
-            PobColoredSelect(options=item_sets, selected=build.current_item_set_id(), label="Select gear set", on_change=on_change)
+            PobColoredSelect(options=item_sets, selected=selected, label="Select gear set", on_change=on_change)
         }
         div(class="flex flex-col justify-center mt-5 sm:px-3",
             on:mouseover=mouseover,

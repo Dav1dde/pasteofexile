@@ -4,7 +4,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlSelectElement;
 
 use super::pob_colored_text::{color_to_style, Style};
-use crate::{consts::SELECT_ONCHANGE_COLOR_FROM_OPTION, pob::formatting::only_first_color};
+use crate::{consts::SELECT_ONCHANGE_COLOR_FROM_OPTION, pob::formatting::only_first_color, utils};
 
 pub trait SelectItem {
     type Id: Copy + PartialEq + 'static;
@@ -14,9 +14,9 @@ pub trait SelectItem {
 }
 
 #[derive(Prop)]
-pub struct PobColoredSelectProps<T: SelectItem, F> {
+pub struct PobColoredSelectProps<'a, T: SelectItem, F> {
     pub options: Vec<T>,
-    pub selected: Option<T::Id>,
+    pub selected: &'a ReadSignal<Option<T::Id>>,
     pub label: &'static str,
     pub on_change: F,
 }
@@ -24,7 +24,7 @@ pub struct PobColoredSelectProps<T: SelectItem, F> {
 #[component]
 pub fn PobColoredSelect<'a, G: Html, T, F>(
     cx: Scope<'a>,
-    props: PobColoredSelectProps<T, F>,
+    props: PobColoredSelectProps<'a, T, F>,
 ) -> View<G>
 where
     T: SelectItem + 'a,
@@ -34,10 +34,11 @@ where
 
     let mut start_style = Style::None;
     let mut options = Vec::new();
-    for item in raw_options.iter() {
+    for (i, item) in raw_options.iter().enumerate() {
         let content = item.render();
         let (color, content) = only_first_color(&content);
-        let selected = Some(item.id()) == props.selected;
+
+        let selected = Some(item.id()) == *props.selected.get();
 
         if selected {
             start_style = color_to_style(color);
@@ -45,15 +46,15 @@ where
 
         let v = match color_to_style(color) {
             Style::Class(class) => {
-                view! { cx, option(selected=selected, class=class) { (content) } }
+                view! { cx, option(selected=selected, value=i, class=class) { (content) } }
             }
             Style::Style(style) => {
-                view! { cx, option(selected=selected, style=style) { (content) } }
+                view! { cx, option(selected=selected, value=i, style=style) { (content) } }
             }
             Style::None => {
                 // Use "default" color here to make sure
                 // the option doesnt inherit the color from the select.
-                view! { cx, option(selected=selected, class="text-slate-300") { (content) } }
+                view! { cx, option(selected=selected, value=i, class="text-slate-300") { (content) } }
             }
         };
 
@@ -82,13 +83,30 @@ where
     };
     let class = format!("sm:ml-3 mt-1 mb-2 px-1 max-w-full {class}");
 
+    let select = create_node_ref(cx);
+
+    create_effect(cx, move || {
+        let selected = *props.selected.get();
+        let idx = raw_options
+            .iter()
+            .position(|item| Some(item.id()) == selected);
+
+        if let Some(idx) = idx {
+            if let Some(select) = utils::try_from_ref::<web_sys::HtmlSelectElement>(select) {
+                select.set_value(&idx.to_string());
+            }
+        }
+    });
+
     view! { cx,
         select(
+            ref=select,
             class=class,
             style=style,
             aria-label=props.label,
             on:input=on_input,
-            onchange=SELECT_ONCHANGE_COLOR_FROM_OPTION
+            onchange=SELECT_ONCHANGE_COLOR_FROM_OPTION,
+            autocomplete="off",
         ) { (options) }
     }
 }

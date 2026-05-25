@@ -6,7 +6,7 @@ use web_sys::HtmlTextAreaElement;
 
 use crate::{
     build::Build,
-    components::{PobColoredText, PobGearPreview, PobGems, PobTreePreview},
+    components::{PobColoredText, PobGearPreview, PobGems, PobLoadout, PobTreePreview},
     consts::{IMG_ONERROR_HIDDEN, SELF_URL},
     pob::{self, Element},
     utils::{self, view_cond, IteratorExt},
@@ -70,6 +70,12 @@ pub fn ViewPaste<'a, G: Html>(
         }
     });
 
+    let loadout = view_cond!(cx, has_loadout(build.pob()), {
+        div(class="basis-full mb-12") {
+            h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-12 border-b border-solid") { "Loadout" }
+            PobLoadout(build)
+        }
+    });
     let notes = view_cond!(cx, !build.notes().is_empty(), {
         div(class="flex-auto") {
             h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 mt-24 border-b border-solid") { "Notes" }
@@ -190,6 +196,7 @@ pub fn ViewPaste<'a, G: Html>(
                 }
             }
         }
+        (loadout)
         div(class="flex flex-wrap gap-x-10 gap-y-16") {
             div(class="flex-auto w-60") {
                 h2(class="text-lg dark:text-slate-100 text-slate-900 mb-2 border-b border-solid") { "Gear" }
@@ -211,6 +218,10 @@ fn render<G: Html>(cx: Scope, elements: Vec<Element>) -> View<G> {
         .into_iter()
         .filter_map(|e| e.render_to_view(cx))
         .collect_view()
+}
+
+fn has_loadout(pob: &impl PathOfBuilding) -> bool {
+    pob.loadouts().len() > 1
 }
 
 fn has_displayable_tree(pob: &impl PathOfBuilding) -> bool {

@@ -765,6 +765,8 @@ dependencies = [
  "base64",
  "encoding",
  "flate2",
+ "indexmap",
+ "itertools",
  "quick-xml",
  "serde",
  "serde_path_to_error",

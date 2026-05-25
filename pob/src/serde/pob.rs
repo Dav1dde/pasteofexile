@@ -285,43 +285,21 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
             .collect()
     }
 
+    fn tree_spec_by_id(&self, id: TreeSpecId) -> Option<crate::TreeSpec<'_>> {
+        self.pob
+            .tree
+            .specs
+            .get(id.0 as usize)
+            .map(|spec| to_tree_spec(id, spec, self.pob.tree.active_spec))
+    }
+
     fn tree_specs(&self) -> Vec<crate::TreeSpec<'_>> {
         self.pob
             .tree
             .specs
             .iter()
             .enumerate()
-            .map(|(i, spec)| crate::TreeSpec {
-                id: TreeSpecId(i as u16),
-                title: spec.title.as_deref(),
-                url: spec.url.as_deref(),
-                version: spec.version.as_deref(),
-                class_id: spec.class_id,
-                ascendancy_id: spec.ascend_class_id,
-                alternate_ascendancy_id: spec.secondary_ascend_class_id,
-                nodes: &spec.nodes,
-                sockets: spec
-                    .sockets
-                    .sockets
-                    .iter()
-                    .map(|s| crate::Socket {
-                        node_id: s.node_id,
-                        item_id: s.item_id,
-                    })
-                    .collect(),
-                overrides: spec
-                    .overrides
-                    .overrides
-                    .iter()
-                    .map(|o| crate::Override {
-                        node_id: o.node_id,
-                        name: &o.name,
-                        effect: &o.effect,
-                    })
-                    .collect(),
-                mastery_effects: &spec.mastery_effects,
-                active: self.pob.tree.active_spec as usize == i + 1,
-            })
+            .map(|(i, spec)| to_tree_spec(TreeSpecId(i as u16), spec, self.pob.tree.active_spec))
             .collect()
     }
 
@@ -340,6 +318,67 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
 
     fn has_keystone(&self, keystone: Keystone) -> bool {
         self.has_tree_node(keystone.node()) || self.has_keystone_on_gear(keystone)
+    }
+
+    fn loadouts(&self) -> Vec<crate::Loadout> {
+        #[derive(Copy, Clone, Default)]
+        struct Temp {
+            tree: Option<usize>,
+            skill_set: Option<u16>,
+            item_set: Option<u16>,
+        }
+
+        // Use defaults if there is only a single set. This allows for partially defined loadouts,
+        // where only 1 or two categories are filled out.
+        //
+        // The main use case is loadouts which only define trees and gems with a single gear set.
+        let def = Temp {
+            tree: (self.pob.tree.specs.len() == 1).then_some(0),
+            skill_set: (self.pob.skills.skill_sets.len() == 1)
+                .then_some(self.pob.skills.skill_sets[0].id),
+            item_set: (self.pob.items.item_sets.len() == 1)
+                .then_some(self.pob.items.item_sets[0].id),
+        };
+        let mut loadouts = indexmap::IndexMap::<_, Temp>::new();
+
+        macro_rules! set {
+            ($name:expr, $field: ident, $id:expr) => {
+                // On duplicate entries, last one wins, that's okay.
+                for identifier in loadout_identifiers($name) {
+                    loadouts.entry(identifier).or_insert(def).$field = Some($id);
+                }
+            };
+        }
+
+        for (i, tree) in self.pob.tree.specs.iter().enumerate() {
+            let Some(title) = &tree.title else {
+                continue;
+            };
+            set!(title, tree, i);
+        }
+        for skill_set in &self.pob.skills.skill_sets {
+            let Some(title) = &skill_set.title else {
+                continue;
+            };
+            set!(title, skill_set, skill_set.id);
+        }
+        for item_set in &self.pob.items.item_sets {
+            let Some(title) = &item_set.title else {
+                continue;
+            };
+            set!(title, item_set, item_set.id);
+        }
+
+        loadouts
+            .into_values()
+            .filter_map(|t| {
+                Some(crate::Loadout {
+                    tree: TreeSpecId(t.tree? as u16),
+                    skill_set: SkillSetId(t.skill_set?),
+                    item_set: ItemSetId(t.item_set?),
+                })
+            })
+            .collect()
     }
 }
 
@@ -427,6 +466,52 @@ fn to_skill(skill: &Skill, is_selected: bool) -> crate::Skill<'_> {
         is_selected,
         is_enabled: skill.enabled,
     }
+}
+
+fn to_tree_spec(id: TreeSpecId, spec: &Spec, active_spec: u8) -> crate::TreeSpec<'_> {
+    crate::TreeSpec {
+        id,
+        title: spec.title.as_deref(),
+        url: spec.url.as_deref(),
+        version: spec.version.as_deref(),
+        class_id: spec.class_id,
+        ascendancy_id: spec.ascend_class_id,
+        alternate_ascendancy_id: spec.secondary_ascend_class_id,
+        nodes: &spec.nodes,
+        sockets: spec
+            .sockets
+            .sockets
+            .iter()
+            .map(|s| crate::Socket {
+                node_id: s.node_id,
+                item_id: s.item_id,
+            })
+            .collect(),
+        overrides: spec
+            .overrides
+            .overrides
+            .iter()
+            .map(|o| crate::Override {
+                node_id: o.node_id,
+                name: &o.name,
+                effect: &o.effect,
+            })
+            .collect(),
+        mastery_effects: &spec.mastery_effects,
+        active: active_spec as u16 == id.0 + 1,
+    }
+}
+
+fn loadout_identifiers(name: &str) -> impl Iterator<Item = &str> {
+    let Some((_, alternates)) = name.split_once('{') else {
+        return itertools::Either::Left(std::iter::once(name));
+    };
+
+    let Some((alterantes, _)) = alternates.split_once('}') else {
+        return itertools::Either::Left(std::iter::once(name));
+    };
+
+    itertools::Either::Right(alterantes.trim().split(','))
 }
 
 #[cfg(test)]

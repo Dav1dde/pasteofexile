@@ -45,8 +45,11 @@ pub trait PathOfBuilding {
     fn item_sets(&self) -> Vec<ItemSet<'_>>;
 
     fn tree_specs(&self) -> Vec<TreeSpec<'_>>;
+    fn tree_spec_by_id(&self, id: TreeSpecId) -> Option<TreeSpec<'_>>;
     fn has_tree_node(&self, node: u32) -> bool;
     fn has_keystone(&self, keystone: Keystone) -> bool;
+
+    fn loadouts(&self) -> Vec<Loadout>;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -149,6 +152,13 @@ pub struct Gear<'a> {
     pub charm2: Option<&'a str>,
     pub charm3: Option<&'a str>,
     pub sockets: Vec<&'a str>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Loadout {
+    pub tree: TreeSpecId,
+    pub skill_set: SkillSetId,
+    pub item_set: ItemSetId,
 }
 
 pub trait PathOfBuildingExt: PathOfBuilding {

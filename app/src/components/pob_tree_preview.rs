@@ -447,6 +447,7 @@ fn render_select<'a, G: GenericNode + Html>(cx: Scope<'a>, build: &'a Build) -> 
         return view! { cx, };
     }
 
+    let selected = create_selector(cx, || build.active_tree_id());
     let on_change = move |id| {
         if let Some(id) = id {
             build.set_active_tree(id);
@@ -454,7 +455,7 @@ fn render_select<'a, G: GenericNode + Html>(cx: Scope<'a>, build: &'a Build) -> 
     };
 
     view! { cx,
-        PobColoredSelect(options=trees, selected=build.active_tree_id(), label="Select tree", on_change=on_change)
+        PobColoredSelect(options=trees, selected=selected, label="Select tree", on_change=on_change)
     }
 }
 
