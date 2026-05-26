@@ -325,7 +325,7 @@ pub fn choices(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     if pob.game_version().is_poe1() {
         let bandit = pob
             .bandit()
-            .map(|bandit| bandit.name())
+            .map(|bandit| bandit.as_str())
             .unwrap_or("Kill All");
 
         Element::new("Bandit")
@@ -335,8 +335,8 @@ pub fn choices(pob: &impl PathOfBuilding) -> Vec<Element<'_>> {
     }
 
     let pantheons = [
-        pob.pantheon_major_god().map(|god| god.name()),
-        pob.pantheon_minor_god().map(|god| god.name()),
+        pob.pantheon_major_god().map(|god| god.as_str()),
+        pob.pantheon_minor_god().map(|god| god.as_str()),
     ]
     .into_iter()
     .flatten()

@@ -41,95 +41,80 @@ impl GameVersion {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Class {
-    Duelist,
-    Marauder,
-    Ranger,
-    Scion,
-    Shadow,
-    Templar,
-    Witch,
-
-    // PoE 2
-    Warrior,
-    Mercenary,
-    Huntress,
-    Monk,
-    Sorceress,
-    Druid,
-}
-
-impl Class {
-    pub fn all() -> [Self; 13] {
-        [
-            Self::Duelist,
-            Self::Marauder,
-            Self::Ranger,
-            Self::Scion,
-            Self::Shadow,
-            Self::Templar,
-            Self::Witch,
-            Self::Warrior,
-            Self::Mercenary,
-            Self::Huntress,
-            Self::Monk,
-            Self::Sorceress,
-            Self::Druid,
-        ]
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Duelist => "Duelist",
-            Self::Marauder => "Marauder",
-            Self::Ranger => "Ranger",
-            Self::Scion => "Scion",
-            Self::Shadow => "Shadow",
-            Self::Templar => "Templar",
-            Self::Witch => "Witch",
-
-            Self::Warrior => "Warrior",
-            Self::Mercenary => "Mercenary",
-            Self::Huntress => "Huntress",
-            Self::Monk => "Monk",
-            Self::Sorceress => "Sorceress",
-            Self::Druid => "Druid",
+macro_rules! string_enum {
+    (
+        enum $name:ident {
+            $(
+                $(#[$variant_attr:meta])*
+                $variant:ident $(($display:literal))? $(| $alias:literal)*
+            ),+ $(,)?
         }
-    }
+
+        error = $error:literal;
+    ) => {
+        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+        pub enum $name {
+            $(
+                $(#[$variant_attr])*
+                $variant,
+            )+
+        }
+
+        impl $name {
+            pub fn all() -> &'static [Self] {
+                &[$(Self::$variant,)+]
+            }
+
+            pub fn as_str(&self) -> &'static str {
+                match self {
+                    $(Self::$variant => string_enum!(@display $variant $($display)?),)+
+                }
+            }
+        }
+
+        impl FromStr for $name {
+            type Err = Invalid;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                $(
+                    if s == string_enum!(@display $variant $($display)?)
+                        $(|| s == $alias)*
+                    {
+                        return Ok(Self::$variant);
+                    }
+                )+
+                Err(Invalid($error))
+            }
+        }
+    };
+    (@display $variant:ident $display:literal) => {
+        $display
+    };
+    (@display $variant:ident) => {
+        stringify!($variant)
+    };
 }
 
-impl FromStr for Class {
-    type Err = Invalid;
+string_enum! {
+    enum Class {
+        Duelist | "StrDex",
+        Marauder | "Str",
+        Ranger | "Dex",
+        Scion | "StrDexInt",
+        Shadow | "DexInt",
+        Templar | "StrInt",
+        Witch | "Int",
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Dex" => Self::Ranger,
-            "DexInt" => Self::Shadow,
-            "Int" => Self::Witch,
-            "Str" => Self::Marauder,
-            "StrDex" => Self::Duelist,
-            "StrDexInt" => Self::Scion,
-            "StrInt" => Self::Templar,
-
-            "Duelist" => Self::Duelist,
-            "Marauder" => Self::Marauder,
-            "Ranger" => Self::Ranger,
-            "Scion" => Self::Scion,
-            "Shadow" => Self::Shadow,
-            "Templar" => Self::Templar,
-            "Witch" => Self::Witch,
-
-            "Warrior" => Self::Warrior,
-            "Mercenary" => Self::Mercenary,
-            "Huntress" => Self::Huntress,
-            "Monk" => Self::Monk,
-            "Sorceress" => Self::Sorceress,
-            "Druid" => Self::Druid,
-
-            _ => return Err(Invalid("Class")),
-        })
+        // PoE 2
+        Warrior,
+        Mercenary,
+        Huntress,
+        Monk,
+        Sorceress,
+        Druid,
     }
+
+    error = "Class";
 }
 
 impl std::ops::BitOr for Class {
@@ -176,7 +161,7 @@ impl std::fmt::Debug for ClassSet {
         write!(f, "ClassSet(")?;
 
         let mut first = true;
-        for class in Class::all() {
+        for &class in Class::all() {
             if self.contains(class) {
                 if !first {
                     write!(f, " | ")?;
@@ -226,274 +211,91 @@ impl FromIterator<Class> for ClassSet {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Ascendancy {
-    Ascendant,
-    Assassin,
-    Berserker,
-    Champion,
-    Chieftain,
-    Deadeye,
-    Elementalist,
-    Gladiator,
-    Guardian,
-    Hierophant,
-    Inquisitor,
-    Juggernaut,
-    Necromancer,
-    Occultist,
-    Pathfinder,
-    Raider,
-    Warden,
-    Saboteur,
-    Slayer,
-    Trickster,
-    Reliquarian,
+macro_rules! ascendancy {
+    ($($variant:ident $(($name:literal))? => $class:ident),+ $(,)?) => {
+        string_enum! {
+            enum Ascendancy {
+                $($variant $(($name))?,)+
+            }
+
+            error = "Ascendancy";
+        }
+
+        impl Ascendancy {
+            pub fn class(&self) -> Class {
+                match self {
+                    $(Self::$variant => Class::$class,)+
+                }
+            }
+        }
+    };
+}
+
+ascendancy!(
+    Ascendant => Scion,
+    Assassin => Shadow,
+    Berserker => Marauder,
+    Champion => Duelist,
+    Chieftain => Marauder,
+    Deadeye => Ranger,
+    Elementalist => Witch,
+    Gladiator => Duelist,
+    Guardian => Templar,
+    Hierophant => Templar,
+    Inquisitor => Templar,
+    Juggernaut => Marauder,
+    Necromancer => Witch,
+    Occultist => Witch,
+    Pathfinder => Ranger,
+    Raider => Ranger,
+    Warden => Ranger,
+    Saboteur => Shadow,
+    Slayer => Duelist,
+    Trickster => Shadow,
+    Reliquarian => Scion,
 
     // PoE 2
-    BloodMage,
-    Infernalist,
-    Lich,
-    AbyssalLich,
-    Titan,
-    Warbringer,
-    SmithOfKitava,
-    WitchHunter,
-    GemlingLegionnaire,
-    Tactician,
-    Ritualist,
-    Amazon,
-    Invoker,
-    AcolyteOfChayula,
-    Stormweaver,
-    Chronomancer,
-    DiscipleOfVarashta,
-    Oracle,
-    Shaman,
+    BloodMage("Blood Mage") => Witch,
+    Infernalist => Witch,
+    Lich => Witch,
+    AbyssalLich("Abyssal Lich") => Witch,
+    Titan => Warrior,
+    Warbringer => Warrior,
+    SmithOfKitava("Smith of Kitava") => Warrior,
+    WitchHunter("Witchhunter") => Mercenary,
+    GemlingLegionnaire("Gemling Legionnaire") => Mercenary,
+    Tactician => Mercenary,
+    Ritualist => Huntress,
+    Amazon => Huntress,
+    Invoker => Monk,
+    AcolyteOfChayula("Acolyte of Chayula") => Monk,
+    Stormweaver => Sorceress,
+    Chronomancer => Sorceress,
+    DiscipleOfVarashta("Disciple of Varashta") => Sorceress,
+    Oracle => Druid,
+    Shaman => Druid,
 
     // Legacy of Phrecia
-    Antiquarian,
-    Behemoth,
-    AncestralCommander,
-    Gambler,
-    Paladin,
-    Aristocrat,
-    ServantOfArakaali,
-    Surfcaster,
-    BlindProphet,
-    DaughterOfOshabi,
-    Whisperer,
-    Wildspeaker,
-    Harbinger,
-    Herald,
-    BogShaman,
-    ArchitectOfChaos,
-    Polytheist,
-    Puppeteer,
-    Scavenger,
-}
-
-impl Ascendancy {
-    pub fn class(&self) -> Class {
-        match self {
-            Self::Ascendant => Class::Scion,
-            Self::Assassin => Class::Shadow,
-            Self::Berserker => Class::Marauder,
-            Self::Champion => Class::Duelist,
-            Self::Chieftain => Class::Marauder,
-            Self::Deadeye => Class::Ranger,
-            Self::Elementalist => Class::Witch,
-            Self::Gladiator => Class::Duelist,
-            Self::Guardian => Class::Templar,
-            Self::Hierophant => Class::Templar,
-            Self::Inquisitor => Class::Templar,
-            Self::Juggernaut => Class::Marauder,
-            Self::Necromancer => Class::Witch,
-            Self::Occultist => Class::Witch,
-            Self::Pathfinder => Class::Ranger,
-            Self::Raider => Class::Ranger,
-            Self::Warden => Class::Ranger,
-            Self::Saboteur => Class::Shadow,
-            Self::Slayer => Class::Duelist,
-            Self::Trickster => Class::Shadow,
-            Self::Reliquarian => Class::Scion,
-            Self::BloodMage => Class::Witch,
-            Self::Infernalist => Class::Witch,
-            Self::Lich => Class::Witch,
-            Self::AbyssalLich => Class::Witch,
-            Self::Titan => Class::Warrior,
-            Self::Warbringer => Class::Warrior,
-            Self::SmithOfKitava => Class::Warrior,
-            Self::WitchHunter => Class::Mercenary,
-            Self::GemlingLegionnaire => Class::Mercenary,
-            Self::Tactician => Class::Mercenary,
-            Self::Ritualist => Class::Huntress,
-            Self::Amazon => Class::Huntress,
-            Self::Invoker => Class::Monk,
-            Self::AcolyteOfChayula => Class::Monk,
-            Self::Stormweaver => Class::Sorceress,
-            Self::Chronomancer => Class::Sorceress,
-            Self::DiscipleOfVarashta => Class::Sorceress,
-            Self::Oracle => Class::Druid,
-            Self::Shaman => Class::Druid,
-            Self::Antiquarian => Class::Marauder,
-            Self::Behemoth => Class::Marauder,
-            Self::AncestralCommander => Class::Marauder,
-            Self::Gambler => Class::Duelist,
-            Self::Paladin => Class::Duelist,
-            Self::Aristocrat => Class::Duelist,
-            Self::ServantOfArakaali => Class::Shadow,
-            Self::Surfcaster => Class::Shadow,
-            Self::BlindProphet => Class::Shadow,
-            Self::DaughterOfOshabi => Class::Ranger,
-            Self::Whisperer => Class::Ranger,
-            Self::Wildspeaker => Class::Ranger,
-            Self::Harbinger => Class::Witch,
-            Self::Herald => Class::Witch,
-            Self::BogShaman => Class::Witch,
-            Self::ArchitectOfChaos => Class::Templar,
-            Self::Polytheist => Class::Templar,
-            Self::Puppeteer => Class::Templar,
-            Self::Scavenger => Class::Scion,
-        }
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Ascendant => "Ascendant",
-            Self::Assassin => "Assassin",
-            Self::Berserker => "Berserker",
-            Self::Champion => "Champion",
-            Self::Chieftain => "Chieftain",
-            Self::Deadeye => "Deadeye",
-            Self::Elementalist => "Elementalist",
-            Self::Gladiator => "Gladiator",
-            Self::Guardian => "Guardian",
-            Self::Hierophant => "Hierophant",
-            Self::Inquisitor => "Inquisitor",
-            Self::Juggernaut => "Juggernaut",
-            Self::Necromancer => "Necromancer",
-            Self::Occultist => "Occultist",
-            Self::Pathfinder => "Pathfinder",
-            Self::Raider => "Raider",
-            Self::Warden => "Warden",
-            Self::Saboteur => "Saboteur",
-            Self::Slayer => "Slayer",
-            Self::Trickster => "Trickster",
-            Self::Reliquarian => "Reliquarian",
-            Self::BloodMage => "Blood Mage",
-            Self::Infernalist => "Infernalist",
-            Self::Lich => "Lich",
-            Self::AbyssalLich => "Abyssal Lich",
-            Self::Titan => "Titan",
-            Self::Warbringer => "Warbringer",
-            Self::SmithOfKitava => "Smith of Kitava",
-            Self::WitchHunter => "Witchhunter",
-            Self::GemlingLegionnaire => "Gemling Legionnaire",
-            Self::Tactician => "Tactician",
-            Self::Ritualist => "Ritualist",
-            Self::Amazon => "Amazon",
-            Self::Invoker => "Invoker",
-            Self::AcolyteOfChayula => "Acolyte of Chayula",
-            Self::Stormweaver => "Stormweaver",
-            Self::Chronomancer => "Chronomancer",
-            Self::DiscipleOfVarashta => "Disciple of Varashta",
-            Self::Oracle => "Oracle",
-            Self::Shaman => "Shaman",
-            Self::Antiquarian => "Antiquarian",
-            Self::Behemoth => "Behemoth",
-            Self::AncestralCommander => "Ancestral Commander",
-            Self::Gambler => "Gambler",
-            Self::Paladin => "Paladin",
-            Self::Aristocrat => "Aristocrat",
-            Self::ServantOfArakaali => "Servant of Arakaali",
-            Self::Surfcaster => "Surfcaster",
-            Self::BlindProphet => "Blind Prophet",
-            Self::DaughterOfOshabi => "Daughter of Oshabi",
-            Self::Whisperer => "Whisperer",
-            Self::Wildspeaker => "Wildspeaker",
-            Self::Harbinger => "Harbinger",
-            Self::Herald => "Herald",
-            Self::BogShaman => "Bog Shaman",
-            Self::ArchitectOfChaos => "Architect of Chaos",
-            Self::Polytheist => "Polytheist",
-            Self::Puppeteer => "Puppeteer",
-            Self::Scavenger => "Scavenger",
-        }
-    }
-}
-
-impl FromStr for Ascendancy {
-    type Err = Invalid;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Ascendant" => Self::Ascendant,
-            "Assassin" => Self::Assassin,
-            "Berserker" => Self::Berserker,
-            "Champion" => Self::Champion,
-            "Chieftain" => Self::Chieftain,
-            "Deadeye" => Self::Deadeye,
-            "Elementalist" => Self::Elementalist,
-            "Gladiator" => Self::Gladiator,
-            "Guardian" => Self::Guardian,
-            "Hierophant" => Self::Hierophant,
-            "Inquisitor" => Self::Inquisitor,
-            "Juggernaut" => Self::Juggernaut,
-            "Necromancer" => Self::Necromancer,
-            "Occultist" => Self::Occultist,
-            "Pathfinder" => Self::Pathfinder,
-            "Raider" => Self::Raider,
-            "Warden" => Self::Warden,
-            "Saboteur" => Self::Saboteur,
-            "Slayer" => Self::Slayer,
-            "Trickster" => Self::Trickster,
-            "Reliquarian" => Self::Reliquarian,
-
-            "Blood Mage" => Self::BloodMage,
-            "Infernalist" => Self::Infernalist,
-            "Lich" => Self::Lich,
-            "Abyssal Lich" => Self::AbyssalLich,
-            "Titan" => Self::Titan,
-            "Warbringer" => Self::Warbringer,
-            "Smith of Kitava" => Self::SmithOfKitava,
-            "Witchhunter" => Self::WitchHunter,
-            "Gemling Legionnaire" => Self::GemlingLegionnaire,
-            "Tactician" => Self::Tactician,
-            "Ritualist" => Self::Ritualist,
-            "Amazon" => Self::Amazon,
-            "Invoker" => Self::Invoker,
-            "Acolyte of Chayula" => Self::AcolyteOfChayula,
-            "Stormweaver" => Self::Stormweaver,
-            "Chronomancer" => Self::Chronomancer,
-            "Disciple of Varashta" => Self::DiscipleOfVarashta,
-            "Oracle" => Self::Oracle,
-            "Shaman" => Self::Shaman,
-
-            "Antiquarian" => Self::Antiquarian,
-            "Behemoth" => Self::Behemoth,
-            "Ancestral Commander" => Self::AncestralCommander,
-            "Gambler" => Self::Gambler,
-            "Paladin" => Self::Paladin,
-            "Aristocrat" => Self::Aristocrat,
-            "Servant of Arakaali" => Self::ServantOfArakaali,
-            "Surfcaster" => Self::Surfcaster,
-            "Blind Prophet" => Self::BlindProphet,
-            "Daughter of Oshabi" => Self::DaughterOfOshabi,
-            "Whisperer" => Self::Whisperer,
-            "Wildspeaker" => Self::Wildspeaker,
-            "Harbinger" => Self::Harbinger,
-            "Herald" => Self::Herald,
-            "Bog Shaman" => Self::BogShaman,
-            "Architect of Chaos" => Self::ArchitectOfChaos,
-            "Polytheist" => Self::Polytheist,
-            "Puppeteer" => Self::Puppeteer,
-            "Scavenger" => Self::Scavenger,
-
-            _ => return Err(Invalid("Ascendancy")),
-        })
-    }
-}
+    Antiquarian => Marauder,
+    Behemoth => Marauder,
+    AncestralCommander("Ancestral Commander") => Marauder,
+    Gambler => Duelist,
+    Paladin => Duelist,
+    Aristocrat => Duelist,
+    ServantOfArakaali("Servant of Arakaali") => Shadow,
+    Surfcaster => Shadow,
+    BlindProphet("Blind Prophet") => Shadow,
+    DaughterOfOshabi("Daughter of Oshabi") => Ranger,
+    Whisperer => Ranger,
+    Wildspeaker => Ranger,
+    Harbinger => Witch,
+    Herald => Witch,
+    BogShaman("Bog Shaman") => Witch,
+    ArchitectOfChaos("Architect of Chaos") => Templar,
+    Polytheist => Templar,
+    Puppeteer => Templar,
+    Scavenger => Scion,
+);
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(untagged)]
@@ -544,112 +346,40 @@ impl FromStr for AscendancyOrClass {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PantheonMajorGod {
-    BrineKing,
-    Lunaris,
-    Solaris,
-    Arakaali,
-}
-
-impl PantheonMajorGod {
-    pub fn name(self) -> &'static str {
-        match self {
-            Self::BrineKing => "Soul of the Brine King",
-            Self::Lunaris => "Soul of Lunaris",
-            Self::Solaris => "Soul of Solaris",
-            Self::Arakaali => "Soul of Arakaali",
-        }
+string_enum! {
+    enum PantheonMajorGod {
+        BrineKing("Soul of the Brine King") | "TheBrineKing",
+        Lunaris("Soul of Lunaris") | "Lunaris",
+        Solaris("Soul of Solaris") | "Solaris",
+        Arakaali("Soul of Arakaali") | "Arakaali",
     }
+
+    error = "Pantheon Major God";
 }
 
-impl FromStr for PantheonMajorGod {
-    type Err = Invalid;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "TheBrineKing" => Self::BrineKing,
-            "Lunaris" => Self::Lunaris,
-            "Solaris" => Self::Solaris,
-            "Arakaali" => Self::Arakaali,
-            _ => return Err(Invalid("Pantheon Major God")),
-        })
+string_enum! {
+    enum PantheonMinorGod {
+        Gruthkul("Soul of Gruthkul") | "Gruthkul",
+        Yugul("Soul of Yugul") | "Lunaris",
+        Abberath("Soul of Abberath") | "Solaris",
+        Tukohama("Soul of Tukohama") | "Tukohama",
+        Garukhan("Soul of Garukhan") | "Garukhan",
+        Ralakesh("Soul of Ralakesh") | "Ralakesh",
+        Ryslatha("Soul of Ryslatha") | "Ryslatha",
+        Shakari("Soul of Shakari") | "Shakari",
     }
+
+    error = "Pantheon Minor God";
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PantheonMinorGod {
-    Gruthkul,
-    Yugul,
-    Abberath,
-    Tukohama,
-    Garukhan,
-    Ralakesh,
-    Ryslatha,
-    Shakari,
-}
-
-impl PantheonMinorGod {
-    pub fn name(self) -> &'static str {
-        match self {
-            Self::Gruthkul => "Soul of Gruthkul",
-            Self::Yugul => "Soul of Yugul",
-            Self::Abberath => "Soul of Abberath",
-            Self::Tukohama => "Soul of Tukohama",
-            Self::Garukhan => "Soul of Garukhan",
-            Self::Ralakesh => "Soul of Ralakesh",
-            Self::Ryslatha => "Soul of Ryslatha",
-            Self::Shakari => "Soul of Shakari",
-        }
+string_enum! {
+    enum Bandit {
+        Alira,
+        Kraityn,
+        Oak,
     }
-}
 
-impl FromStr for PantheonMinorGod {
-    type Err = Invalid;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Gruthkul" => Self::Gruthkul,
-            "Lunaris" => Self::Yugul,
-            "Solaris" => Self::Abberath,
-            "Tukohama" => Self::Tukohama,
-            "Garukhan" => Self::Garukhan,
-            "Ralakesh" => Self::Ralakesh,
-            "Ryslatha" => Self::Ryslatha,
-            "Shakari" => Self::Shakari,
-            _ => return Err(Invalid("Pantheon Minor God")),
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Bandit {
-    Alira,
-    Kraityn,
-    Oak,
-}
-
-impl Bandit {
-    pub fn name(self) -> &'static str {
-        match self {
-            Bandit::Alira => "Alira",
-            Bandit::Kraityn => "Kraityn",
-            Bandit::Oak => "Oak",
-        }
-    }
-}
-
-impl FromStr for Bandit {
-    type Err = Invalid;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Alira" => Self::Alira,
-            "Kraityn" => Self::Kraityn,
-            "Oak" => Self::Oak,
-            _ => return Err(Invalid("Bandit")),
-        })
-    }
+    error = "Bandit";
 }
 
 #[cfg(test)]
@@ -672,5 +402,33 @@ mod tests {
             ClassSet::from_u16(0b0001000001000001)
         );
         assert_eq!(ClassSet::all(), ClassSet::from_u16(0b01111111111111));
+    }
+
+    #[test]
+    fn test_class_from_str_aliases() {
+        assert_eq!("Dex".parse::<Class>().unwrap(), Class::Ranger);
+        assert_eq!("DexInt".parse::<Class>().unwrap(), Class::Shadow);
+        assert_eq!("StrDexInt".parse::<Class>().unwrap(), Class::Scion);
+        assert_eq!("Warrior".parse::<Class>().unwrap(), Class::Warrior);
+    }
+
+    #[test]
+    fn test_pantheon_names_and_parse_tokens() {
+        assert_eq!(
+            PantheonMajorGod::BrineKing.as_str(),
+            "Soul of the Brine King"
+        );
+        assert_eq!(
+            "TheBrineKing".parse::<PantheonMajorGod>().unwrap(),
+            PantheonMajorGod::BrineKing
+        );
+        assert_eq!(
+            "Lunaris".parse::<PantheonMinorGod>().unwrap(),
+            PantheonMinorGod::Yugul
+        );
+        assert_eq!(
+            "Soul of Lunaris".parse::<PantheonMajorGod>().unwrap(),
+            PantheonMajorGod::Lunaris
+        );
     }
 }
