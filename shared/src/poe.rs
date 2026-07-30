@@ -253,6 +253,7 @@ ascendancy!(
     Slayer => Duelist,
     Trickster => Shadow,
     Reliquarian => Scion,
+    Luminary => Scion,
 
     // PoE 2
     BloodMage("Blood Mage") => Witch,
