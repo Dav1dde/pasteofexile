@@ -389,9 +389,8 @@ impl crate::PathOfBuilding for SerdePathOfBuilding {
         let def = Temp {
             tree: (self.pob.tree.specs.len() == 1).then_some(0),
             skill_set: (self.pob.skills.skill_sets.len() == 1)
-                .then_some(self.pob.skills.skill_sets[0].id),
-            item_set: (self.pob.items.item_sets.len() == 1)
-                .then_some(self.pob.items.item_sets[0].id),
+                .then(|| self.pob.skills.skill_sets[0].id),
+            item_set: (self.pob.items.item_sets.len() == 1).then(|| self.pob.items.item_sets[0].id),
         };
         let mut loadouts = indexmap::IndexMap::<_, Temp>::new();
 
@@ -715,5 +714,11 @@ mod tests {
     fn parse_v325_loadouts() {
         let pob = SerdePathOfBuilding::from_xml(V325_LOADOUTS).unwrap();
         assert!(pob.config(Config::PowerCharges).is_true());
+    }
+
+    #[test]
+    fn loadouts_on_old_export_without_skill_sets() {
+        let pob = SerdePathOfBuilding::from_xml(V316_EMPTY).unwrap();
+        assert!(pob.loadouts().is_empty());
     }
 }
