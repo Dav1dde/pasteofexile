@@ -46,6 +46,8 @@ pub fn ascendancy_image(ascendancy_or_class: AscendancyOrClass) -> &'static str 
         1, AscendancyOrClass::Ascendancy(Ascendancy::Occultist) => Int_Occultist,
         1, AscendancyOrClass::Ascendancy(Ascendancy::Pathfinder) => Dex_Pathfinder,
         1, AscendancyOrClass::Ascendancy(Ascendancy::Raider) => Dex_Raider,
+        1, AscendancyOrClass::Ascendancy(Ascendancy::Reliquarian) => StrDexInt_Reliquarian,
+        1, AscendancyOrClass::Ascendancy(Ascendancy::Luminary) => StrDexInt_Luminary,
         2, AscendancyOrClass::Ascendancy(Ascendancy::BloodMage) => IntFour_Witch2,
         2, AscendancyOrClass::Ascendancy(Ascendancy::Infernalist) => IntFour_Witch1,
         2, AscendancyOrClass::Ascendancy(Ascendancy::Titan) => StrFourb_Warrior1,
