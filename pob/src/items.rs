@@ -504,9 +504,9 @@ fn extract_magic_base(base: &str, num_mods: usize) -> &str {
 ///
 /// This is an inaccurate way of determining whether a name is a base or not.
 ///
-/// Most bases are 2 words with the exception of shields, jewels and talismans.
+/// Most bases are 2 words with the exception of shields, jewels, flasks and talismans.
 /// Shields always are 3 words, abyss and cluster jewels are always 3 words,
-/// talismans are mixed.
+/// life, mana and hybrid flasks are always 3 words, talismans are mixed.
 ///
 /// This ignores talismans and just assumes talismans are 2 words.
 ///
@@ -521,6 +521,9 @@ fn may_be_full_base(name: &str) -> bool {
     let words = if name.ends_with("Shield")
         || name.ends_with("Cluster Jewel")
         || name.ends_with("Abyss Jewel")
+        || name.ends_with("Life Flask")
+        || name.ends_with("Mana Flask")
+        || name.ends_with("Hybrid Flask")
     {
         3
     } else {
@@ -554,6 +557,27 @@ Removes Curses on use"#,
         assert_eq!(item.base, "Grand Life Flask");
         assert_eq!(item.enchants().count(), 0);
         assert_eq!(item.implicits().count(), 0);
+        assert_eq!(item.explicits().count(), 2);
+    }
+
+    #[test]
+    fn magic_three_word_flask_suffix_only_keeps_full_base() {
+        // #42: life, mana and hybrid flask bases are 3 words, a magic flask
+        // with only a suffix (plus a crafted mod) must keep the full base.
+        let item = Item::parse(
+            r#"Rarity: MAGIC
+Grand Life Flask of Warding
+Crafted: true
+Suffix: {range:0.5}FlaskCurseImmunity1
+Quality: 20
+LevelReq: 34
+Implicits: 0
+Removes Curses on use
++25% increased Charge Recovery"#,
+        )
+        .unwrap();
+
+        assert_eq!(item.base, "Grand Life Flask");
         assert_eq!(item.explicits().count(), 2);
     }
 
