@@ -36,7 +36,8 @@ pub fn PobItemSet<'a, 'b, G: Html>(
     let sockets = create_memo(cx, move || {
         // TODO: maybe this should be displayed next to the tree preview?
         let mut tree_sockets = if let Some(tree) = build.active_tree() {
-            tree.spec.sockets
+            tree.spec
+                .sockets
                 .iter()
                 // There are items included which are socketed in non activated sockets
                 .filter(|socket| tree.spec.nodes.contains(&socket.node_id))

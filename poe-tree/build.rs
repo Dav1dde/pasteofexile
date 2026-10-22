@@ -87,9 +87,9 @@ fn generate(data: &SkillTreeData, output: &mut dyn Write) -> anyhow::Result<()> 
             None
         };
         let icon = icon
-                .map(|icon| icon.strip_suffix(".png").unwrap_or(icon))
+            .map(|icon| icon.strip_suffix(".png").unwrap_or(icon))
             // files on the cdn are lowercase (directly extracted from the bundle)
-                .map(|icon| icon.to_lowercase());
+            .map(|icon| icon.to_lowercase());
 
         let n = format!(
             r#"Node {{ 
